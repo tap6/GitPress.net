@@ -54,6 +54,21 @@ export default async function LoginPage() {
         <p className="mt-8 text-center text-xs text-neutral-400">
           登录方式与 GitHub 仓库授权相互独立,你可以用 Google 登录后再接入 GitHub。
         </p>
+        {providerIds.includes("github") && (
+          <p className="mt-2 text-center text-xs text-neutral-400">
+            已经授权过的浏览器点击「使用 GitHub 登录」会直接免确认登入。想切换到另一个
+            GitHub 账号?先去{" "}
+            <a
+              href="https://github.com/logout"
+              target="_blank"
+              rel="noreferrer"
+              className="underline hover:text-neutral-600"
+            >
+              github.com 退出登录
+            </a>{" "}
+            再回来点登录。
+          </p>
+        )}
       </div>
     </div>
   );

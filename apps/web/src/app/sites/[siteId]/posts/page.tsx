@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { deletePostAction } from "@/lib/actions";
+import { ProgressButton } from "@/components/ProgressButton";
 import { listPosts } from "@/lib/content";
 import { getInstallationOctokit } from "@/lib/github";
 import { requireSite } from "@/lib/sites";
@@ -82,7 +83,13 @@ export default async function PostsPage({
                   <form action={deletePostAction}>
                     <input type="hidden" name="siteId" value={site.id} />
                     <input type="hidden" name="path" value={post.path} />
-                    <button className="text-xs text-red-500 hover:underline">删除</button>
+                    <ProgressButton
+                      expectedSeconds={3}
+                      pendingLabel="删除中"
+                      className="text-xs text-red-500 hover:underline"
+                    >
+                      删除
+                    </ProgressButton>
                   </form>
                 </td>
               </tr>

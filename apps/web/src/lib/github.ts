@@ -1,5 +1,5 @@
 import { App, Octokit } from "octokit";
-import { generateKeyPairSync } from "node:crypto";
+import { randomBytes } from "node:crypto";
 import nacl from "tweetnacl";
 import { blake2b } from "blakejs";
 
@@ -239,25 +239,57 @@ export async function deleteFile(
 // Deploy keys, Actions secrets, Pages
 // ---------------------------------------------------------------------------
 
-/** Generate an ed25519 keypair: PKCS8 PEM private key + OpenSSH public key. */
+/**
+ * Generate an ed25519 keypair as a real OpenSSH-formatted deploy key.
+ *
+ * IMPORTANT: OpenSSH's ssh/ssh-keygen only accept ed25519 private keys in the
+ * native "openssh-key-v1" container — it does NOT accept generic PKCS8 PEM for
+ * this key type ("Load key ...: invalid format"). Node's crypto module can
+ * only export PKCS8, so we build the OpenSSH v1 blob by hand (unencrypted,
+ * cipher/kdf "none") per PROTOCOL.key. This is what actually lets the build
+ * action authenticate over SSH when pushing the compiled site.
+ */
 export function generateDeployKeyPair(): { privatePem: string; publicOpenSsh: string } {
-  const { publicKey, privateKey } = generateKeyPairSync("ed25519");
-  const privatePem = privateKey.export({ type: "pkcs8", format: "pem" }).toString();
+  const { publicKey, secretKey } = nacl.sign.keyPair();
+  const pub = Buffer.from(publicKey); // 32 bytes
+  const priv = Buffer.from(secretKey); // 64 bytes: 32-byte seed + 32-byte pubkey
+  const keyType = Buffer.from("ssh-ed25519", "ascii");
 
-  // OpenSSH wire format: len("ssh-ed25519") + "ssh-ed25519" + len(key) + 32-byte key
-  const jwk = publicKey.export({ format: "jwk" }) as { x: string };
-  const raw = Buffer.from(jwk.x, "base64url");
-  const type = Buffer.from("ssh-ed25519", "ascii");
-  const wire = Buffer.concat([
-    uint32(type.length),
-    type,
-    uint32(raw.length),
-    raw,
+  const pubWire = Buffer.concat([sshString(keyType), sshString(pub)]);
+  const publicOpenSsh = `ssh-ed25519 ${pubWire.toString("base64")} gitpress-deploy`;
+
+  const comment = Buffer.from("gitpress-deploy", "utf8");
+  const checkint = randomBytes(4);
+  let privateBlock = Buffer.concat([
+    checkint,
+    checkint,
+    sshString(keyType),
+    sshString(pub),
+    sshString(priv),
+    sshString(comment),
   ]);
-  return {
-    privatePem,
-    publicOpenSsh: `ssh-ed25519 ${wire.toString("base64")} gitpress-deploy`,
-  };
+  // Unencrypted ("none" cipher) blocks pad to 8 bytes with sequential 1,2,3,...
+  const padLen = (8 - (privateBlock.length % 8)) % 8;
+  privateBlock = Buffer.concat([
+    privateBlock,
+    Buffer.from(Array.from({ length: padLen }, (_, i) => i + 1)),
+  ]);
+
+  const none = Buffer.from("none", "ascii");
+  const body = Buffer.concat([
+    Buffer.from("openssh-key-v1\0", "binary"),
+    sshString(none), // ciphername
+    sshString(none), // kdfname
+    sshString(Buffer.alloc(0)), // kdfoptions
+    uint32(1), // number of keys
+    sshString(pubWire),
+    sshString(privateBlock),
+  ]);
+
+  const lines = body.toString("base64").match(/.{1,70}/g) ?? [];
+  const privatePem = `-----BEGIN OPENSSH PRIVATE KEY-----\n${lines.join("\n")}\n-----END OPENSSH PRIVATE KEY-----\n`;
+
+  return { privatePem, publicOpenSsh };
 }
 
 function uint32(value: number): Buffer {
@@ -266,6 +298,12 @@ function uint32(value: number): Buffer {
   return buffer;
 }
 
+function sshString(buf: Buffer): Buffer {
+  return Buffer.concat([uint32(buf.length), buf]);
+}
+
+const DEPLOY_KEY_TITLE = "GitPress deploy key";
+
 export async function addDeployKey(
   octokit: Octokit,
   ref: RepoRef,
@@ -273,10 +311,23 @@ export async function addDeployKey(
 ): Promise<void> {
   await octokit.request("POST /repos/{owner}/{repo}/keys", {
     ...ref,
-    title: "GitPress deploy key",
+    title: DEPLOY_KEY_TITLE,
     key: publicOpenSsh,
     read_only: false,
   });
+}
+
+/** Remove any previously-added GitPress deploy keys (used when rotating a broken/old key). */
+export async function removeDeployKeys(octokit: Octokit, ref: RepoRef): Promise<void> {
+  const { data: keys } = await octokit.request("GET /repos/{owner}/{repo}/keys", { ...ref });
+  for (const key of keys) {
+    if (key.title === DEPLOY_KEY_TITLE) {
+      await octokit.request("DELETE /repos/{owner}/{repo}/keys/{key_id}", {
+        ...ref,
+        key_id: key.id,
+      });
+    }
+  }
 }
 
 /** NaCl sealed box (libsodium crypto_box_seal): what GitHub expects for secrets. */

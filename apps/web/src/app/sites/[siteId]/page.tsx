@@ -3,6 +3,8 @@ import { rebuildAction } from "@/lib/actions";
 import { listPosts } from "@/lib/content";
 import { getInstallationOctokit, listBuildRuns, splitRepo } from "@/lib/github";
 import { requireSite } from "@/lib/sites";
+import { BuildStatusPoller, RunElapsed } from "@/components/BuildStatus";
+import { ProgressButton } from "@/components/ProgressButton";
 
 export const metadata = { title: "仪表盘" };
 
@@ -30,9 +32,11 @@ export default async function SiteDashboard({
   ]);
   const published = posts.filter((post) => !post.draft).length;
   const drafts = posts.length - published;
+  const hasRunningBuild = runs.some((run) => run.conclusion == null);
 
   return (
     <div className="max-w-4xl">
+      <BuildStatusPoller active={hasRunningBuild} />
       <h1 className="text-2xl font-normal text-neutral-800">仪表盘</h1>
 
       {created && (
@@ -78,14 +82,27 @@ export default async function SiteDashboard({
             </Link>
             <form action={rebuildAction}>
               <input type="hidden" name="siteId" value={site.id} />
-              <button className="text-wp-accent hover:underline">↻ 手动触发重新构建</button>
+              <ProgressButton
+                expectedSeconds={5}
+                pendingLabel="触发中"
+                className="text-wp-accent hover:underline"
+              >
+                ↻ 手动触发重新构建
+              </ProgressButton>
             </form>
           </div>
         </div>
 
         {/* Recent builds */}
         <div className="rounded border border-neutral-200 bg-white shadow-sm">
-          <h2 className="border-b border-neutral-100 px-5 py-3 text-sm font-semibold">最近构建</h2>
+          <h2 className="flex items-center justify-between border-b border-neutral-100 px-5 py-3 text-sm font-semibold">
+            最近构建
+            {hasRunningBuild && (
+              <span className="text-xs font-normal text-neutral-400">
+                通常 1–2 分钟完成 · 本页每 5 秒自动刷新
+              </span>
+            )}
+          </h2>
           <div className="p-5 text-sm">
             {runs.length === 0 ? (
               <p className="text-neutral-400">暂无构建记录。</p>
@@ -110,7 +127,11 @@ export default async function SiteDashboard({
                             : "text-neutral-400"
                       }
                     >
-                      {run.conclusion ? (RUN_LABEL[run.conclusion] ?? run.conclusion) : "进行中…"}
+                      {run.conclusion ? (
+                        (RUN_LABEL[run.conclusion] ?? run.conclusion)
+                      ) : (
+                        <RunElapsed createdAt={run.createdAt} />
+                      )}
                     </span>
                   </li>
                 ))}

@@ -14,7 +14,7 @@ import {
   uploadMedia,
 } from "./content";
 import { getInstallationOctokit } from "./github";
-import { provisionSite, triggerRebuild } from "./provision";
+import { provisionSite, rotateDeployKey, triggerRebuild } from "./provision";
 import { requireSite, requireUser } from "./sites";
 import { getBuiltinTheme } from "./themes";
 
@@ -267,4 +267,17 @@ export async function rebuildAction(formData: FormData): Promise<void> {
   const { site, installation } = await requireSite(siteId);
   await triggerRebuild(installation.installationId, site.dataRepo);
   revalidatePath(`/sites/${siteId}`);
+}
+
+/**
+ * Regenerates the deploy key (fixes sites created before the OpenSSH
+ * key-format fix, where the site repo never actually received a build)
+ * and kicks off a fresh build.
+ */
+export async function rotateDeployKeyAction(formData: FormData): Promise<void> {
+  const siteId = String(formData.get("siteId"));
+  const { site, installation } = await requireSite(siteId);
+  await rotateDeployKey(installation.installationId, site.dataRepo, site.siteRepo);
+  revalidatePath(`/sites/${siteId}`);
+  revalidatePath(`/sites/${siteId}/settings`);
 }

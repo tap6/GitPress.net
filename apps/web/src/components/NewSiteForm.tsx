@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { createSiteAction, type CreateSiteState } from "@/lib/actions";
+import { ProgressButton } from "@/components/ProgressButton";
 import type { BuiltinTheme } from "@/lib/themes";
 
 interface Props {
@@ -11,7 +12,7 @@ interface Props {
 }
 
 export function NewSiteForm({ installations, themes, connectMoreUrl }: Props) {
-  const [state, formAction, pending] = useActionState<CreateSiteState, FormData>(
+  const [state, formAction] = useActionState<CreateSiteState, FormData>(
     createSiteAction,
     {},
   );
@@ -142,13 +143,13 @@ export function NewSiteForm({ installations, themes, connectMoreUrl }: Props) {
         <p className="rounded-md bg-red-50 p-3 text-sm text-red-600">{state.error}</p>
       )}
 
-      <button
-        type="submit"
-        disabled={pending}
-        className="w-full rounded-md bg-gp-brand px-6 py-3 font-semibold text-white hover:opacity-90 disabled:opacity-50"
+      <ProgressButton
+        expectedSeconds={20}
+        pendingLabel="正在初始化仓库与首次构建"
+        className="w-full rounded-md bg-gp-brand px-6 py-3 font-semibold text-white hover:opacity-90"
       >
-        {pending ? "正在初始化仓库与首次构建…(约 30 秒)" : "创建站点"}
-      </button>
+        创建站点
+      </ProgressButton>
     </form>
   );
 }

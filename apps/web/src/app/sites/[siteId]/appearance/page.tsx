@@ -1,4 +1,5 @@
 import { saveThemeOptionsAction, switchThemeAction } from "@/lib/actions";
+import { ProgressButton } from "@/components/ProgressButton";
 import { BUILTIN_THEMES, getBuiltinTheme } from "@/lib/themes";
 import { requireSite } from "@/lib/sites";
 
@@ -60,9 +61,13 @@ export default async function AppearancePage({
                   <form action={switchThemeAction} className="mt-3">
                     <input type="hidden" name="siteId" value={site.id} />
                     <input type="hidden" name="theme" value={theme.name} />
-                    <button className="rounded border border-wp-accent px-3 py-1 text-xs text-wp-accent hover:bg-wp-accent hover:text-white">
+                    <ProgressButton
+                      expectedSeconds={5}
+                      pendingLabel="切换中"
+                      className="rounded border border-wp-accent px-3 py-1 text-xs text-wp-accent hover:bg-wp-accent hover:text-white"
+                    >
                       启用
-                    </button>
+                    </ProgressButton>
                   </form>
                 )}
               </div>
@@ -98,9 +103,13 @@ export default async function AppearancePage({
                 )}
               </label>
             ))}
-            <button className="rounded bg-wp-accent px-4 py-2 font-medium text-white hover:bg-wp-accent-dark">
+            <ProgressButton
+              expectedSeconds={5}
+              pendingLabel="保存中"
+              className="rounded bg-wp-accent px-4 py-2 font-medium text-white hover:bg-wp-accent-dark"
+            >
               保存并重新构建
-            </button>
+            </ProgressButton>
           </form>
         </div>
       )}

@@ -1,3 +1,5 @@
+import { rotateDeployKeyAction } from "@/lib/actions";
+import { ProgressButton } from "@/components/ProgressButton";
 import { SettingsForm } from "@/components/SettingsForm";
 import { requireSite } from "@/lib/sites";
 
@@ -47,6 +49,30 @@ export default async function SettingsPage({
             后,在数据仓库的 <code className="mx-1 rounded bg-neutral-100 px-1.5 py-0.5">gitpress.json</code>
             中把 <code>site.url</code> 改为你的域名、<code>site.basePath</code> 改为 <code>/</code>。
             详细步骤见文档。
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-6 rounded border border-neutral-200 bg-white shadow-sm">
+        <h2 className="border-b border-neutral-100 px-5 py-3 text-sm font-semibold">故障排查</h2>
+        <div className="space-y-3 p-5 text-sm leading-relaxed text-neutral-600">
+          <p>
+            如果仪表盘的「最近构建」一直显示 <span className="text-red-600">✗ 失败</span>,
+            或者网站仓库始终只有初始的 README(没有随文章更新),通常是发布用的部署密钥格式有问题。
+            点击下面按钮会重新生成部署密钥并立即触发一次重建,不影响你的文章内容。
+          </p>
+          <form action={rotateDeployKeyAction}>
+            <input type="hidden" name="siteId" value={site.id} />
+            <ProgressButton
+              expectedSeconds={8}
+              pendingLabel="重新生成中"
+              className="rounded border border-neutral-300 px-4 py-2 font-medium hover:bg-neutral-50"
+            >
+              重新生成部署密钥并重建
+            </ProgressButton>
+          </form>
+          <p className="text-xs text-neutral-400">
+            完成后仍需等待约 1–2 分钟让 GitHub Actions 跑完构建,可回仪表盘查看「最近构建」状态。
           </p>
         </div>
       </div>

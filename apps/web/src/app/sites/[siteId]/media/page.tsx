@@ -1,4 +1,5 @@
 import { deleteMediaAction, uploadMediaAction } from "@/lib/actions";
+import { ProgressButton } from "@/components/ProgressButton";
 import { listMedia } from "@/lib/content";
 import { getInstallationOctokit } from "@/lib/github";
 import { requireSite } from "@/lib/sites";
@@ -31,9 +32,13 @@ export default async function MediaPage({
       >
         <input type="hidden" name="siteId" value={site.id} />
         <input type="file" name="file" accept="image/*" required className="text-sm" />
-        <button className="rounded bg-wp-accent px-4 py-2 text-sm font-medium text-white hover:bg-wp-accent-dark">
+        <ProgressButton
+          expectedSeconds={8}
+          pendingLabel="上传中"
+          className="rounded bg-wp-accent px-4 py-2 text-sm font-medium text-white hover:bg-wp-accent-dark"
+        >
           上传到数据仓库
-        </button>
+        </ProgressButton>
         <span className="text-xs text-neutral-400">单个文件 ≤ 8MB</span>
       </form>
 
@@ -67,7 +72,13 @@ export default async function MediaPage({
                   <form action={deleteMediaAction}>
                     <input type="hidden" name="siteId" value={site.id} />
                     <input type="hidden" name="path" value={item.path} />
-                    <button className="text-red-500 hover:underline">删除</button>
+                    <ProgressButton
+                      expectedSeconds={3}
+                      pendingLabel="删除中"
+                      className="text-red-500 hover:underline"
+                    >
+                      删除
+                    </ProgressButton>
                   </form>
                 </div>
                 <p className="mt-1 select-all break-all text-[10px] text-neutral-400">

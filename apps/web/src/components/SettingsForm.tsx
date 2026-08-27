@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { saveSettingsAction, type SaveSettingsState } from "@/lib/actions";
+import { ProgressButton } from "@/components/ProgressButton";
 
 interface Props {
   siteId: string;
@@ -9,7 +10,7 @@ interface Props {
 }
 
 export function SettingsForm({ siteId, initial }: Props) {
-  const [state, formAction, pending] = useActionState<SaveSettingsState, FormData>(
+  const [state, formAction] = useActionState<SaveSettingsState, FormData>(
     saveSettingsAction,
     {},
   );
@@ -52,12 +53,13 @@ export function SettingsForm({ siteId, initial }: Props) {
           已保存,站点将在约 1 分钟后更新。
         </p>
       )}
-      <button
-        disabled={pending}
-        className="rounded bg-wp-accent px-4 py-2 font-medium text-white hover:bg-wp-accent-dark disabled:opacity-50"
+      <ProgressButton
+        expectedSeconds={4}
+        pendingLabel="保存中"
+        className="rounded bg-wp-accent px-4 py-2 font-medium text-white hover:bg-wp-accent-dark"
       >
-        {pending ? "保存中…" : "保存更改"}
-      </button>
+        保存更改
+      </ProgressButton>
     </form>
   );
 }

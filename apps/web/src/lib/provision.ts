@@ -8,6 +8,7 @@ import {
   getInstallationOctokit,
   putActionsSecret,
   putFile,
+  removeDeployKeys,
 } from "./github";
 
 export interface ProvisionInput {
@@ -150,6 +151,30 @@ export async function triggerRebuild(installationId: number, dataRepo: string): 
   const octokit = await getInstallationOctokit(installationId);
   const [owner, repo] = dataRepo.split("/");
   await dispatchBuild(octokit, { owner, repo });
+}
+
+/**
+ * Regenerate the SSH deploy key used to publish to the site repository, then
+ * trigger a rebuild. Fixes sites provisioned before the OpenSSH key-format
+ * fix (Node's PKCS8 export is rejected by `ssh` for ed25519 keys, so builds
+ * silently failed at the publish step even though Pages looked "enabled").
+ */
+export async function rotateDeployKey(
+  installationId: number,
+  dataRepo: string,
+  siteRepo: string,
+): Promise<void> {
+  const octokit = await getInstallationOctokit(installationId);
+  const [dOwner, dRepo] = dataRepo.split("/");
+  const [sOwner, sRepo] = siteRepo.split("/");
+  const dataRef = { owner: dOwner, repo: dRepo };
+  const siteRef = { owner: sOwner, repo: sRepo };
+
+  const keys = generateDeployKeyPair();
+  await removeDeployKeys(octokit, siteRef);
+  await addDeployKey(octokit, siteRef, keys.publicOpenSsh);
+  await putActionsSecret(octokit, dataRef, "GITPRESS_DEPLOY_KEY", keys.privatePem);
+  await dispatchBuild(octokit, dataRef);
 }
 
 export function repoOctokit(installationId: number): Promise<Octokit> {

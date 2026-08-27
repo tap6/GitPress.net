@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useActionState } from "react";
 import { savePostAction, type SavePostState } from "@/lib/actions";
+import { ProgressButton } from "@/components/ProgressButton";
 
 interface Props {
   siteId: string;
@@ -19,7 +20,7 @@ interface Props {
 }
 
 export function PostEditor({ siteId, path = "", initial }: Props) {
-  const [state, formAction, pending] = useActionState<SavePostState, FormData>(
+  const [state, formAction] = useActionState<SavePostState, FormData>(
     savePostAction,
     {},
   );
@@ -81,13 +82,13 @@ export function PostEditor({ siteId, path = "", initial }: Props) {
                 className="mt-1 w-full rounded border border-neutral-300 px-2 py-1.5"
               />
             </label>
-            <button
-              type="submit"
-              disabled={pending}
-              className="w-full rounded bg-wp-accent px-4 py-2 font-medium text-white hover:bg-wp-accent-dark disabled:opacity-50"
+            <ProgressButton
+              expectedSeconds={4}
+              pendingLabel="提交中"
+              className="w-full rounded bg-wp-accent px-4 py-2 font-medium text-white hover:bg-wp-accent-dark"
             >
-              {pending ? "提交中…" : path ? "更新" : "发布 / 保存"}
-            </button>
+              {path ? "更新" : "发布 / 保存"}
+            </ProgressButton>
             <Link
               href={`/sites/${siteId}/posts`}
               className="block text-center text-xs text-neutral-400 hover:text-neutral-600"
