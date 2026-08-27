@@ -5,7 +5,7 @@ GitHub Action(composite)。在数据仓库的 workflow 中运行:读取 `gitpres
 ## 用法(数据仓库 workflow)
 
 ```yaml
-- uses: gitpress-net/build-action@v1
+- uses: tap6/build-action@v1
   with:
     site-repo: alice/my-blog-site          # 接收编译产物的公开仓库
     deploy-key: ${{ secrets.GITPRESS_DEPLOY_KEY }}
@@ -16,7 +16,7 @@ GitHub Action(composite)。在数据仓库的 workflow 中运行:读取 `gitpres
 | `site-repo` | 必填,`owner/name`,编译产物推送目标 |
 | `deploy-key` | 对网站仓库有写权限的 SSH deploy key(GitPress 初始化时自动配置) |
 | `site-token` | `deploy-key` 的替代:有 contents 写权限的 token |
-| `themes-repo` | 内置主题所在 monorepo,默认 `gitpress-net/gitpress` |
+| `themes-repo` | 内置主题所在 monorepo,默认 `tap6/gitpress` |
 | `include-drafts` | 构建包含草稿(仅用于预览,公开站点保持 false) |
 
 ## 兼容性承诺

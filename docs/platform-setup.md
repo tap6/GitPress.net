@@ -21,8 +21,13 @@ pnpm db:push                      # 用 drizzle 同步表结构
 
 | 公开仓库 | 内容 | 对应环境变量 |
 | --- | --- | --- |
-| `gitpress-net/gitpress` | `packages/spec` + `themes/*` + `templates/`(打 `v1` 标签) | `GITPRESS_THEMES_REPO` |
-| `gitpress-net/build-action` | `packages/build-action` 的内容(根目录含 `action.yml`,打 `v1` 标签) | `GITPRESS_BUILD_ACTION_REPO` |
+| `tap6/gitpress` | `packages/spec` + `themes/*` + `templates/`(打 `v1` 标签) | `GITPRESS_THEMES_REPO` |
+| `tap6/build-action` | `packages/build-action` 的内容(根目录含 `action.yml`,打 `v1` 标签) | `GITPRESS_BUILD_ACTION_REPO` |
+
+> 说明:`gitpress-net` 目前只是 GitHub App 的 slug,并非真实存在的 GitHub 账号/组织,
+> 所以这两个开源仓库暂时建在你的个人账号 `tap6` 下。以后如果注册了 `gitpress-net`
+> 组织,把仓库转移过去(Settings → Transfer ownership)并同步更新这里的环境变量即可,
+> 不影响已上线站点(它们锁定的是 `owner/repo@v1`,转移仓库后 GitHub 会自动重定向旧地址)。
 
 > 重要:两个仓库都要打 `v1` git 标签。用户站点全部锁定在 `@v1`,以后升级时:
 > 兼容性修复直接移动 `v1` 标签;破坏性变更发布 `v2` 标签,老站点不受影响。

@@ -35,8 +35,8 @@ export interface ProvisionResult {
   pagesEnabled: boolean;
 }
 
-const BUILD_ACTION_REPO = () => process.env.GITPRESS_BUILD_ACTION_REPO ?? "gitpress-net/build-action";
-const THEMES_REPO = () => process.env.GITPRESS_THEMES_REPO ?? "gitpress-net/gitpress";
+const BUILD_ACTION_REPO = () => process.env.GITPRESS_BUILD_ACTION_REPO ?? "tap6/build-action";
+const THEMES_REPO = () => process.env.GITPRESS_THEMES_REPO ?? "tap6/gitpress";
 
 /**
  * Create the two repositories for a new site and initialize them:

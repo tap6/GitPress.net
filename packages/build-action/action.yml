@@ -20,7 +20,7 @@ inputs:
   themes-repo:
     description: "owner/name of the monorepo hosting builtin themes (under themes/<name>)."
     required: false
-    default: "gitpress-net/gitpress"
+    default: "tap6/gitpress"
   include-drafts:
     description: "Include drafts in the build. Keep false for public sites."
     required: false
