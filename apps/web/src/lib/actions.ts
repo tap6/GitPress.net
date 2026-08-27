@@ -164,6 +164,29 @@ export async function uploadMediaAction(formData: FormData): Promise<void> {
   revalidatePath(`/sites/${siteId}/media`);
 }
 
+export interface UploadEditorImageState {
+  url?: string;
+  error?: string;
+}
+
+/**
+ * Same upload as `uploadMediaAction`, but called directly from client code
+ * (not a `<form>` submission) so the rich text editor can insert the
+ * resulting `/media/...` path as an <img> the moment the upload finishes.
+ */
+export async function uploadEditorImageAction(formData: FormData): Promise<UploadEditorImageState> {
+  const siteId = String(formData.get("siteId"));
+  const { site, installation } = await requireSite(siteId);
+  const file = formData.get("file");
+  if (!(file instanceof File) || file.size === 0) return { error: "请选择一张图片" };
+  if (file.size > 8 * 1024 * 1024) return { error: "单个文件最大 8MB" };
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const octokit = await getInstallationOctokit(installation.installationId);
+  const url = await uploadMedia(octokit, site.dataRepo, file.name, buffer.toString("base64"));
+  revalidatePath(`/sites/${siteId}/media`);
+  return { url };
+}
+
 export async function deleteMediaAction(formData: FormData): Promise<void> {
   const siteId = String(formData.get("siteId"));
   const path = String(formData.get("path"));

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useActionState } from "react";
 import { savePostAction, type SavePostState } from "@/lib/actions";
 import { ProgressButton } from "@/components/ProgressButton";
+import { RichTextEditor } from "@/components/RichTextEditor";
 
 interface Props {
   siteId: string;
@@ -47,12 +48,11 @@ export function PostEditor({ siteId, path = "", initial }: Props) {
             className="w-full rounded border border-neutral-300 bg-white px-4 py-2 text-sm shadow-sm focus:border-wp-accent focus:outline-none"
           />
         )}
-        <textarea
+        <RichTextEditor
           name="body"
-          rows={22}
+          siteId={siteId}
           defaultValue={initial?.body ?? ""}
-          placeholder={"用 Markdown 写作…\n\n## 小标题\n\n图片:![说明](/media/文件名.jpg)"}
-          className="w-full rounded border border-neutral-300 bg-white px-4 py-3 font-mono text-sm leading-relaxed shadow-sm focus:border-wp-accent focus:outline-none"
+          placeholder="开始写作…"
         />
         {state.error && (
           <p className="rounded bg-red-50 p-3 text-sm text-red-600">{state.error}</p>
