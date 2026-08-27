@@ -26,7 +26,7 @@ export default async function SiteDashboard({
   const { site, installation } = await requireSite(siteId);
 
   const octokit = await getInstallationOctokit(installation.installationId);
-  const [posts, runs] = await Promise.all([
+  const [posts, { runs, actionsPermissionMissing }] = await Promise.all([
     listPosts(octokit, site.dataRepo),
     listBuildRuns(octokit, splitRepo(site.dataRepo)),
   ]);
@@ -104,7 +104,30 @@ export default async function SiteDashboard({
             )}
           </h2>
           <div className="p-5 text-sm">
-            {runs.length === 0 ? (
+            {actionsPermissionMissing ? (
+              <p className="text-neutral-500">
+                GitHub App 缺少「Actions」权限,这里无法读取构建记录(但内容更新仍会正常
+                自动触发构建)。去{" "}
+                <a
+                  href={`https://github.com/${site.dataRepo}/actions`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-wp-accent hover:underline"
+                >
+                  GitHub Actions 页面
+                </a>{" "}
+                查看真实状态,或在{" "}
+                <a
+                  href={`https://github.com/settings/apps`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-wp-accent hover:underline"
+                >
+                  App 设置
+                </a>{" "}
+                中为 App 添加「Actions: Read and write」权限并重新授权安装。
+              </p>
+            ) : runs.length === 0 ? (
               <p className="text-neutral-400">暂无构建记录。</p>
             ) : (
               <ul className="space-y-2">

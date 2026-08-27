@@ -14,11 +14,11 @@ interface Props {
 }
 
 /**
- * Submit button that fills with a "fake-determinate" progress bar while its
- * form is submitting, plus a live elapsed-time counter. Server actions give
- * no real progress events, so this races to ~92% over `expectedSeconds` and
- * then creeps slowly — it never looks stuck, and the counter tells the user
- * exactly how long they have already waited instead of leaving them guessing.
+ * Submit button with a real, visible progress-bar element rendered under it
+ * while the form is submitting — not just a spinning mouse cursor. Server
+ * actions give no real progress events, so the bar is "fake-determinate": it
+ * races to ~92% over `expectedSeconds` and then creeps slowly so it never
+ * looks stuck, while the label shows exactly how many seconds have elapsed.
  */
 export function ProgressButton({
   children,
@@ -46,23 +46,26 @@ export function ProgressButton({
   const progress = pending ? ramp + creep : 0;
 
   return (
-    <button
-      type="submit"
-      disabled={pending || disabled}
-      className={`relative isolate overflow-hidden disabled:cursor-wait disabled:opacity-100 ${className}`}
-    >
+    <span className="inline-flex flex-col items-stretch gap-1">
+      <button type="submit" disabled={pending || disabled} className={className}>
+        {pending
+          ? `${pendingLabel ?? "处理中"}…(${elapsedSeconds.toFixed(0)}s)`
+          : children}
+      </button>
       {pending && (
         <span
-          className="absolute inset-y-0 left-0 -z-10 bg-black/15 transition-[width] duration-150 ease-linear"
-          style={{ width: `${progress}%` }}
-          aria-hidden
-        />
+          className="h-1.5 w-full overflow-hidden rounded-full bg-neutral-200"
+          role="progressbar"
+          aria-valuenow={Math.round(progress)}
+          aria-valuemin={0}
+          aria-valuemax={100}
+        >
+          <span
+            className="block h-full rounded-full bg-wp-accent transition-[width] duration-150 ease-linear"
+            style={{ width: `${progress}%` }}
+          />
+        </span>
       )}
-      <span className="relative">
-        {pending
-          ? `${pendingLabel ?? "处理中…"}(${elapsedSeconds.toFixed(0)}s)`
-          : children}
-      </span>
-    </button>
+    </span>
   );
 }

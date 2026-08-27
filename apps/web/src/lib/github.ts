@@ -386,33 +386,63 @@ export async function enablePages(octokit: Octokit, ref: RepoRef): Promise<strin
   }
 }
 
-/** Best-effort manual build trigger. */
+/**
+ * Trigger a rebuild.
+ *
+ * We'd normally call `workflow_dispatch`, but that REST endpoint (and
+ * listing runs, see `listBuildRuns` below) needs the GitHub App's "Actions"
+ * permission — a *different* scope than "Workflows" (which only covers
+ * editing `.github/workflows/*.yml` file contents). Our App doesn't request
+ * "Actions", and even after adding it to the App manifest every existing
+ * installation would need to re-approve the upgraded scope before it takes
+ * effect. So instead we push a tiny, real commit (needs only the "Contents:
+ * write" permission we already have) — a push to `main` reliably fires the
+ * `on: push` trigger in gitpress-build.yml, exactly like any other commit.
+ */
 export async function dispatchBuild(octokit: Octokit, ref: RepoRef): Promise<void> {
-  try {
-    await octokit.request(
-      "POST /repos/{owner}/{repo}/actions/workflows/{workflow_id}/dispatches",
-      { ...ref, workflow_id: "gitpress-build.yml", ref: "main" },
-    );
-  } catch {
-    // The push events already trigger builds; dispatch is just a nudge.
-  }
+  await putFile(
+    octokit,
+    ref,
+    ".gitpress/trigger",
+    { utf8: `${new Date().toISOString()}\n` },
+    "Trigger rebuild",
+  );
 }
 
-/** List recent workflow runs for the site dashboard. */
-export async function listBuildRuns(octokit: Octokit, ref: RepoRef) {
+export interface BuildRun {
+  id: number;
+  status: string | null;
+  conclusion: string | null;
+  createdAt: string;
+  htmlUrl: string;
+}
+
+export interface BuildRunsResult {
+  runs: BuildRun[];
+  /** True when the call failed with 403 — almost always the missing "Actions" App permission described above. */
+  actionsPermissionMissing: boolean;
+}
+
+/** List recent workflow runs for the site dashboard (see the permission note on `dispatchBuild`). */
+export async function listBuildRuns(octokit: Octokit, ref: RepoRef): Promise<BuildRunsResult> {
   try {
     const { data } = await octokit.request("GET /repos/{owner}/{repo}/actions/runs", {
       ...ref,
       per_page: 5,
     });
-    return data.workflow_runs.map((run) => ({
-      id: run.id,
-      status: run.status,
-      conclusion: run.conclusion,
-      createdAt: run.created_at,
-      htmlUrl: run.html_url,
-    }));
-  } catch {
-    return [];
+    return {
+      runs: data.workflow_runs.map((run) => ({
+        id: run.id,
+        status: run.status,
+        conclusion: run.conclusion,
+        createdAt: run.created_at,
+        htmlUrl: run.html_url,
+      })),
+      actionsPermissionMissing: false,
+    };
+  } catch (error: unknown) {
+    const status = (error as { status?: number }).status;
+    if (status !== 403) console.error("listBuildRuns failed:", error);
+    return { runs: [], actionsPermissionMissing: status === 403 };
   }
 }

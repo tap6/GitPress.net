@@ -72,7 +72,17 @@ export default async function SettingsPage({
             </ProgressButton>
           </form>
           <p className="text-xs text-neutral-400">
-            完成后仍需等待约 1–2 分钟让 GitHub Actions 跑完构建,可回仪表盘查看「最近构建」状态。
+            完成后仍需等待约 1–2 分钟让 GitHub Actions 跑完构建。可回仪表盘查看「最近构建」,
+            如果那里提示缺少 Actions 权限,也可以直接去{" "}
+            <a
+              href={`https://github.com/${site.dataRepo}/actions`}
+              target="_blank"
+              rel="noreferrer"
+              className="underline hover:text-neutral-600"
+            >
+              {site.dataRepo} 的 Actions 页面
+            </a>{" "}
+            查看真实构建状态。
           </p>
         </div>
       </div>

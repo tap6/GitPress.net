@@ -43,11 +43,18 @@ GitHub → Settings → Developer settings → **GitHub Apps** → New GitHub Ap
 - Webhook:MVP 可以不启用
 - **Repository permissions**:
   - Administration: Read & write(建仓、deploy key、Pages)
-  - Contents: Read & write(提交文章/图片)
+  - Contents: Read & write(提交文章/图片,同时也是"触发重新构建"依赖的权限——见下方说明)
   - Pages: Read & write
   - Secrets: Read & write(写入构建用的 deploy key)
-  - Workflows: Read & write(提交 workflow 文件)
+  - Workflows: Read & write(提交 workflow 文件——注意这**不等于** Actions 权限,见下)
   - Metadata: Read-only
+  - Actions: Read & write(可选,但建议勾选——用于在仪表盘里读取「最近构建」列表。
+    注意"Workflows"权限只管写 `.github/workflows/*.yml` 文件本身,不包含调用
+    Actions API 列出/触发 workflow run;这是两个独立的权限位。没有勾选时,
+    "手动触发重新构建"仍会工作,因为我们改用直接提交一个空文件来触发 `on: push`,
+    但仪表盘会显示"缺少 Actions 权限"提示而不是真实的构建记录。
+    ⚠️ 给已安装的 App 追加权限后,已有的 installation 不会自动生效,需要
+    重新访问安装页面批准新的权限范围。)
 - 生成 **Private key**(PEM)、记录 **App ID**、**Client ID/Secret**,填入 `.env`
   (`GITHUB_APP_PRIVATE_KEY` 中换行写成 `\n`)。
 

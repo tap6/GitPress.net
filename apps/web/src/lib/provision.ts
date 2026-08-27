@@ -134,9 +134,10 @@ export async function provisionSite(input: ProvisionInput): Promise<ProvisionRes
     await putFile(octokit, dataRef, file.path, { utf8: file.content }, `Initialize ${file.path}`);
   }
 
-  // 5. Enable Pages on the site repo and nudge the first build.
+  // 5. Enable Pages on the site repo. No need to also call dispatchBuild
+  //    here — the workflow file committed above already triggered the
+  //    first build via its own `on: push`.
   const enabledUrl = await enablePages(octokit, siteRef);
-  await dispatchBuild(octokit, dataRef);
 
   return {
     dataRepo: `${owner}/${dataRepoName}`,
