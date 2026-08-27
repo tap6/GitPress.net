@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AdminMenu } from "@/components/AdminMenu";
+import { BuildStatusBar } from "@/components/BuildStatusBar";
 import { requireSite } from "@/lib/sites";
 
 export default async function AdminLayout({
@@ -51,6 +52,7 @@ export default async function AdminLayout({
           </div>
           <span>你好,{user.name ?? "博主"}</span>
         </div>
+        <BuildStatusBar siteId={site.id} dataRepo={site.dataRepo} />
         <main className="flex-1 p-8">{children}</main>
       </div>
     </div>

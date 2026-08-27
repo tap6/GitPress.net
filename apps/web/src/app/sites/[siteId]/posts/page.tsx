@@ -86,6 +86,7 @@ export default async function PostsPage({
                     <ProgressButton
                       expectedSeconds={3}
                       pendingLabel="删除中"
+                      buildSiteId={site.id}
                       className="text-xs text-red-500 hover:underline"
                     >
                       删除

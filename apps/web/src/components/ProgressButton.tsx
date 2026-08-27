@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
+import { BUILD_TRIGGER_EVENT, type BuildTriggerDetail } from "./buildTriggerEvent";
 
 interface Props {
   children: React.ReactNode;
@@ -11,6 +12,16 @@ interface Props {
   expectedSeconds?: number;
   className?: string;
   disabled?: boolean;
+  /**
+   * Set this to the site id when the action commits to the data repo (which
+   * is almost every mutating action here — save post, switch theme, upload
+   * media, etc.). The commit itself usually finishes in ~1s, which is why
+   * these buttons used to feel like they "did nothing" — the real work (the
+   * GitHub Actions build) starts *after* that. Passing this fires a global
+   * event once the request resolves so the sticky `BuildStatusBar` picks up
+   * the newly queued run and shows real progress for the next 1–2 minutes.
+   */
+  buildSiteId?: string;
 }
 
 /**
@@ -26,9 +37,12 @@ export function ProgressButton({
   expectedSeconds = 6,
   className = "",
   disabled,
+  buildSiteId,
 }: Props) {
   const { pending } = useFormStatus();
   const [elapsedMs, setElapsedMs] = useState(0);
+  const [justSubmitted, setJustSubmitted] = useState(false);
+  const wasPending = useRef(false);
 
   useEffect(() => {
     if (!pending) {
@@ -40,6 +54,24 @@ export function ProgressButton({
     return () => clearInterval(timer);
   }, [pending]);
 
+  // Fires once per completed submission (pending: true -> false).
+  useEffect(() => {
+    if (wasPending.current && !pending) {
+      if (buildSiteId) {
+        window.dispatchEvent(
+          new CustomEvent<BuildTriggerDetail>(BUILD_TRIGGER_EVENT, {
+            detail: { siteId: buildSiteId },
+          }),
+        );
+      }
+      setJustSubmitted(true);
+      const timeout = setTimeout(() => setJustSubmitted(false), 1800);
+      wasPending.current = pending;
+      return () => clearTimeout(timeout);
+    }
+    wasPending.current = pending;
+  }, [pending, buildSiteId]);
+
   const elapsedSeconds = elapsedMs / 1000;
   const ramp = Math.min(92, (elapsedSeconds / expectedSeconds) * 92);
   const creep = Math.min(6, Math.max(0, elapsedSeconds - expectedSeconds) * 0.6);
@@ -50,7 +82,9 @@ export function ProgressButton({
       <button type="submit" disabled={pending || disabled} className={className}>
         {pending
           ? `${pendingLabel ?? "处理中"}…(${elapsedSeconds.toFixed(0)}s)`
-          : children}
+          : justSubmitted
+            ? "✓ 已提交"
+            : children}
       </button>
       {pending && (
         <span
@@ -65,6 +99,9 @@ export function ProgressButton({
             style={{ width: `${progress}%` }}
           />
         </span>
+      )}
+      {justSubmitted && buildSiteId && (
+        <span className="text-[11px] text-neutral-400">已提交,网站构建中…</span>
       )}
     </span>
   );

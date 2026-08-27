@@ -85,6 +85,7 @@ export default async function SiteDashboard({
               <ProgressButton
                 expectedSeconds={5}
                 pendingLabel="触发中"
+                buildSiteId={site.id}
                 className="text-wp-accent hover:underline"
               >
                 ↻ 手动触发重新构建

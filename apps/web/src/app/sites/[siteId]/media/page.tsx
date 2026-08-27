@@ -35,6 +35,7 @@ export default async function MediaPage({
         <ProgressButton
           expectedSeconds={8}
           pendingLabel="上传中"
+          buildSiteId={site.id}
           className="rounded bg-wp-accent px-4 py-2 text-sm font-medium text-white hover:bg-wp-accent-dark"
         >
           上传到数据仓库
@@ -75,6 +76,7 @@ export default async function MediaPage({
                     <ProgressButton
                       expectedSeconds={3}
                       pendingLabel="删除中"
+                      buildSiteId={site.id}
                       className="text-red-500 hover:underline"
                     >
                       删除

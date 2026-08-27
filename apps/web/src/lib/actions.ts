@@ -13,7 +13,7 @@ import {
   updateSiteConfig,
   uploadMedia,
 } from "./content";
-import { getInstallationOctokit } from "./github";
+import { getInstallationOctokit, listBuildRuns, splitRepo } from "./github";
 import { provisionSite, rotateDeployKey, triggerRebuild } from "./provision";
 import { requireSite, requireUser } from "./sites";
 import { getBuiltinTheme } from "./themes";
@@ -303,4 +303,54 @@ export async function rotateDeployKeyAction(formData: FormData): Promise<void> {
   await rotateDeployKey(installation.installationId, site.dataRepo, site.siteRepo);
   revalidatePath(`/sites/${siteId}`);
   revalidatePath(`/sites/${siteId}/settings`);
+}
+
+// ---------------------------------------------------------------------------
+// Build status (polled by the sticky BuildStatusBar in the admin layout)
+// ---------------------------------------------------------------------------
+
+export interface BuildStatusSnapshot {
+  status: "idle" | "queued" | "in_progress" | "success" | "failure" | "cancelled" | "unknown";
+  runId?: number;
+  createdAt?: string;
+  htmlUrl?: string;
+  actionsPermissionMissing: boolean;
+}
+
+/**
+ * Lightweight, frequently-polled snapshot of the data repo's latest GitHub
+ * Actions run. Called directly from the client (not via a `<form>`) so it
+ * can be hit on a timer without a full page navigation/refresh.
+ */
+export async function getBuildStatusAction(siteId: string): Promise<BuildStatusSnapshot> {
+  const { site, installation } = await requireSite(siteId);
+  const octokit = await getInstallationOctokit(installation.installationId);
+  const { runs, actionsPermissionMissing } = await listBuildRuns(octokit, splitRepo(site.dataRepo));
+  if (actionsPermissionMissing) {
+    return { status: "unknown", actionsPermissionMissing: true };
+  }
+  const latest = runs[0];
+  if (!latest) return { status: "idle", actionsPermissionMissing: false };
+  if (latest.conclusion == null) {
+    return {
+      status: latest.status === "queued" ? "queued" : "in_progress",
+      runId: latest.id,
+      createdAt: latest.createdAt,
+      htmlUrl: latest.htmlUrl,
+      actionsPermissionMissing: false,
+    };
+  }
+  const status =
+    latest.conclusion === "success"
+      ? "success"
+      : latest.conclusion === "failure"
+        ? "failure"
+        : "cancelled";
+  return {
+    status,
+    runId: latest.id,
+    createdAt: latest.createdAt,
+    htmlUrl: latest.htmlUrl,
+    actionsPermissionMissing: false,
+  };
 }

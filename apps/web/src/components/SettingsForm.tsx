@@ -56,6 +56,7 @@ export function SettingsForm({ siteId, initial }: Props) {
       <ProgressButton
         expectedSeconds={4}
         pendingLabel="保存中"
+        buildSiteId={siteId}
         className="rounded bg-wp-accent px-4 py-2 font-medium text-white hover:bg-wp-accent-dark"
       >
         保存更改

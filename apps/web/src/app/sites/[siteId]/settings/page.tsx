@@ -66,6 +66,7 @@ export default async function SettingsPage({
             <ProgressButton
               expectedSeconds={8}
               pendingLabel="重新生成中"
+              buildSiteId={site.id}
               className="rounded border border-neutral-300 px-4 py-2 font-medium hover:bg-neutral-50"
             >
               重新生成部署密钥并重建

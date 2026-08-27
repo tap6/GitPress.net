@@ -64,6 +64,7 @@ export default async function AppearancePage({
                     <ProgressButton
                       expectedSeconds={5}
                       pendingLabel="切换中"
+                      buildSiteId={site.id}
                       className="rounded border border-wp-accent px-3 py-1 text-xs text-wp-accent hover:bg-wp-accent hover:text-white"
                     >
                       启用
@@ -106,6 +107,7 @@ export default async function AppearancePage({
             <ProgressButton
               expectedSeconds={5}
               pendingLabel="保存中"
+              buildSiteId={site.id}
               className="rounded bg-wp-accent px-4 py-2 font-medium text-white hover:bg-wp-accent-dark"
             >
               保存并重新构建

@@ -85,6 +85,7 @@ export function PostEditor({ siteId, path = "", initial }: Props) {
             <ProgressButton
               expectedSeconds={4}
               pendingLabel="提交中"
+              buildSiteId={siteId}
               className="w-full rounded bg-wp-accent px-4 py-2 font-medium text-white hover:bg-wp-accent-dark"
             >
               {path ? "更新" : "发布 / 保存"}
