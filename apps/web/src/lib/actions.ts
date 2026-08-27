@@ -314,6 +314,7 @@ export interface BuildStatusSnapshot {
   runId?: number;
   createdAt?: string;
   htmlUrl?: string;
+  commitMessage?: string | null;
   actionsPermissionMissing: boolean;
 }
 
@@ -337,6 +338,7 @@ export async function getBuildStatusAction(siteId: string): Promise<BuildStatusS
       runId: latest.id,
       createdAt: latest.createdAt,
       htmlUrl: latest.htmlUrl,
+      commitMessage: latest.commitMessage,
       actionsPermissionMissing: false,
     };
   }
@@ -351,6 +353,7 @@ export async function getBuildStatusAction(siteId: string): Promise<BuildStatusS
     runId: latest.id,
     createdAt: latest.createdAt,
     htmlUrl: latest.htmlUrl,
+    commitMessage: latest.commitMessage,
     actionsPermissionMissing: false,
   };
 }

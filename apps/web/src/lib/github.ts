@@ -415,6 +415,11 @@ export interface BuildRun {
   conclusion: string | null;
   createdAt: string;
   htmlUrl: string;
+  /** First line of the triggering commit's message — GitHub returns this for
+   *  free alongside the run, so we can show *what* was built, not just *when*. */
+  commitMessage: string | null;
+  /** Wall-clock seconds the run took, once it has concluded; null while running. */
+  durationSeconds: number | null;
 }
 
 export interface BuildRunsResult {
@@ -431,13 +436,25 @@ export async function listBuildRuns(octokit: Octokit, ref: RepoRef): Promise<Bui
       per_page: 5,
     });
     return {
-      runs: data.workflow_runs.map((run) => ({
-        id: run.id,
-        status: run.status,
-        conclusion: run.conclusion,
-        createdAt: run.created_at,
-        htmlUrl: run.html_url,
-      })),
+      runs: data.workflow_runs.map((run) => {
+        const concluded = run.status === "completed" && run.conclusion != null;
+        const startedAt = run.run_started_at ?? run.created_at;
+        const durationSeconds = concluded
+          ? Math.max(
+              0,
+              Math.round((new Date(run.updated_at).getTime() - new Date(startedAt).getTime()) / 1000),
+            )
+          : null;
+        return {
+          id: run.id,
+          status: run.status,
+          conclusion: run.conclusion,
+          createdAt: run.created_at,
+          htmlUrl: run.html_url,
+          commitMessage: run.head_commit?.message?.split("\n")[0]?.trim() || null,
+          durationSeconds,
+        };
+      }),
       actionsPermissionMissing: false,
     };
   } catch (error: unknown) {

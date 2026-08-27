@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { rebuildAction } from "@/lib/actions";
+import { describeBuildTrigger, formatDuration } from "@/lib/buildLabels";
 import { listPosts } from "@/lib/content";
 import { getInstallationOctokit, listBuildRuns, splitRepo } from "@/lib/github";
 import { requireSite } from "@/lib/sites";
@@ -131,28 +132,40 @@ export default async function SiteDashboard({
             ) : runs.length === 0 ? (
               <p className="text-neutral-400">暂无构建记录。</p>
             ) : (
-              <ul className="space-y-2">
+              <ul className="divide-y divide-neutral-100">
                 {runs.map((run) => (
-                  <li key={run.id} className="flex items-center justify-between">
-                    <a
-                      href={run.htmlUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-wp-accent hover:underline"
-                    >
-                      {new Date(run.createdAt).toLocaleString("zh-CN")}
-                    </a>
+                  <li key={run.id} className="flex items-center justify-between gap-3 py-2 first:pt-0 last:pb-0">
+                    <div className="min-w-0">
+                      <p className="truncate font-medium text-neutral-700">
+                        {describeBuildTrigger(run.commitMessage)}
+                      </p>
+                      <a
+                        href={run.htmlUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-xs text-neutral-400 hover:text-wp-accent hover:underline"
+                      >
+                        {new Date(run.createdAt).toLocaleString("zh-CN")}
+                      </a>
+                    </div>
                     <span
-                      className={
+                      className={`shrink-0 text-xs ${
                         run.conclusion === "success"
                           ? "text-emerald-600"
                           : run.conclusion === "failure"
                             ? "text-red-600"
                             : "text-neutral-400"
-                      }
+                      }`}
                     >
                       {run.conclusion ? (
-                        (RUN_LABEL[run.conclusion] ?? run.conclusion)
+                        <>
+                          {RUN_LABEL[run.conclusion] ?? run.conclusion}
+                          {formatDuration(run.durationSeconds) && (
+                            <span className="ml-1 text-neutral-400">
+                              · {formatDuration(run.durationSeconds)}
+                            </span>
+                          )}
+                        </>
                       ) : (
                         <RunElapsed createdAt={run.createdAt} />
                       )}

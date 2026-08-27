@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { getBuildStatusAction, type BuildStatusSnapshot } from "@/lib/actions";
+import { describeBuildTrigger } from "@/lib/buildLabels";
 import { BUILD_TRIGGER_EVENT, type BuildTriggerDetail } from "./buildTriggerEvent";
 
 type Phase = "hidden" | "submitting" | "building" | "success" | "failure" | "unknown";
@@ -151,12 +152,16 @@ export function BuildStatusBar({ siteId, dataRepo }: Props) {
           {phase === "submitting" && <span>🕓 更改已提交,正在等待 GitHub 开始构建…</span>}
           {phase === "building" && (
             <span>
-              ⏳ 网站正在构建…{elapsedSeconds}s
+              ⏳ 正在构建:{describeBuildTrigger(snapshot?.commitMessage ?? null)} · {elapsedSeconds}s
               <span className="ml-1 font-normal text-sky-600/80">(预计 60–120 秒)</span>
             </span>
           )}
-          {phase === "success" && <span>✓ 构建成功,站点已更新</span>}
-          {phase === "failure" && <span>✗ 构建失败</span>}
+          {phase === "success" && (
+            <span>✓ 构建成功:{describeBuildTrigger(snapshot?.commitMessage ?? null)}</span>
+          )}
+          {phase === "failure" && (
+            <span>✗ 构建失败:{describeBuildTrigger(snapshot?.commitMessage ?? null)}</span>
+          )}
           {phase === "unknown" && (
             <span>
               更改已提交,但 GitHub App 缺少「Actions」权限,无法在此显示实时进度(内容仍会正常构建)。
