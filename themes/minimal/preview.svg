@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="400" viewBox="0 0 640 400">
+  <rect width="640" height="400" fill="#ffffff"/>
+  <text x="150" y="64" font-family="-apple-system, sans-serif" font-size="16" font-weight="600" fill="#1a1a1a">my quiet blog</text>
+  <text x="430" y="64" font-family="-apple-system, sans-serif" font-size="12" fill="#9a9a9a">about   rss</text>
+  <text x="150" y="140" font-family="-apple-system, sans-serif" font-size="12" fill="#9a9a9a">2026-08-27</text>
+  <text x="150" y="162" font-family="-apple-system, sans-serif" font-size="15" fill="#1a1a1a">On writing with plain Markdown</text>
+  <text x="150" y="204" font-family="-apple-system, sans-serif" font-size="12" fill="#9a9a9a">2026-08-20</text>
+  <text x="150" y="226" font-family="-apple-system, sans-serif" font-size="15" fill="#2563eb">Two repositories, one blog</text>
+  <text x="150" y="268" font-family="-apple-system, sans-serif" font-size="12" fill="#9a9a9a">2026-08-12</text>
+  <text x="150" y="290" font-family="-apple-system, sans-serif" font-size="15" fill="#1a1a1a">Notes on static site generators</text>
+  <text x="150" y="332" font-family="-apple-system, sans-serif" font-size="12" fill="#9a9a9a">2026-08-01</text>
+  <text x="150" y="354" font-family="-apple-system, sans-serif" font-size="15" fill="#1a1a1a">Hello, GitPress</text>
+</svg>

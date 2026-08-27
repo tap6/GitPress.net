@@ -1,0 +1,19 @@
+@import "tailwindcss";
+
+@theme {
+  /* WordPress admin palette */
+  --color-wp-base: #1d2327;
+  --color-wp-base-dark: #101517;
+  --color-wp-sidebar-text: #c3c4c7;
+  --color-wp-accent: #2271b1;
+  --color-wp-accent-dark: #135e96;
+  --color-wp-canvas: #f0f0f1;
+  --color-wp-highlight: #2271b1;
+  --color-gp-brand: #e2725b;
+}
+
+body {
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC",
+    "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+}

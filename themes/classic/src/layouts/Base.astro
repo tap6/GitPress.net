@@ -1,0 +1,54 @@
+---
+import { getCollection } from "astro:content";
+import { gitpress, themeConfig, withBase, postSlug } from "../lib/gitpress";
+import "../styles/global.css";
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const { title, description } = Astro.props;
+const site = gitpress.site;
+const pageTitle = title ? `${title} — ${site.title}` : site.title;
+const navPages = (await getCollection("pages")).sort((a, b) =>
+  a.data.title.localeCompare(b.data.title),
+);
+---
+
+<!doctype html>
+<html lang={site.language ?? "en"} style={`--accent: ${themeConfig.accentColor}`}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{pageTitle}</title>
+    <meta name="description" content={description ?? site.description ?? ""} />
+    <meta name="generator" content="GitPress" />
+    <link
+      rel="alternate"
+      type="application/rss+xml"
+      title={site.title}
+      href={withBase("/rss.xml")}
+    />
+  </head>
+  <body>
+    <header class="site-header">
+      <p class="site-title"><a href={withBase("/")}>{site.title}</a></p>
+      {site.description && <p class="site-tagline">{site.description}</p>}
+      <nav class="site-nav">
+        <a href={withBase("/")}>Home</a>
+        {navPages.map((page) => <a href={withBase(`/${postSlug(page)}/`)}>{page.data.title}</a>)}
+        <a href={withBase("/rss.xml")}>RSS</a>
+      </nav>
+    </header>
+    <main class="site-main">
+      <slot />
+    </main>
+    <footer class="site-footer">
+      <p>
+        © {new Date().getFullYear()} {site.author ?? site.title} · Powered by
+        <a href="https://gitpress.net" rel="generator">GitPress</a>
+      </p>
+    </footer>
+  </body>
+</html>

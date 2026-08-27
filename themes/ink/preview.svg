@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="400" viewBox="0 0 640 400">
+  <rect width="640" height="400" fill="#0e1013"/>
+  <rect x="110" y="40" width="6" height="22" fill="#f59e0b"/>
+  <text x="124" y="58" font-family="-apple-system, sans-serif" font-size="20" font-weight="800" fill="#e8e6e3">NIGHT PRESS</text>
+  <text x="440" y="58" font-family="-apple-system, sans-serif" font-size="12" fill="#8b8f98">about   rss</text>
+  <line x1="110" y1="80" x2="530" y2="80" stroke="#262a31" stroke-width="1"/>
+  <rect x="110" y="104" width="420" height="86" rx="12" fill="#16191e" stroke="#262a31"/>
+  <text x="132" y="134" font-family="-apple-system, sans-serif" font-size="11" fill="#8b8f98">AUG 27, 2026  <tspan fill="#f59e0b">#gitpress</tspan></text>
+  <text x="132" y="160" font-family="-apple-system, sans-serif" font-size="17" font-weight="700" fill="#e8e6e3">On writing with plain Markdown</text>
+  <rect x="132" y="170" width="300" height="7" rx="3.5" fill="#262a31"/>
+  <rect x="110" y="206" width="420" height="86" rx="12" fill="#16191e" stroke="#f59e0b"/>
+  <text x="132" y="236" font-family="-apple-system, sans-serif" font-size="11" fill="#8b8f98">AUG 20, 2026  <tspan fill="#f59e0b">#git</tspan></text>
+  <text x="132" y="262" font-family="-apple-system, sans-serif" font-size="17" font-weight="700" fill="#f59e0b">Two repositories, one blog</text>
+  <rect x="132" y="272" width="260" height="7" rx="3.5" fill="#262a31"/>
+  <rect x="110" y="308" width="420" height="60" rx="12" fill="#16191e" stroke="#262a31"/>
+  <text x="132" y="338" font-family="-apple-system, sans-serif" font-size="11" fill="#8b8f98">AUG 12, 2026</text>
+  <text x="132" y="360" font-family="-apple-system, sans-serif" font-size="17" font-weight="700" fill="#e8e6e3">Notes on static site generators</text>
+</svg>

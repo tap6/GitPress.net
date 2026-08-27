@@ -1,0 +1,22 @@
+{
+  "name": "gitpress",
+  "private": true,
+  "version": "0.1.0",
+  "description": "GitPress.net — Git-native blogging platform. Control plane is closed-source; spec, themes, build action and templates are open-source.",
+  "scripts": {
+    "dev": "pnpm --filter @gitpress/web dev",
+    "build": "pnpm --filter @gitpress/web build",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "sharp"
+    ]
+  },
+  "packageManager": "pnpm@10.2.0"
+}

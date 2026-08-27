@@ -1,0 +1,30 @@
+# GitPress build pipeline — intentionally thin.
+# All build logic lives in the versioned action so this file rarely (if ever)
+# needs to change. Breaking changes only ship under a new major tag (@v2).
+name: GitPress Build
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gitpress-build
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Build site and publish to the site repository
+        uses: {{BUILD_ACTION_REPO}}@v1
+        with:
+          site-repo: {{SITE_REPO}}
+          deploy-key: ${{ secrets.GITPRESS_DEPLOY_KEY }}

@@ -1,0 +1,29 @@
+---
+import Base from "../layouts/Base.astro";
+import { getPublishedPosts, postSlug, formatDate, themeConfig, withBase } from "../lib/gitpress";
+
+const posts = await getPublishedPosts();
+---
+
+<Base>
+  {posts.length === 0 && <p>No posts yet. Write your first one!</p>}
+  {
+    posts.map((post) => (
+      <article class="post-item">
+        {themeConfig.showCovers && post.data.cover && (
+          <img class="post-card-cover" src={withBase(post.data.cover)} alt="" loading="lazy" />
+        )}
+        <p class="post-meta">
+          {formatDate(post.data.date)}
+          {post.data.tags?.slice(0, 3).map((tag) => (
+            <span class="tag">#{tag}</span>
+          ))}
+        </p>
+        <h2>
+          <a href={withBase(`/posts/${postSlug(post)}/`)}>{post.data.title}</a>
+        </h2>
+        {post.data.description && <p class="post-excerpt">{post.data.description}</p>}
+      </article>
+    ))
+  }
+</Base>

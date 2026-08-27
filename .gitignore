@@ -1,0 +1,24 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# builds
+dist/
+.next/
+.astro/
+out/
+*.tsbuildinfo
+
+# env
+.env
+.env.local
+.env*.local
+
+# injected into themes at build time (by build-action / prepare-local)
+themes/*/gitpress.config.json
+themes/*/public/media/
+
+# misc
+.DS_Store
+*.log
+.vercel

@@ -1,0 +1,29 @@
+{
+  "specVersion": 1,
+  "name": "minimal",
+  "version": "1.0.0",
+  "displayName": "Minimal",
+  "description": "Clean, quiet, typography-first theme with plenty of whitespace.",
+  "author": "GitPress",
+  "license": "MIT",
+  "engine": "astro",
+  "preview": "preview.svg",
+  "tags": ["minimal", "sans-serif", "clean"],
+  "configSchema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "accentColor": {
+        "type": "string",
+        "default": "#2563eb",
+        "description": "Accent color for links and highlights."
+      },
+      "showExcerpts": {
+        "type": "boolean",
+        "default": false,
+        "description": "Show post descriptions in the post list."
+      }
+    },
+    "additionalProperties": true
+  }
+}

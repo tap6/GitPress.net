@@ -1,0 +1,36 @@
+{
+  "name": "@gitpress/web",
+  "version": "0.1.0",
+  "private": true,
+  "description": "GitPress.net platform — marketing site + WordPress-style admin (closed source).",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "db:generate": "drizzle-kit generate",
+    "db:push": "drizzle-kit push"
+  },
+  "dependencies": {
+    "@auth/drizzle-adapter": "^1.10.0",
+    "blakejs": "^1.2.1",
+    "drizzle-orm": "^0.44.0",
+    "gray-matter": "^4.0.3",
+    "next": "^15.3.0",
+    "next-auth": "^5.0.0-beta.25",
+    "octokit": "^5.0.0",
+    "postgres": "^3.4.5",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "tweetnacl": "^1.0.3"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.0",
+    "@types/node": "^22.13.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "drizzle-kit": "^0.31.0",
+    "tailwindcss": "^4.1.0",
+    "typescript": "^5.7.3"
+  }
+}

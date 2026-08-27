@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "site": {
+    "title": "{{SITE_TITLE}}",
+    "description": "{{SITE_DESCRIPTION}}",
+    "language": "{{SITE_LANGUAGE}}",
+    "url": "{{SITE_URL}}",
+    "basePath": "{{SITE_BASE_PATH}}",
+    "author": "{{SITE_AUTHOR}}"
+  },
+  "theme": {
+    "name": "{{THEME_NAME}}",
+    "source": "builtin",
+    "ref": "v1",
+    "config": {}
+  },
+  "build": {
+    "includeDrafts": false,
+    "output": "dist"
+  }
+}

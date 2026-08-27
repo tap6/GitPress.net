@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gitpress.net/schemas/v1/gitpress.schema.json",
+  "title": "GitPress site configuration (gitpress.json)",
+  "description": "Lives at the root of a GitPress data repository. schemaVersion is bumped only for breaking changes; new fields are always additive and optional.",
+  "type": "object",
+  "required": ["schemaVersion", "site", "theme"],
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "const": 1,
+      "description": "Spec version of this file. Builders must refuse versions they do not understand instead of guessing."
+    },
+    "site": {
+      "type": "object",
+      "required": ["title"],
+      "properties": {
+        "title": { "type": "string", "minLength": 1 },
+        "description": { "type": "string", "default": "" },
+        "language": {
+          "type": "string",
+          "default": "en",
+          "description": "BCP-47 language tag, e.g. en, zh-CN."
+        },
+        "url": {
+          "type": "string",
+          "description": "Canonical site URL, e.g. https://alice.github.io/my-blog. Used for sitemap/RSS/absolute links."
+        },
+        "basePath": {
+          "type": "string",
+          "default": "/",
+          "description": "Path prefix the site is served under (GitHub Pages project sites use /<repo>/)."
+        },
+        "author": { "type": "string" },
+        "timezone": { "type": "string", "default": "UTC" }
+      },
+      "additionalProperties": true
+    },
+    "theme": {
+      "type": "object",
+      "required": ["name", "source"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Theme identifier, e.g. classic or @acme/my-theme."
+        },
+        "source": {
+          "type": "string",
+          "description": "Where to fetch the theme. Formats: 'builtin' (resolved from the official GitPress themes monorepo), 'github:<owner>/<repo>[/<subdir>]#<ref>', or 'npm:<package>@<version>'."
+        },
+        "ref": {
+          "type": "string",
+          "description": "Pinned version/tag/commit of the theme. Builders must never float to latest implicitly."
+        },
+        "config": {
+          "type": "object",
+          "description": "Theme-specific options, validated against the theme's theme.json configSchema.",
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "build": {
+      "type": "object",
+      "description": "Build pipeline options.",
+      "properties": {
+        "includeDrafts": {
+          "type": "boolean",
+          "default": false,
+          "description": "Safety valve for previews. Public builds must keep this false."
+        },
+        "output": {
+          "type": "string",
+          "default": "dist",
+          "description": "Build output directory inside the theme project."
+        }
+      },
+      "additionalProperties": true
+    },
+    "plugins": {
+      "type": "array",
+      "description": "Reserved for the GitPress plugin system (spec v1 does not execute plugins; builders must ignore unknown entries without failing).",
+      "items": { "type": "object" }
+    }
+  },
+  "additionalProperties": true
+}

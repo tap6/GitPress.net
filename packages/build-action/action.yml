@@ -1,0 +1,40 @@
+name: "GitPress Build"
+description: >-
+  Build a GitPress site from a data repository (Markdown + media + gitpress.json)
+  and publish the compiled output to the public site repository.
+author: "GitPress"
+branding:
+  icon: "book-open"
+  color: "orange"
+
+inputs:
+  site-repo:
+    description: "owner/name of the site repository that receives the compiled output."
+    required: true
+  deploy-key:
+    description: "SSH private deploy key with write access to the site repository."
+    required: false
+  site-token:
+    description: "Alternative to deploy-key: a token with contents write access to the site repository."
+    required: false
+  themes-repo:
+    description: "owner/name of the monorepo hosting builtin themes (under themes/<name>)."
+    required: false
+    default: "gitpress-net/gitpress"
+  include-drafts:
+    description: "Include drafts in the build. Keep false for public sites."
+    required: false
+    default: "false"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Build and publish
+      shell: bash
+      run: node "$GITHUB_ACTION_PATH/scripts/build.mjs"
+      env:
+        GP_SITE_REPO: ${{ inputs.site-repo }}
+        GP_DEPLOY_KEY: ${{ inputs.deploy-key }}
+        GP_SITE_TOKEN: ${{ inputs.site-token }}
+        GP_THEMES_REPO: ${{ inputs.themes-repo }}
+        GP_INCLUDE_DRAFTS: ${{ inputs.include-drafts }}

@@ -1,0 +1,8 @@
+{
+  "name": "@gitpress/build-action",
+  "version": "1.0.0",
+  "description": "GitHub Action that builds a GitPress data repository with its pinned theme and publishes the output to the site repository.",
+  "license": "MIT",
+  "type": "module",
+  "private": true
+}

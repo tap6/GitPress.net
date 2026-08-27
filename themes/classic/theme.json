@@ -1,0 +1,29 @@
+{
+  "specVersion": 1,
+  "name": "classic",
+  "version": "1.0.0",
+  "displayName": "Classic",
+  "description": "Warm, serif, timeless blog theme in the spirit of classic WordPress.",
+  "author": "GitPress",
+  "license": "MIT",
+  "engine": "astro",
+  "preview": "preview.svg",
+  "tags": ["serif", "classic", "blog"],
+  "configSchema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "accentColor": {
+        "type": "string",
+        "default": "#a85a2a",
+        "description": "Accent color for links and highlights."
+      },
+      "showExcerpts": {
+        "type": "boolean",
+        "default": true,
+        "description": "Show post descriptions in the post list."
+      }
+    },
+    "additionalProperties": true
+  }
+}

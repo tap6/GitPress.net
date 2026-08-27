@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gitpress.net/schemas/v1/theme.schema.json",
+  "title": "GitPress theme manifest (theme.json)",
+  "description": "Lives at the root of a theme package. Declares which GitPress spec version the theme implements and which options it accepts.",
+  "type": "object",
+  "required": ["specVersion", "name", "version", "engine"],
+  "properties": {
+    "specVersion": {
+      "type": "integer",
+      "const": 1,
+      "description": "GitPress theme spec version this theme implements."
+    },
+    "name": { "type": "string", "minLength": 1 },
+    "version": {
+      "type": "string",
+      "description": "Semver of the theme itself."
+    },
+    "displayName": { "type": "string" },
+    "description": { "type": "string" },
+    "author": { "type": "string" },
+    "license": { "type": "string" },
+    "engine": {
+      "type": "string",
+      "enum": ["astro"],
+      "description": "Build engine. Spec v1 defines only 'astro': the theme is an Astro project whose build command is `astro build`."
+    },
+    "preview": {
+      "type": "string",
+      "description": "Relative path to a preview image inside the theme package."
+    },
+    "tags": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "configSchema": {
+      "type": "object",
+      "description": "JSON Schema (draft 2020-12) describing theme.config in gitpress.json. Themes must apply defaults for absent options so old sites keep building after theme updates.",
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}
