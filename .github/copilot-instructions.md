@@ -19,7 +19,7 @@ Browser ── GitPress.net (Next.js on Vercel, closed source, apps/web)
 ```
 
 Every GitPress site is **two GitHub repos**, tracked by one row in the `sites` table
-([schema.ts](/Users/uxn/CursorProjects/GitPress.net.worktrees/ui-system-user-participation/apps/web/src/db/schema.ts)):
+([schema.ts](apps/web/src/db/schema.ts)):
 - **Data repo** (private by default): `gitpress.json`, `content/posts/*.md`, `content/pages/*.md`,
   `media/`, and a thin `.github/workflows/gitpress-build.yml`. Drafts (`draft: true` or missing
   `date`) never leave this repo.
@@ -27,10 +27,10 @@ Every GitPress site is **two GitHub repos**, tracked by one row in the `sites` t
   GitHub Pages requires a public repo, which is the whole reason for the two-repo split.
 
 This means a change that looks like "add a field" usually touches four packages in this order:
-1. [packages/spec](/Users/uxn/CursorProjects/GitPress.net.worktrees/ui-system-user-participation/packages/spec) — add the (optional, additive) field to the TypeScript types in `src/index.ts` **and** the matching JSON Schema under `schemas/`.
-2. [packages/build-action](/Users/uxn/CursorProjects/GitPress.net.worktrees/ui-system-user-participation/packages/build-action) — `scripts/build.mjs` reads/validates `gitpress.json` and mounts data-repo files into the theme project.
-3. [themes/*](/Users/uxn/CursorProjects/GitPress.net.worktrees/ui-system-user-participation/themes) (classic / minimal / ink) — Astro sites that read `gitpress.config.json` + `user-content/` and must default any new/missing config option.
-4. [apps/web](/Users/uxn/CursorProjects/GitPress.net.worktrees/ui-system-user-participation/apps/web) — the admin UI that writes `gitpress.json` / content into the user's data repo via the GitHub App.
+1. [packages/spec](packages/spec) — add the (optional, additive) field to the TypeScript types in `src/index.ts` **and** the matching JSON Schema under `schemas/`.
+2. [packages/build-action](packages/build-action) — `scripts/build.mjs` reads/validates `gitpress.json` and mounts data-repo files into the theme project.
+3. [themes/*](themes) (classic / minimal / ink / quill) — Astro sites that read `gitpress.config.json` + `user-content/` and must default any new/missing config option.
+4. [apps/web](apps/web) — the admin UI that writes `gitpress.json` / content into the user's data repo via the GitHub App.
 
 ### Compatibility contract (load-bearing, do not break casually)
 - `schemaVersion` (site config) / `specVersion` (theme manifest) bump **only** on breaking changes;

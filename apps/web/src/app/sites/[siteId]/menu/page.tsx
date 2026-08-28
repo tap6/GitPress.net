@@ -22,6 +22,7 @@ export default async function MenuPage({
       <h1 className="text-2xl font-normal text-neutral-800">菜单</h1>
       <p className="mt-2 text-sm text-neutral-500">
         决定顶部导航显示什么、按什么顺序、叫什么名字——包括首页链接是否显示。
+        保存后顶栏只显示这里列出的项,分类页的「顶栏导航」开关不再起作用。
         {nav === null && "这是你第一次打开菜单编辑器,下面已经按当前主题的默认导航预填,保存后才会生效。"}
       </p>
       <div className="mt-5 rounded border border-neutral-200 bg-white shadow-sm">
