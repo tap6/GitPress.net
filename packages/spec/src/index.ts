@@ -35,6 +35,17 @@ export interface SiteCategory {
   slug: string;
   /** Display label, e.g. "Tech". */
   label: string;
+  /**
+   * When false, themes omit this category from the top navigation.
+   * Archive pages (`/categories/<slug>/`) and post assignment are unaffected.
+   * Missing or true means the category appears in the nav. Default true.
+   */
+  inNav?: boolean;
+}
+
+/** Top-nav visibility. Absent `inNav` is treated as true so existing sites keep their current menus. */
+export function isCategoryInNav(category: Pick<SiteCategory, "inNav">): boolean {
+  return category.inNav !== false;
 }
 
 export interface SiteInfo {
@@ -50,10 +61,11 @@ export interface SiteInfo {
   timezone?: string;
   /**
    * Ordered list of categories maintained by the site owner. Themes render
-   * these as top nav links plus `/categories/<slug>/` archive pages. Distinct
-   * from the free-form `tags` on individual posts — every post picks at most
-   * one category from this list (stored as `categories: [slug]` in its
-   * frontmatter), while tags remain unrestricted.
+   * `/categories/<slug>/` archive pages for every entry, and top nav links
+   * for those with `inNav !== false`. Distinct from the free-form `tags` on
+   * individual posts — every post picks at most one category from this list
+   * (stored as `categories: [slug]` in its frontmatter), while tags remain
+   * unrestricted.
    */
   categories?: SiteCategory[];
   /** Posts per page for the homepage and category archives. Default 10. */

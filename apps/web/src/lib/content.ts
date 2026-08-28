@@ -298,6 +298,12 @@ export async function updateSiteConfig(
 export interface SiteCategory {
   slug: string;
   label: string;
+  /** When false, omit from the generated site's top nav. Missing means true. */
+  inNav?: boolean;
+}
+
+export function isCategoryInNav(category: Pick<SiteCategory, "inNav">): boolean {
+  return category.inNav !== false;
 }
 
 export async function getSiteCategories(
@@ -315,7 +321,11 @@ export async function getSiteCategories(
         typeof (item as SiteCategory).slug === "string" &&
         typeof (item as SiteCategory).label === "string",
     )
-    .map((item) => ({ slug: item.slug, label: item.label }));
+    .map((item) => ({
+      slug: item.slug,
+      label: item.label,
+      inNav: isCategoryInNav(item),
+    }));
 }
 
 export async function saveSiteCategories(

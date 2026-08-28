@@ -1,6 +1,6 @@
 ---
 import { getCollection } from "astro:content";
-import { gitpress, themeConfig, withBase, postSlug, siteCategories } from "../lib/gitpress";
+import { gitpress, themeConfig, withBase, postSlug, navCategories } from "../lib/gitpress";
 import "../styles/global.css";
 
 interface Props {
@@ -36,7 +36,7 @@ const navPages = (await getCollection("pages")).sort((a, b) =>
     <header class="site-header">
       <p class="site-title"><a href={withBase("/")}>{site.title}</a></p>
       <nav class="site-nav">
-        {siteCategories.map((category) => (
+        {navCategories.map((category) => (
           <a href={withBase(`/categories/${category.slug}/`)}>{category.label}</a>
         ))}
         {navPages.map((page) => <a href={withBase(`/${postSlug(page)}/`)}>{page.data.title}</a>)}

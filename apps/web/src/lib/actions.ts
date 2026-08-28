@@ -13,6 +13,7 @@ import {
   saveSiteCategories,
   savePost,
   slugify,
+  isCategoryInNav,
   type SiteCategory,
   updatePostMeta,
   updateSiteConfig,
@@ -440,7 +441,8 @@ export async function saveCategoriesAction(
       let slug = slugify(String((item as { slug?: unknown })?.slug ?? "") || label);
       while (seen.has(slug)) slug = `${slug}-2`;
       seen.add(slug);
-      return { slug, label };
+      const inNav = isCategoryInNav(item as { inNav?: boolean });
+      return { slug, label, inNav };
     });
   } catch (error) {
     return { error: error instanceof Error ? error.message : "分类数据格式有误" };

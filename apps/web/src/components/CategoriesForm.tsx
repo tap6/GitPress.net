@@ -3,7 +3,7 @@
 import { useActionState, useState } from "react";
 import { ProgressButton } from "@/components/ProgressButton";
 import { saveCategoriesAction, type SaveCategoriesState } from "@/lib/actions";
-import type { SiteCategory } from "@/lib/content";
+import { isCategoryInNav, type SiteCategory } from "@/lib/content";
 
 interface Row extends SiteCategory {
   /** Client-only key so React can track rows across reorders/deletes. */
@@ -31,7 +31,9 @@ interface Props {
 }
 
 export function CategoriesForm({ siteId, initial }: Props) {
-  const [rows, setRows] = useState<Row[]>(() => initial.map((c) => ({ ...c, key: nextKey() })));
+  const [rows, setRows] = useState<Row[]>(() =>
+    initial.map((c) => ({ ...c, inNav: isCategoryInNav(c), key: nextKey() })),
+  );
   const [state, formAction] = useActionState<SaveCategoriesState, FormData>(
     saveCategoriesAction,
     {},
@@ -45,6 +47,12 @@ export function CategoriesForm({ siteId, initial }: Props) {
 
   function updateSlug(key: string, slug: string) {
     setRows((prev) => prev.map((row) => (row.key === key ? { ...row, slug } : row)));
+  }
+
+  function toggleInNav(key: string) {
+    setRows((prev) =>
+      prev.map((row) => (row.key === key ? { ...row, inNav: !isCategoryInNav(row) } : row)),
+    );
   }
 
   function remove(key: string) {
@@ -63,11 +71,15 @@ export function CategoriesForm({ siteId, initial }: Props) {
   }
 
   function addRow() {
-    setRows((prev) => [...prev, { key: nextKey(), slug: "", label: "" }]);
+    setRows((prev) => [...prev, { key: nextKey(), slug: "", label: "", inNav: true }]);
   }
 
   const categoriesJson = JSON.stringify(
-    rows.map((row) => ({ slug: row.slug || localSlugify(row.label), label: row.label })),
+    rows.map((row) => ({
+      slug: row.slug || localSlugify(row.label),
+      label: row.label,
+      inNav: isCategoryInNav(row),
+    })),
   );
 
   return (
@@ -79,51 +91,85 @@ export function CategoriesForm({ siteId, initial }: Props) {
         <p className="text-neutral-400">还没有分类,添加一个开始规划你的站点栏目吧。</p>
       )}
 
+      {rows.length > 0 && (
+        <div className="hidden items-center gap-2 pr-8 text-xs text-neutral-400 sm:flex">
+          <span className="w-6 shrink-0" />
+          <span className="min-w-[140px] flex-1">名称</span>
+          <span className="w-40">slug</span>
+          <span className="w-[4.5rem] text-center">顶栏</span>
+        </div>
+      )}
+
       <div className="space-y-2">
-        {rows.map((row, index) => (
-          <div key={row.key} className="flex flex-wrap items-center gap-2 sm:flex-nowrap">
-            <div className="flex shrink-0 flex-row sm:flex-col">
+        {rows.map((row, index) => {
+          const inNav = isCategoryInNav(row);
+          return (
+            <div key={row.key} className="flex flex-wrap items-center gap-2 sm:flex-nowrap">
+              <div className="flex shrink-0 flex-row sm:flex-col">
+                <button
+                  type="button"
+                  onClick={() => move(row.key, -1)}
+                  disabled={index === 0}
+                  className="px-1 text-neutral-400 hover:text-neutral-700 disabled:opacity-20"
+                  aria-label="上移"
+                >
+                  ▲
+                </button>
+                <button
+                  type="button"
+                  onClick={() => move(row.key, 1)}
+                  disabled={index === rows.length - 1}
+                  className="px-1 text-neutral-400 hover:text-neutral-700 disabled:opacity-20"
+                  aria-label="下移"
+                >
+                  ▼
+                </button>
+              </div>
+              <input
+                value={row.label}
+                onChange={(e) => updateLabel(row.key, e.target.value)}
+                placeholder="分类名称,例如:技术"
+                className="min-w-[140px] flex-1 rounded border border-neutral-300 px-3 py-2 focus:border-wp-accent focus:outline-none"
+              />
+              <input
+                value={row.slug}
+                onChange={(e) => updateSlug(row.key, e.target.value)}
+                placeholder="slug,自动生成"
+                className="w-full rounded border border-neutral-300 px-3 py-2 font-mono text-xs text-neutral-500 focus:border-wp-accent focus:outline-none sm:w-40"
+              />
+              <div
+                className="flex w-[4.5rem] shrink-0 flex-col items-center gap-0.5"
+                title={inNav ? "显示在站点顶部导航" : "不显示在顶部导航,归档页仍会生成"}
+              >
+                <span className="text-[11px] text-neutral-400 sm:hidden">顶栏</span>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={inNav}
+                  aria-label={`${row.label || "此分类"}显示在顶部导航`}
+                  onClick={() => toggleInNav(row.key)}
+                  className={`relative h-5 w-9 cursor-pointer rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wp-accent focus-visible:ring-offset-1 ${
+                    inNav ? "bg-wp-accent" : "bg-neutral-300"
+                  }`}
+                >
+                  <span
+                    className={`absolute top-0.5 left-0.5 block h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${
+                      inNav ? "translate-x-4" : "translate-x-0"
+                    }`}
+                  />
+                </button>
+              </div>
               <button
                 type="button"
-                onClick={() => move(row.key, -1)}
-                disabled={index === 0}
-                className="px-1 text-neutral-400 hover:text-neutral-700 disabled:opacity-20"
-                aria-label="上移"
+                onClick={() => remove(row.key)}
+                className="shrink-0 px-2 text-neutral-400 hover:text-red-600"
+                aria-label="删除"
               >
-                ▲
-              </button>
-              <button
-                type="button"
-                onClick={() => move(row.key, 1)}
-                disabled={index === rows.length - 1}
-                className="px-1 text-neutral-400 hover:text-neutral-700 disabled:opacity-20"
-                aria-label="下移"
-              >
-                ▼
+                ✕
               </button>
             </div>
-            <input
-              value={row.label}
-              onChange={(e) => updateLabel(row.key, e.target.value)}
-              placeholder="分类名称,例如:技术"
-              className="min-w-[140px] flex-1 rounded border border-neutral-300 px-3 py-2 focus:border-wp-accent focus:outline-none"
-            />
-            <input
-              value={row.slug}
-              onChange={(e) => updateSlug(row.key, e.target.value)}
-              placeholder="slug,自动生成"
-              className="w-full rounded border border-neutral-300 px-3 py-2 font-mono text-xs text-neutral-500 focus:border-wp-accent focus:outline-none sm:w-40"
-            />
-            <button
-              type="button"
-              onClick={() => remove(row.key)}
-              className="shrink-0 px-2 text-neutral-400 hover:text-red-600"
-              aria-label="删除"
-            >
-              ✕
-            </button>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <button

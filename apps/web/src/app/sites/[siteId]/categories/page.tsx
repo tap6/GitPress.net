@@ -17,8 +17,9 @@ export default async function CategoriesPage({
     <div className="max-w-3xl">
       <h1 className="text-2xl font-normal text-neutral-800">分类</h1>
       <p className="mt-2 text-sm text-neutral-500">
-        维护一份有序的分类列表,前台会自动据此生成顶部导航和归档页。文章在编辑页选择所属分类,
-        原有的自由标签(标签)不受影响。
+        维护一份有序的分类列表。文章在编辑页选择所属分类,前台会为每个分类生成归档页。
+        「顶栏」开关只控制该分类是否出现在站点顶部导航中,不影响文章归属和归档页;关掉不等于删除。
+        原有的自由标签不受影响。
       </p>
       <div className="mt-5 rounded border border-neutral-200 bg-white shadow-sm">
         <CategoriesForm siteId={site.id} initial={categories} />
