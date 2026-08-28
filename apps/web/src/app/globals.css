@@ -108,6 +108,56 @@ body {
   min-height: 100%;
 }
 
+/*
+ * Settings cards: flex-wrap pack (Bootstrap-style), not an equal-column grid.
+ * Each card declares min/max width & height; if the leftover gap is at least
+ * the next card's min-width it sits on the same row and grows, otherwise it wraps.
+ */
+.gp-settings-pack {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 1.25rem;
+}
+
+.gp-settings-card {
+  display: flex;
+  min-width: min(100%, 18rem);
+  flex-direction: column;
+}
+
+.gp-settings-card--general {
+  min-height: 16rem;
+  max-width: 38rem;
+  flex: 1 1 24rem;
+}
+
+.gp-settings-card--brand {
+  min-width: min(100%, 22rem);
+  min-height: 22rem;
+  max-width: 42rem;
+  flex: 1 1 28rem;
+}
+
+.gp-settings-card--ai {
+  min-height: 16rem;
+  max-width: 36rem;
+  flex: 1 1 24rem;
+}
+
+.gp-settings-card--note {
+  min-height: 12rem;
+  max-width: 30rem;
+  max-height: 26rem;
+  flex: 1 1 20rem;
+}
+
+.gp-settings-card__body {
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow: auto;
+}
+
 .gp-editor p.is-editor-empty:first-child::before {
   float: left;
   height: 0;

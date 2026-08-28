@@ -31,33 +31,37 @@ export default async function SettingsPage({
     <div>
       <h1 className="text-2xl font-normal text-neutral-800">设置</h1>
 
-      <div className="mt-5 grid gap-5 [grid-template-columns:repeat(auto-fit,minmax(min(100%,22rem),1fr))]">
-        <section className="min-w-0 rounded border border-neutral-200 bg-white shadow-sm">
-          <h2 className="border-b border-neutral-100 px-5 py-3 text-sm font-semibold">常规</h2>
-          <SettingsForm
-            siteId={site.id}
-            initial={{
-              name: site.name,
-              description: site.description ?? "",
-              language: site.language,
-              analyticsSnippet,
-            }}
-          />
+      <div className="gp-settings-pack mt-5">
+        <section className="gp-settings-card gp-settings-card--general rounded border border-neutral-200 bg-white shadow-sm">
+          <h2 className="shrink-0 border-b border-neutral-100 px-5 py-3 text-sm font-semibold">常规</h2>
+          <div className="gp-settings-card__body">
+            <SettingsForm
+              siteId={site.id}
+              initial={{
+                name: site.name,
+                description: site.description ?? "",
+                language: site.language,
+                analyticsSnippet,
+              }}
+            />
+          </div>
         </section>
 
-        <section className="min-w-0 rounded border border-neutral-200 bg-white shadow-sm">
-          <h2 className="border-b border-neutral-100 px-5 py-3 text-sm font-semibold">Logo 与头像</h2>
-          <BrandMediaForm siteId={site.id} logo={logo} avatar={avatar} />
+        <section className="gp-settings-card gp-settings-card--brand rounded border border-neutral-200 bg-white shadow-sm">
+          <h2 className="shrink-0 border-b border-neutral-100 px-5 py-3 text-sm font-semibold">Logo 与头像</h2>
+          <div className="gp-settings-card__body">
+            <BrandMediaForm siteId={site.id} logo={logo} avatar={avatar} />
+          </div>
         </section>
 
         <section
           id="account-ai"
-          className="min-w-0 scroll-mt-16 rounded border border-neutral-200 bg-white shadow-sm"
+          className="gp-settings-card gp-settings-card--ai scroll-mt-16 rounded border border-neutral-200 bg-white shadow-sm"
         >
-          <h2 className="border-b border-neutral-100 px-5 py-3 text-sm font-semibold">
+          <h2 className="shrink-0 border-b border-neutral-100 px-5 py-3 text-sm font-semibold">
             账号 · 全局设置
           </h2>
-          <div className="space-y-3 p-5">
+          <div className="gp-settings-card__body space-y-3 p-5">
             <p className="text-sm text-neutral-500">
               以下配置跟账号走,对你名下所有站点生效,不用再回到「我的站点」首页修改。
             </p>
@@ -73,9 +77,9 @@ export default async function SettingsPage({
           </div>
         </section>
 
-        <section className="min-w-0 rounded border border-neutral-200 bg-white shadow-sm">
-          <h2 className="border-b border-neutral-100 px-5 py-3 text-sm font-semibold">部署</h2>
-          <div className="space-y-3 p-5 text-sm leading-relaxed text-neutral-600">
+        <section className="gp-settings-card gp-settings-card--note rounded border border-neutral-200 bg-white shadow-sm">
+          <h2 className="shrink-0 border-b border-neutral-100 px-5 py-3 text-sm font-semibold">部署</h2>
+          <div className="gp-settings-card__body space-y-3 p-5 text-sm leading-relaxed text-neutral-600">
             <p className="break-all">
               当前地址:
               {site.url ? (
@@ -97,9 +101,9 @@ export default async function SettingsPage({
           </div>
         </section>
 
-        <section className="min-w-0 rounded border border-neutral-200 bg-white shadow-sm">
-          <h2 className="border-b border-neutral-100 px-5 py-3 text-sm font-semibold">故障排查</h2>
-          <div className="space-y-3 p-5 text-sm leading-relaxed text-neutral-600">
+        <section className="gp-settings-card gp-settings-card--note rounded border border-neutral-200 bg-white shadow-sm">
+          <h2 className="shrink-0 border-b border-neutral-100 px-5 py-3 text-sm font-semibold">故障排查</h2>
+          <div className="gp-settings-card__body space-y-3 p-5 text-sm leading-relaxed text-neutral-600">
             <p>
               如果仪表盘的「最近构建」一直显示 <span className="text-red-600">✗ 失败</span>,
               或者网站仓库始终只有初始的 README(没有随文章更新),通常是发布用的部署密钥格式有问题。
@@ -132,9 +136,9 @@ export default async function SettingsPage({
           </div>
         </section>
 
-        <section className="min-w-0 rounded border border-neutral-200 bg-white shadow-sm">
-          <h2 className="border-b border-neutral-100 px-5 py-3 text-sm font-semibold">GitHub App</h2>
-          <div className="space-y-3 p-5 text-sm leading-relaxed text-neutral-600">
+        <section className="gp-settings-card gp-settings-card--note rounded border border-neutral-200 bg-white shadow-sm">
+          <h2 className="shrink-0 border-b border-neutral-100 px-5 py-3 text-sm font-semibold">GitHub App</h2>
+          <div className="gp-settings-card__body space-y-3 p-5 text-sm leading-relaxed text-neutral-600">
             {permissionGap ? (
               <p>
                 检测到安装在 <strong>{permissionGap.accountLogin}</strong> 上的权限尚未与 App
