@@ -99,36 +99,48 @@ export function ActionsUsageChart({
 
   return (
     <div>
-      <div className="grid gap-4 sm:grid-cols-2">
-        <QuotaBar
-          label="本站本月"
-          used={siteMinutes}
-          cap={includedMinutes}
-          hint={
-            quotaIsEstimate
-              ? `本站 ${siteRunCount} 次构建。对照免费档 ${includedMinutes} 分钟额度(私有仓库);公开仓库不消耗。`
-              : `本站 ${siteRunCount} 次构建,占 GitHub 帐户本月额度的比例。`
-          }
-        />
-        {accountMinutes != null ? (
+      <div className="grid gap-5 sm:grid-cols-2 sm:divide-x sm:divide-neutral-100">
+        <div className="sm:pr-5">
           <QuotaBar
-            label="整个 GitHub 帐户"
-            used={Math.round(accountMinutes)}
+            label="本站本月"
+            used={siteMinutes}
             cap={includedMinutes}
-            hint="含此帐户下其它私有仓库,不只是本站。"
+            hint={
+              quotaIsEstimate
+                ? `对照免费档 ${includedMinutes} 分钟额度(私有仓库);公开仓库不消耗。`
+                : "占 GitHub 帐户本月额度的比例。"
+            }
           />
-        ) : (
-          <div className="flex flex-col justify-end">
-            <p className="text-3xl font-light tabular-nums">
-              {siteRunCount}
-              <span className="ml-1 text-base font-normal text-neutral-400">次构建</span>
-            </p>
-            <p className="mt-1 text-sm text-neutral-500">本站 {periodLabel}</p>
-          </div>
-        )}
+        </div>
+        <div className="sm:pl-5">
+          {accountMinutes != null ? (
+            <QuotaBar
+              label="整个 GitHub 帐户"
+              used={Math.round(accountMinutes)}
+              cap={includedMinutes}
+              hint="含此帐户下其它私有仓库,不只是本站。"
+            />
+          ) : (
+            <div className="flex h-full flex-col">
+              <div className="flex items-baseline justify-between gap-3 text-sm">
+                <span className="text-neutral-600">整个 GitHub 帐户</span>
+                <span className="text-xs text-neutral-400">暂无法读取</span>
+              </div>
+              <p className="mt-2 text-2xl font-light tabular-nums text-neutral-800">
+                {siteRunCount}
+                <span className="ml-1.5 text-sm font-normal text-neutral-400">
+                  次构建 · 本站{periodLabel}
+                </span>
+              </p>
+              <p className="mt-auto pt-1.5 text-[11px] text-neutral-400">
+                GitHub 未向此 App 开放帐户账单读取权限,完整用量请见账单页。
+              </p>
+            </div>
+          )}
+        </div>
       </div>
 
-      <div className="mt-5">
+      <div className="mt-5 border-t border-neutral-100 pt-5">
         <div className="flex items-baseline justify-between gap-3">
           <h3 className="text-sm font-medium text-neutral-700">每日消耗(分钟)</h3>
           <p className="min-h-[1.25rem] text-xs text-neutral-400">

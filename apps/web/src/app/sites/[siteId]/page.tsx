@@ -85,40 +85,50 @@ export default async function SiteDashboard({
         </div>
       </div>
 
-      <div className="mt-6 rounded border border-neutral-200 bg-white p-5 shadow-sm">
-        <h2 className="text-sm font-semibold">GitHub Actions 用量 · {usage.periodLabel}</h2>
-        <p className="mt-1 text-xs text-neutral-400">
-          构建跑在私有数据仓库上,会计入 GitHub 每月免费额度;公开仓库不消耗分钟数。GitPress
-          已把插图改成随文章一次提交,避免每张图单独触发一次构建。
-        </p>
-        {usage.actionsPermissionMissing ? (
-          <p className="mt-3 text-sm text-neutral-500">
-            当前安装还没有 Actions 读取权限,无法统计本站构建时长。
-            {permissionGap ? (
-              <>
-                {" "}
-                <a href={permissionGap.reviewUrl} className="text-wp-accent hover:underline">
-                  前往 GitHub 批准
-                </a>
-              </>
-            ) : null}
+      <div className="mt-6 overflow-hidden rounded border border-neutral-200 bg-white shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-neutral-100 px-5 py-3">
+          <h2 className="text-sm font-semibold">GitHub Actions 用量</h2>
+          <span className="rounded-full bg-neutral-100 px-2.5 py-0.5 text-xs text-neutral-500">
+            {usage.periodLabel}
+          </span>
+        </div>
+        <div className="p-5">
+          <p className="text-xs text-neutral-400">
+            构建跑在私有数据仓库上,会计入 GitHub 每月免费额度;公开仓库不消耗分钟数。GitPress
+            已把插图改成随文章一次提交,避免每张图单独触发一次构建。
           </p>
-        ) : (
-          <div className="mt-4">
-            <ActionsUsageChart
-              daily={usage.daily}
-              siteMinutes={usage.siteMinutesThisMonth ?? 0}
-              siteRunCount={usage.siteRunCountThisMonth ?? 0}
-              accountMinutes={usage.accountMinutesThisMonth}
-              includedMinutes={
-                usage.accountIncludedMinutes ?? GITHUB_ACTIONS_FREE_INCLUDED_MINUTES
-              }
-              quotaIsEstimate={usage.accountIncludedMinutes == null}
-              periodLabel={usage.periodLabel}
-            />
-          </div>
-        )}
-        <p className="mt-3 text-sm">
+          {usage.actionsPermissionMissing ? (
+            <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+              当前安装还没有 Actions 读取权限,无法统计本站构建时长。
+              {permissionGap ? (
+                <>
+                  {" "}
+                  <a
+                    href={permissionGap.reviewUrl}
+                    className="font-medium underline hover:text-amber-950"
+                  >
+                    前往 GitHub 批准
+                  </a>
+                </>
+              ) : null}
+            </div>
+          ) : (
+            <div className="mt-4">
+              <ActionsUsageChart
+                daily={usage.daily}
+                siteMinutes={usage.siteMinutesThisMonth ?? 0}
+                siteRunCount={usage.siteRunCountThisMonth ?? 0}
+                accountMinutes={usage.accountMinutesThisMonth}
+                includedMinutes={
+                  usage.accountIncludedMinutes ?? GITHUB_ACTIONS_FREE_INCLUDED_MINUTES
+                }
+                quotaIsEstimate={usage.accountIncludedMinutes == null}
+                periodLabel={usage.periodLabel}
+              />
+            </div>
+          )}
+        </div>
+        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-neutral-100 bg-neutral-50 px-5 py-3 text-sm">
           <a
             href={usage.billingUrl}
             target="_blank"
@@ -128,11 +138,9 @@ export default async function SiteDashboard({
             打开 GitHub 账单页 ↗
           </a>
           {usage.billingUnavailable && (
-            <span className="ml-2 text-xs text-neutral-400">
-              帐户总额 GitHub App 读不到,以账单页为准
-            </span>
+            <span className="text-xs text-neutral-400">帐户总额 GitHub App 读不到,以账单页为准</span>
           )}
-        </p>
+        </div>
       </div>
 
       <div className="mt-6 grid gap-4 lg:grid-cols-2">

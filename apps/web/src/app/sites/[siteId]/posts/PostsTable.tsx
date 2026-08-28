@@ -62,72 +62,87 @@ export function PostsTable({ siteId, posts, categories }: Props) {
   const selectedCount = [...selected].filter((path) => visible.some((post) => post.path === path)).length;
 
   return (
-    <div>
-      <div className="mt-4 flex flex-wrap items-center gap-2 text-sm">
-        <FilterChip active={filter === "all"} onClick={() => setFilter("all")}>
-          全部 ({posts.length})
-        </FilterChip>
-        <FilterChip active={filter === "published"} onClick={() => setFilter("published")}>
-          已发布 ({posts.filter((post) => !post.draft).length})
-        </FilterChip>
-        <FilterChip active={filter === "draft"} onClick={() => setFilter("draft")}>
-          草稿 · 不公开 ({posts.filter((post) => post.draft).length})
-        </FilterChip>
+    <div className="mt-4 overflow-hidden rounded border border-neutral-200 bg-white shadow-sm">
+      {/* Toolbar: filters + bulk actions share one row so the table reads as a single card */}
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-neutral-100 px-4 py-3">
+        <div className="flex flex-wrap items-center gap-2 text-sm">
+          <FilterChip active={filter === "all"} onClick={() => setFilter("all")}>
+            全部 ({posts.length})
+          </FilterChip>
+          <FilterChip active={filter === "published"} onClick={() => setFilter("published")}>
+            已发布 ({posts.filter((post) => !post.draft).length})
+          </FilterChip>
+          <FilterChip active={filter === "draft"} onClick={() => setFilter("draft")}>
+            草稿 · 不公开 ({posts.filter((post) => post.draft).length})
+          </FilterChip>
+        </div>
+
+        <form
+          action={bulkAction}
+          onSubmit={(event) => {
+            const data = new FormData(event.currentTarget);
+            if (data.get("op") === "delete") {
+              const count = data.getAll("paths").length;
+              if (!window.confirm(`确定删除选中的 ${count} 篇文章?此操作会从数据仓库移除文件。`)) {
+                event.preventDefault();
+              }
+            }
+          }}
+          className="flex flex-wrap items-center gap-2"
+        >
+          <input type="hidden" name="siteId" value={siteId} />
+          {[...selected]
+            .filter((path) => visible.some((post) => post.path === path))
+            .map((path) => (
+              <input key={path} type="hidden" name="paths" value={path} />
+            ))}
+          <select
+            name="op"
+            required
+            defaultValue=""
+            disabled={selectedCount === 0}
+            className="rounded border border-neutral-300 bg-white px-2 py-1.5 text-sm disabled:opacity-40"
+          >
+            <option value="" disabled>
+              批量操作
+            </option>
+            <option value="publish">设为已发布</option>
+            <option value="draft">设为草稿(不公开)</option>
+            <option value="delete">删除</option>
+          </select>
+          <ProgressButton
+            expectedSeconds={4}
+            pendingLabel="处理中"
+            buildSiteId={siteId}
+            disabled={selectedCount === 0}
+            className="rounded border border-neutral-300 px-3 py-1.5 text-sm hover:bg-neutral-50 disabled:opacity-40"
+          >
+            应用
+          </ProgressButton>
+          {selectedCount === 0 && (
+            <span className="text-xs text-neutral-400">勾选文章后可批量改状态或删除</span>
+          )}
+        </form>
       </div>
 
-      <form
-        action={bulkAction}
-        onSubmit={(event) => {
-          const data = new FormData(event.currentTarget);
-          if (data.get("op") === "delete") {
-            const count = data.getAll("paths").length;
-            if (!window.confirm(`确定删除选中的 ${count} 篇文章?此操作会从数据仓库移除文件。`)) {
-              event.preventDefault();
-            }
-          }
-        }}
-        className="mt-3 flex flex-wrap items-center gap-2"
-      >
-        <input type="hidden" name="siteId" value={siteId} />
-        {[...selected]
-          .filter((path) => visible.some((post) => post.path === path))
-          .map((path) => (
-            <input key={path} type="hidden" name="paths" value={path} />
-          ))}
-        <select
-          name="op"
-          required
-          defaultValue=""
-          className="rounded border border-neutral-300 bg-white px-2 py-1.5 text-sm"
-        >
-          <option value="" disabled>
-            批量操作
-          </option>
-          <option value="publish">设为已发布</option>
-          <option value="draft">设为草稿(不公开)</option>
-          <option value="delete">删除</option>
-        </select>
-        <ProgressButton
-          expectedSeconds={4}
-          pendingLabel="处理中"
-          buildSiteId={siteId}
-          disabled={selectedCount === 0}
-          className="rounded border border-neutral-300 px-3 py-1.5 text-sm hover:bg-neutral-50 disabled:opacity-40"
-        >
-          应用
-        </ProgressButton>
-        <span className="text-xs text-neutral-400">
-          {selectedCount > 0 ? `已选 ${selectedCount} 篇` : "左侧勾选后可批量改状态或删除"}
-        </span>
-      </form>
+      {selectedCount > 0 && (
+        <div className="flex items-center justify-between gap-3 border-b border-sky-100 bg-sky-50 px-4 py-2 text-xs text-sky-800">
+          <span>已选 {selectedCount} 篇</span>
+          <button type="button" onClick={() => setSelected(new Set())} className="hover:underline">
+            清除选择
+          </button>
+        </div>
+      )}
       {bulkState.error && (
-        <p className="mt-2 rounded bg-red-50 p-2 text-sm text-red-600">{bulkState.error}</p>
+        <p className="border-b border-neutral-100 bg-red-50 px-4 py-2 text-sm text-red-600">
+          {bulkState.error}
+        </p>
       )}
 
-      <div className="mt-3 overflow-x-auto rounded border border-neutral-200 bg-white shadow-sm">
+      <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-neutral-200 bg-neutral-50 text-left text-neutral-500">
+            <tr className="border-b border-neutral-200 bg-neutral-50 text-left text-[11px] font-medium uppercase tracking-wide text-neutral-500">
               <th className="w-10 px-3 py-2.5">
                 <input
                   type="checkbox"
@@ -137,18 +152,20 @@ export function PostsTable({ siteId, posts, categories }: Props) {
                   className="accent-wp-accent"
                 />
               </th>
-              <th className="px-4 py-2.5 font-medium">标题</th>
-              <th className="hidden w-28 px-4 py-2.5 font-medium md:table-cell">分类</th>
-              <th className="hidden w-40 px-4 py-2.5 font-medium md:table-cell">标签</th>
-              <th className="hidden w-28 px-4 py-2.5 font-medium md:table-cell">日期</th>
-              <th className="w-28 px-4 py-2.5 font-medium">状态</th>
-              <th className="w-16 px-3 py-2.5" />
+              <th className="px-4 py-2.5">标题</th>
+              <th className="hidden w-28 px-4 py-2.5 md:table-cell">分类</th>
+              <th className="hidden w-40 px-4 py-2.5 md:table-cell">标签</th>
+              <th className="hidden w-28 px-4 py-2.5 md:table-cell">日期</th>
+              <th className="w-24 px-4 py-2.5">状态</th>
+              <th className="w-16 px-3 py-2.5">
+                <span className="sr-only">操作</span>
+              </th>
             </tr>
           </thead>
           <tbody>
             {visible.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-4 py-8 text-center text-neutral-400">
+                <td colSpan={7} className="px-4 py-10 text-center text-neutral-400">
                   {posts.length === 0 ? "还没有文章,点击「写文章」开始。" : "这一栏目前是空的。"}
                 </td>
               </tr>
@@ -223,7 +240,11 @@ function PostRow({
 
   return (
     <>
-      <tr className={`border-b border-neutral-100 ${editing ? "bg-sky-50/60" : ""}`}>
+      <tr
+        className={`border-b border-neutral-100 transition-colors ${
+          editing ? "bg-sky-50/60" : "hover:bg-neutral-50/80"
+        }`}
+      >
         <td className="px-3 py-3 align-top">
           <input
             type="checkbox"
@@ -267,9 +288,18 @@ function PostRow({
         <td className="hidden px-4 py-3 text-neutral-500 md:table-cell">{post.date ?? "—"}</td>
         <td className="px-4 py-3">
           {post.draft ? (
-            <span className="rounded bg-amber-100 px-2 py-0.5 text-xs text-amber-700">草稿 · 不公开</span>
+            <span
+              title="草稿仅存于私有仓库,不会进入构建"
+              className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700"
+            >
+              <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+              草稿
+            </span>
           ) : (
-            <span className="rounded bg-emerald-100 px-2 py-0.5 text-xs text-emerald-700">已发布</span>
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+              已发布
+            </span>
           )}
         </td>
         <td className="px-3 py-3 text-right">
@@ -280,7 +310,7 @@ function PostRow({
               expectedSeconds={3}
               pendingLabel="删除中"
               buildSiteId={siteId}
-              className="text-xs text-red-500 hover:underline"
+              className="text-xs text-neutral-400 hover:text-red-600 hover:underline"
             >
               删除
             </ProgressButton>
