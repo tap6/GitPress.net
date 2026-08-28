@@ -1,0 +1,33 @@
+---
+import { formatDate, postSlug, readingTime, themeConfig, withBase, type Post } from "../lib/gitpress";
+
+interface Props {
+  post: Post;
+}
+
+const { post } = Astro.props;
+const minutes = readingTime(post.body ?? "");
+---
+
+<article class="post-card">
+  {post.data.cover && <img class="post-card-cover" src={withBase(post.data.cover)} alt="" loading="lazy" />}
+  <div class="post-card-body">
+    <p class="post-meta">
+      {formatDate(post.data.date)}
+      {themeConfig.showReadingTime && <span> · {minutes} min read</span>}
+    </p>
+    <h2>
+      <a href={withBase(`/posts/${postSlug(post)}/`)}>{post.data.title}</a>
+    </h2>
+    {post.data.description && <p class="post-excerpt">{post.data.description}</p>}
+    {
+      post.data.tags?.length ? (
+        <p class="post-card-tags">
+          {post.data.tags.map((tag) => (
+            <a href={withBase(`/tags/${encodeURIComponent(tag)}/`)}>#{tag}</a>
+          ))}
+        </p>
+      ) : null
+    }
+  </div>
+</article>

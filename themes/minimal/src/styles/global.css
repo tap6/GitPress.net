@@ -43,6 +43,7 @@ a:hover {
 }
 
 .site-header {
+  position: relative;
   display: flex;
   align-items: baseline;
   justify-content: space-between;
@@ -76,6 +77,48 @@ a:hover {
 .site-nav a:hover {
   color: var(--text);
   text-decoration: none;
+}
+
+/* Nav toggle: pure-CSS "checkbox hack", no client JS needed for a static build. */
+.nav-toggle-checkbox {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.nav-toggle-label {
+  display: none;
+  flex-direction: column;
+  gap: 4px;
+  padding: 0.5rem;
+  cursor: pointer;
+}
+
+.nav-toggle-label span {
+  display: block;
+  width: 1.35rem;
+  height: 2px;
+  background: var(--text);
+}
+
+@media (max-width: 640px) {
+  .nav-toggle-label {
+    display: flex;
+  }
+
+  .site-nav {
+    flex-basis: 100%;
+    max-height: 0;
+    overflow: hidden;
+    flex-direction: column;
+    gap: 0.85rem;
+    transition: max-height 0.2s ease;
+  }
+
+  .nav-toggle-checkbox:checked ~ .site-nav {
+    max-height: 30rem;
+    margin-top: 0.5rem;
+  }
 }
 
 .site-main {

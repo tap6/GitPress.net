@@ -48,6 +48,18 @@ export function isCategoryInNav(category: Pick<SiteCategory, "inNav">): boolean 
   return category.inNav !== false;
 }
 
+/**
+ * One entry in the site owner's explicit top-nav menu (`site.nav`).
+ * `label` always overrides the item's natural name (category label / page
+ * title); when absent, themes derive a sensible default.
+ */
+export type NavItem =
+  | { type: "home"; label?: string }
+  | { type: "rss"; label?: string }
+  | { type: "category"; slug: string; label?: string }
+  | { type: "page"; slug: string; label?: string }
+  | { type: "link"; url: string; label: string };
+
 export interface SiteInfo {
   title: string;
   description?: string;
@@ -76,6 +88,21 @@ export interface SiteInfo {
    * no analytics are injected.
    */
   analyticsSnippet?: string;
+  /**
+   * Explicit, ordered top-nav menu maintained by the site owner: which items
+   * appear (including whether "Home" or "RSS" show up at all), in what
+   * order, and under what label. This is the *only* source of truth for the
+   * generated site's navigation when present — themes must render exactly
+   * these items, nothing more or less.
+   *
+   * When absent (sites created before this field existed, or that have not
+   * opened the menu editor yet), themes fall back to their own legacy
+   * implicit nav so existing sites keep their current menu unchanged after a
+   * spec/theme upgrade. This exists specifically so site owners — not theme
+   * authors — decide what belongs in the header, instead of every category
+   * and page being unconditionally forced into one unbounded row.
+   */
+  nav?: NavItem[];
 }
 
 export interface ThemeRef {

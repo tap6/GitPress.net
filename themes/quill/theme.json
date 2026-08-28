@@ -1,0 +1,36 @@
+{
+  "specVersion": 1,
+  "name": "quill",
+  "version": "1.0.0",
+  "displayName": "Quill",
+  "description": "Card-based post list, tags, reading time, a year-by-year archive, and a one-click light/dark toggle — in the spirit of the minimalist card-list blog themes popular in the static-site world.",
+  "author": "GitPress",
+  "license": "MIT",
+  "engine": "astro",
+  "preview": "preview.svg",
+  "tags": ["cards", "dark-mode", "modern"],
+  "configSchema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "accentColor": {
+        "type": "string",
+        "format": "color",
+        "default": "#5b5bd6",
+        "description": "Accent color for links, highlights and the active theme toggle."
+      },
+      "showReadingTime": {
+        "type": "boolean",
+        "default": true,
+        "description": "Show estimated reading time on post cards and post pages."
+      },
+      "defaultAppearance": {
+        "type": "string",
+        "enum": ["system", "light", "dark"],
+        "default": "system",
+        "description": "Initial light/dark appearance before the visitor's own toggle choice (saved in their browser) takes over."
+      }
+    },
+    "additionalProperties": true
+  }
+}

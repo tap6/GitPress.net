@@ -1,0 +1,15 @@
+{
+  "name": "@gitpress/theme-quill",
+  "version": "1.0.0",
+  "description": "GitPress built-in theme: Quill — card-based list, tags, reading time and a one-click dark mode toggle.",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview"
+  },
+  "dependencies": {
+    "astro": "^5.7.0"
+  }
+}

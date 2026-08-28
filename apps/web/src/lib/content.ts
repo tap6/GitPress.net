@@ -3,9 +3,11 @@ import type { Octokit } from "octokit";
 import { persistSiteCategory, type SiteCategory } from "./categories";
 import { deleteFile, getFileText, listDirectory, putFile, commitFiles, splitRepo } from "./github";
 import { sanitizeMediaFileName, uniqueMediaFileName } from "./mediaName";
+import { persistNavItem, type NavItem } from "./nav";
 
 export type { SiteCategory } from "./categories";
 export { isCategoryInNav, persistSiteCategory } from "./categories";
+export type { NavItem } from "./nav";
 
 /** Content operations = commits against the private data repository. */
 
@@ -330,5 +332,61 @@ export async function saveSiteCategories(
       config.site.categories = categories.map(persistSiteCategory);
     },
     "Update categories",
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Standalone pages (content/pages/*.md — about, contact, ...)
+// ---------------------------------------------------------------------------
+
+export interface SitePage {
+  slug: string;
+  title: string;
+}
+
+/** Lightweight listing (slug + title only) so the menu editor can offer existing pages. */
+export async function listPages(octokit: Octokit, dataRepo: string): Promise<SitePage[]> {
+  const ref = splitRepo(dataRepo);
+  const files = await listDirectory(octokit, ref, "content/pages");
+  const mdFiles = files.filter((file) => file.name.endsWith(".md"));
+  const results = await Promise.all(
+    mdFiles.map(async (file) => {
+      const raw = await getFileText(octokit, ref, file.path);
+      if (!raw) return null;
+      const { data } = matter(raw.text);
+      const fallbackSlug = file.name.replace(/\.md$/, "");
+      const slug = typeof data.slug === "string" && data.slug ? data.slug : fallbackSlug;
+      const title = typeof data.title === "string" && data.title ? data.title : slug;
+      return { slug, title };
+    }),
+  );
+  return results.filter((page): page is SitePage => page !== null);
+}
+
+// ---------------------------------------------------------------------------
+// Top-nav menu (site-level, ordered list maintained by the site owner)
+// ---------------------------------------------------------------------------
+
+export async function getSiteNav(octokit: Octokit, dataRepo: string): Promise<NavItem[] | null> {
+  const config = await getSiteConfig(octokit, dataRepo);
+  const nav = config?.site.nav;
+  if (!Array.isArray(nav)) return null;
+  return nav
+    .filter((item): item is NavItem => !!item && typeof item === "object" && typeof (item as NavItem).type === "string")
+    .map((item) => persistNavItem(item));
+}
+
+export async function saveSiteNav(
+  octokit: Octokit,
+  dataRepo: string,
+  nav: NavItem[],
+): Promise<void> {
+  await updateSiteConfig(
+    octokit,
+    dataRepo,
+    (config) => {
+      config.site.nav = nav.map(persistNavItem);
+    },
+    "Update menu",
   );
 }

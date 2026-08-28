@@ -1,0 +1,39 @@
+---
+import type { GetStaticPaths, Page } from "astro";
+import Base from "../../../layouts/Base.astro";
+import Pagination from "../../../components/Pagination.astro";
+import PostCard from "../../../components/PostCard.astro";
+import {
+  getPostsByCategory,
+  postsPerPage,
+  siteCategories,
+  categoryLabel,
+  type Post,
+} from "../../../lib/gitpress";
+
+export const getStaticPaths = (async ({ paginate }) => {
+  const paths = await Promise.all(
+    siteCategories.map(async (category) => {
+      const posts = await getPostsByCategory(category.slug);
+      return paginate(posts, { pageSize: postsPerPage, params: { slug: category.slug } });
+    }),
+  );
+  return paths.flat();
+}) satisfies GetStaticPaths;
+
+interface Props {
+  page: Page<Post>;
+}
+
+const { slug } = Astro.params;
+const { page } = Astro.props;
+---
+
+<Base title={categoryLabel(slug!)}>
+  <h1 class="page-heading">{categoryLabel(slug!)}</h1>
+  {page.data.length === 0 && <p style="text-align:center">This category has no posts yet.</p>}
+  <div class="post-grid">
+    {page.data.map((post) => <PostCard post={post} />)}
+  </div>
+  <Pagination page={page} />
+</Base>

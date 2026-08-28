@@ -35,7 +35,7 @@
     },
     "configSchema": {
       "type": "object",
-      "description": "JSON Schema (draft 2020-12) describing theme.config in gitpress.json. Themes must apply defaults for absent options so old sites keep building after theme updates.",
+      "description": "JSON Schema (draft 2020-12) describing theme.config in gitpress.json. Themes must apply defaults for absent options so old sites keep building after theme updates. This is also what platforms render as the theme's settings form: string properties with format \"color\" render as a color picker, string properties with \"enum\" render as a select, boolean properties render as a toggle, and everything else falls back to a text/number input.",
       "additionalProperties": true
     }
   },

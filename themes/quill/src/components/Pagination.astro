@@ -1,0 +1,29 @@
+---
+import type { Page } from "astro";
+
+interface Props {
+  page: Page<unknown>;
+}
+
+const { page } = Astro.props;
+---
+
+{
+  page.lastPage > 1 && (
+    <nav class="pagination" aria-label="Pagination">
+      {page.url.prev ? (
+        <a href={page.url.prev}>← Newer</a>
+      ) : (
+        <span class="pagination-disabled">← Newer</span>
+      )}
+      <span class="pagination-status">
+        {page.currentPage} / {page.lastPage}
+      </span>
+      {page.url.next ? (
+        <a href={page.url.next}>Older →</a>
+      ) : (
+        <span class="pagination-disabled">Older →</span>
+      )}
+    </nav>
+  )
+}

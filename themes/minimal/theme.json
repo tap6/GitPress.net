@@ -15,6 +15,7 @@
     "properties": {
       "accentColor": {
         "type": "string",
+        "format": "color",
         "default": "#2563eb",
         "description": "Accent color for links and highlights."
       },

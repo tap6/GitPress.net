@@ -60,6 +60,27 @@
         "analyticsSnippet": {
           "type": "string",
           "description": "Raw HTML/script snippet (GA4, Umami, Plausible, Clarity, ...) inserted verbatim before </head> on every page. Empty/absent means no analytics are injected."
+        },
+        "nav": {
+          "type": "array",
+          "description": "Explicit, ordered top-nav menu maintained by the site owner. When present, this is the only source of truth for the generated site's navigation (including whether Home/RSS appear at all). When absent, themes fall back to their own legacy implicit nav so existing sites are unaffected.",
+          "items": {
+            "type": "object",
+            "required": ["type"],
+            "properties": {
+              "type": { "type": "string", "enum": ["home", "rss", "category", "page", "link"] },
+              "slug": {
+                "type": "string",
+                "description": "Required for type 'category' (matches site.categories[].slug) and type 'page' (matches the page's slug)."
+              },
+              "url": { "type": "string", "description": "Required for type 'link'. Absolute URL." },
+              "label": {
+                "type": "string",
+                "description": "Display text override. Required for type 'link'; optional for every other type, which otherwise derive a default label (category label, page title, \"Home\", \"RSS\")."
+              }
+            },
+            "additionalProperties": true
+          }
         }
       },
       "additionalProperties": true

@@ -1,0 +1,44 @@
+---
+import { render } from "astro:content";
+import Base from "../../layouts/Base.astro";
+import { getPublishedPosts, postSlug, formatDate, readingTime, themeConfig, withBase, type Post } from "../../lib/gitpress";
+
+export async function getStaticPaths() {
+  const posts = await getPublishedPosts();
+  return posts.map((post) => ({ params: { slug: postSlug(post) }, props: { post } }));
+}
+
+interface Props {
+  post: Post;
+}
+
+const { post } = Astro.props;
+const { Content } = await render(post);
+const minutes = readingTime(post.body ?? "");
+---
+
+<Base title={post.data.title} description={post.data.description}>
+  <article>
+    <header class="article-header">
+      <p class="post-meta">
+        {formatDate(post.data.date)}
+        {themeConfig.showReadingTime && <span> · {minutes} min read</span>}
+        {post.data.draft && " · DRAFT"}
+      </p>
+      <h1>{post.data.title}</h1>
+    </header>
+    {post.data.cover && <img class="article-cover" src={withBase(post.data.cover)} alt="" />}
+    <div class="prose">
+      <Content />
+    </div>
+    {
+      post.data.tags?.length ? (
+        <nav class="tag-list">
+          {post.data.tags.map((tag) => (
+            <a href={withBase(`/tags/${encodeURIComponent(tag)}/`)}>#{tag}</a>
+          ))}
+        </nav>
+      ) : null
+    }
+  </article>
+</Base>

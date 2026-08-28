@@ -1,0 +1,35 @@
+---
+import Base from "../../layouts/Base.astro";
+import PostCard from "../../components/PostCard.astro";
+import { getPublishedPosts, type Post } from "../../lib/gitpress";
+
+export async function getStaticPaths() {
+  const posts = await getPublishedPosts();
+  const byTag = new Map<string, Post[]>();
+  for (const post of posts) {
+    for (const tag of post.data.tags ?? []) {
+      const list = byTag.get(tag) ?? [];
+      list.push(post);
+      byTag.set(tag, list);
+    }
+  }
+  return [...byTag.entries()].map(([tag, tagged]) => ({
+    params: { tag },
+    props: { tag, posts: tagged },
+  }));
+}
+
+interface Props {
+  tag: string;
+  posts: Post[];
+}
+
+const { tag, posts } = Astro.props;
+---
+
+<Base title={`#${tag}`}>
+  <h1 class="page-heading">#{tag}</h1>
+  <div class="post-grid">
+    {posts.map((post) => <PostCard post={post} />)}
+  </div>
+</Base>

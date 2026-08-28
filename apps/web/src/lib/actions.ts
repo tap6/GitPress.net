@@ -12,6 +12,7 @@ import {
   deletePost,
   parseTagList,
   saveSiteCategories,
+  saveSiteNav,
   savePost,
   slugify,
   updatePostMeta,
@@ -26,6 +27,7 @@ import {
   sanitizeMediaFileName,
 } from "./mediaName";
 import { assertAllowedMediaUpload } from "./mediaTypes";
+import { persistNavItem, type NavItem } from "./nav";
 import { provisionSite, rotateDeployKey, triggerRebuild } from "./provision";
 import { revalidateSiteData } from "./siteDataCache";
 import { requireSite, requireUser } from "./sites";
@@ -352,10 +354,20 @@ export async function saveThemeOptionsAction(formData: FormData): Promise<void> 
   const theme = getBuiltinTheme(site.themeName);
   if (!theme) throw new Error("Unknown theme");
 
+  // Driven entirely by the theme's own configSchema (theme.json) so any
+  // theme's declared options are saved correctly without a platform code
+  // change — see lib/themes.ts for why this replaced a hand-maintained list.
   const config: Record<string, unknown> = {};
-  for (const option of theme.options) {
-    const raw = formData.get(`opt_${option.key}`);
-    config[option.key] = option.type === "boolean" ? raw === "on" : String(raw ?? option.defaultValue);
+  for (const [key, property] of Object.entries(theme.configSchema.properties ?? {})) {
+    const raw = formData.get(`opt_${key}`);
+    if (property.type === "boolean") {
+      config[key] = raw === "on";
+    } else if (property.type === "number" || property.type === "integer") {
+      const parsed = Number(raw);
+      config[key] = Number.isFinite(parsed) ? parsed : property.default;
+    } else {
+      config[key] = raw != null && raw !== "" ? String(raw) : property.default;
+    }
   }
 
   const octokit = await getInstallationOctokit(installation.installationId);
@@ -460,6 +472,69 @@ export async function saveCategoriesAction(
   }
 
   revalidateSiteData(site.dataRepo, [`/sites/${siteId}/categories`, `/sites/${siteId}/posts`]);
+  return { saved: true };
+}
+
+// ---------------------------------------------------------------------------
+// Menu (top-nav)
+// ---------------------------------------------------------------------------
+
+export interface SaveMenuState {
+  error?: string;
+  saved?: boolean;
+}
+
+export async function saveMenuAction(
+  _prev: SaveMenuState,
+  formData: FormData,
+): Promise<SaveMenuState> {
+  const siteId = String(formData.get("siteId"));
+  const { site, installation } = await requireSite(siteId);
+
+  let nav: NavItem[];
+  try {
+    const parsed = JSON.parse(String(formData.get("navJson") ?? "[]"));
+    if (!Array.isArray(parsed)) throw new Error("invalid");
+    nav = parsed.map((raw: unknown) => {
+      const item = raw as Record<string, unknown>;
+      const label = typeof item.label === "string" ? item.label.trim() : "";
+      switch (item.type) {
+        case "home":
+          return persistNavItem({ type: "home", label: label || undefined });
+        case "rss":
+          return persistNavItem({ type: "rss", label: label || undefined });
+        case "category": {
+          const slug = String(item.slug ?? "").trim();
+          if (!slug) throw new Error("菜单中的分类项缺少 slug");
+          return persistNavItem({ type: "category", slug, label: label || undefined });
+        }
+        case "page": {
+          const slug = String(item.slug ?? "").trim();
+          if (!slug) throw new Error("菜单中的页面项缺少 slug");
+          return persistNavItem({ type: "page", slug, label: label || undefined });
+        }
+        case "link": {
+          const url = String(item.url ?? "").trim();
+          if (!url) throw new Error("自定义链接不能为空网址");
+          if (!label) throw new Error("自定义链接需要填写名称");
+          return persistNavItem({ type: "link", url, label });
+        }
+        default:
+          throw new Error(`未知的菜单项类型:${String(item.type)}`);
+      }
+    });
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "菜单数据格式有误" };
+  }
+
+  const octokit = await getInstallationOctokit(installation.installationId);
+  try {
+    await saveSiteNav(octokit, site.dataRepo, nav);
+  } catch (error) {
+    return { error: `保存失败:${error instanceof Error ? error.message : String(error)}` };
+  }
+
+  revalidateSiteData(site.dataRepo, [`/sites/${siteId}/menu`]);
   return { saved: true };
 }
 

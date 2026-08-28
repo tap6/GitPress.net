@@ -1,6 +1,6 @@
 ---
 import { getCollection } from "astro:content";
-import { gitpress, themeConfig, withBase, postSlug, navCategories } from "../lib/gitpress";
+import { gitpress, themeConfig, withBase, buildNav } from "../lib/gitpress";
 import "../styles/global.css";
 
 interface Props {
@@ -11,9 +11,8 @@ interface Props {
 const { title, description } = Astro.props;
 const site = gitpress.site;
 const pageTitle = title ? `${title} — ${site.title}` : site.title;
-const navPages = (await getCollection("pages")).sort((a, b) =>
-  a.data.title.localeCompare(b.data.title),
-);
+const navPages = await getCollection("pages");
+const navLinks = buildNav(navPages);
 ---
 
 <!doctype html>
@@ -35,14 +34,19 @@ const navPages = (await getCollection("pages")).sort((a, b) =>
   <body>
     <header class="site-header">
       <p class="site-title"><a href={withBase("/")}>{site.title}</a></p>
+      <input type="checkbox" id="nav-toggle" class="nav-toggle-checkbox" />
+      <label for="nav-toggle" class="nav-toggle-label" aria-label="Toggle menu">
+        <span></span><span></span><span></span>
+      </label>
       {site.description && <p class="site-tagline">{site.description}</p>}
       <nav class="site-nav">
-        <a href={withBase("/")}>Home</a>
-        {navCategories.map((category) => (
-          <a href={withBase(`/categories/${category.slug}/`)}>{category.label}</a>
-        ))}
-        {navPages.map((page) => <a href={withBase(`/${postSlug(page)}/`)}>{page.data.title}</a>)}
-        <a href={withBase("/rss.xml")}>RSS</a>
+        {
+          navLinks.map((link) => (
+            <a href={link.href} target={link.external ? "_blank" : undefined} rel={link.external ? "noopener noreferrer" : undefined}>
+              {link.label}
+            </a>
+          ))
+        }
       </nav>
     </header>
     <main class="site-main">

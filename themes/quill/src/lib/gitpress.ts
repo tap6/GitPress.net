@@ -54,10 +54,14 @@ export const gitpress = loadConfig();
 
 /** Theme option defaults — absent options always fall back so old sites keep building. */
 export const themeConfig = {
-  accentColor: "#a85a2a",
-  showExcerpts: true,
+  accentColor: "#5b5bd6",
+  showReadingTime: true,
+  defaultAppearance: "system",
   ...(gitpress.theme?.config ?? {}),
-} as { accentColor: string; showExcerpts: boolean } & Record<string, unknown>;
+} as { accentColor: string; showReadingTime: boolean; defaultAppearance: "system" | "light" | "dark" } & Record<
+  string,
+  unknown
+>;
 
 export type Post = CollectionEntry<"posts">;
 export type Page = CollectionEntry<"pages">;
@@ -101,6 +105,17 @@ export function formatDate(date: Date | undefined): string {
   }).format(date);
 }
 
+/** Rough reading time from the raw markdown body, at 200 words/minute (~500 CJK characters/minute). */
+export function readingTime(body: string): number {
+  const cjkChars = body.match(/[\u3000-\u9fff\uf900-\ufaff]/g)?.length ?? 0;
+  const latinWords = body
+    .replace(/[\u3000-\u9fff\uf900-\ufaff]/g, " ")
+    .split(/\s+/)
+    .filter(Boolean).length;
+  const minutes = latinWords / 200 + cjkChars / 500;
+  return Math.max(1, Math.round(minutes));
+}
+
 /** Prefix a root-relative path with the site base path. */
 export function withBase(path: string): string {
   const base = import.meta.env.BASE_URL;
@@ -122,11 +137,14 @@ const configuredNav: NavItem[] | undefined = gitpress.site.nav;
  * Resolves the top-nav links to render. When the site owner has configured
  * `site.nav`, that list is the only source of truth (order, visibility,
  * labels — including whether Home/RSS show up at all). When absent, this
- * falls back to the theme's original implicit nav (Home, then nav
- * categories, then every page, then RSS) so sites that predate the menu
- * editor keep their current header unchanged.
+ * falls back to the theme's own implicit nav (Home, then nav categories,
+ * then every page, then RSS) so sites that predate the menu editor keep
+ * their current header unchanged. Either way, "Archive" is always appended:
+ * it is a fixed feature of this theme (see pages/archive), not a
+ * site-owner-configurable menu entry.
  */
 export function buildNav(pages: Page[]): NavLink[] {
+  const archive = { href: withBase("/archive/"), label: "Archive" };
   if (!configuredNav) {
     return [
       { href: withBase("/"), label: "Home" },
@@ -135,6 +153,7 @@ export function buildNav(pages: Page[]): NavLink[] {
         .slice()
         .sort((a, b) => a.data.title.localeCompare(b.data.title))
         .map((p) => ({ href: withBase(`/${postSlug(p)}/`), label: p.data.title })),
+      archive,
       { href: withBase("/rss.xml"), label: "RSS" },
     ];
   }
@@ -157,5 +176,6 @@ export function buildNav(pages: Page[]): NavLink[] {
       links.push({ href: item.url, label: item.label, external: true });
     }
   }
+  links.push(archive);
   return links;
 }

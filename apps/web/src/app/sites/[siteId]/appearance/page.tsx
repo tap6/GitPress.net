@@ -1,6 +1,6 @@
 import { saveThemeOptionsAction, switchThemeAction } from "@/lib/actions";
 import { ProgressButton } from "@/components/ProgressButton";
-import { BUILTIN_THEMES, getBuiltinTheme } from "@/lib/themes";
+import { BUILTIN_THEMES, getBuiltinTheme, themeOptionLabel } from "@/lib/themes";
 import { requireSite } from "@/lib/sites";
 
 export const metadata = { title: "外观" };
@@ -77,33 +77,56 @@ export default async function AppearancePage({
         })}
       </div>
 
-      {currentTheme && currentTheme.options.length > 0 && (
+      {currentTheme && Object.keys(currentTheme.configSchema.properties ?? {}).length > 0 && (
         <div className="mt-8 max-w-lg rounded border border-neutral-200 bg-white shadow-sm">
           <h2 className="border-b border-neutral-100 px-5 py-3 text-sm font-semibold">
             {currentTheme.displayName} 主题选项
           </h2>
           <form action={saveThemeOptionsAction} className="space-y-4 p-5 text-sm">
             <input type="hidden" name="siteId" value={site.id} />
-            {currentTheme.options.map((option) => (
-              <label key={option.key} className="flex items-center justify-between gap-4">
-                <span>{option.label}</span>
-                {option.type === "color" ? (
-                  <input
-                    type="color"
-                    name={`opt_${option.key}`}
-                    defaultValue={String(themeConfig[option.key] ?? option.defaultValue)}
-                    className="h-8 w-16 cursor-pointer rounded border border-neutral-300"
-                  />
-                ) : (
-                  <input
-                    type="checkbox"
-                    name={`opt_${option.key}`}
-                    defaultChecked={Boolean(themeConfig[option.key] ?? option.defaultValue)}
-                    className="accent-wp-accent"
-                  />
-                )}
-              </label>
-            ))}
+            {Object.entries(currentTheme.configSchema.properties ?? {}).map(([key, property]) => {
+              const current = themeConfig[key] ?? property.default;
+              const name = `opt_${key}`;
+              return (
+                <label key={key} className="flex items-center justify-between gap-4">
+                  <span>{themeOptionLabel(key, property)}</span>
+                  {property.type === "boolean" ? (
+                    <input
+                      type="checkbox"
+                      name={name}
+                      defaultChecked={Boolean(current)}
+                      className="accent-wp-accent"
+                    />
+                  ) : property.format === "color" ? (
+                    <input
+                      type="color"
+                      name={name}
+                      defaultValue={String(current ?? "#000000")}
+                      className="h-8 w-16 cursor-pointer rounded border border-neutral-300"
+                    />
+                  ) : property.enum ? (
+                    <select
+                      name={name}
+                      defaultValue={String(current ?? "")}
+                      className="rounded border border-neutral-300 bg-white px-2 py-1"
+                    >
+                      {property.enum.map((option) => (
+                        <option key={option} value={option}>
+                          {option}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      type={property.type === "number" || property.type === "integer" ? "number" : "text"}
+                      name={name}
+                      defaultValue={String(current ?? "")}
+                      className="w-40 rounded border border-neutral-300 px-2 py-1"
+                    />
+                  )}
+                </label>
+              );
+            })}
             <ProgressButton
               expectedSeconds={5}
               pendingLabel="保存中"

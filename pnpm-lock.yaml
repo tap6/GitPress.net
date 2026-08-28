@@ -110,6 +110,12 @@ importers:
         specifier: ^5.7.0
         version: 5.18.2(@types/node@22.20.1)(jiti@2.7.0)(lightningcss@1.32.0)(rollup@4.63.0)(tsx@4.23.12)(typescript@5.9.3)
 
+  themes/quill:
+    dependencies:
+      astro:
+        specifier: ^5.7.0
+        version: 5.18.2(@types/node@22.20.1)(jiti@2.7.0)(lightningcss@1.32.0)(rollup@4.63.0)(tsx@4.23.12)(typescript@5.9.3)
+
 packages:
 
   '@alloc/quick-lru@5.2.0':

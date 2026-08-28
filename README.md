@@ -28,7 +28,7 @@ Git 原生的博客平台:内容与编译产物存放在用户自己的 GitHub �
 | `apps/web` | 闭源 | GitPress.net 平台(官网 + WordPress 风格后台) |
 | `packages/spec` | 开源 | v1 规范:`gitpress.json` / `theme.json` JSON Schema、内容与 frontmatter 约定、TS 类型 |
 | `packages/build-action` | 开源 | GitHub Action:读配置 → 装主题 → Astro 构建 → 推送产物到网站仓库 |
-| `themes/*` | 开源 | 内置 Astro 主题(classic / minimal / ink) |
+| `themes/*` | 开源 | 内置 Astro 主题(classic / minimal / ink / quill) |
 | `templates/data-repo` | 开源 | 数据仓库模板(目录结构 + workflow + 示例文章) |
 | `docs/` | — | 部署与接入文档 |
 

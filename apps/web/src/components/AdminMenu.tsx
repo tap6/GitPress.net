@@ -24,6 +24,11 @@ const ICONS: Record<string, React.ReactNode> = {
       <path d="M3 4a1 1 0 0 1 1-1h4l1.5 2H16a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4z" />
     </svg>
   ),
+  menu: (
+    <svg viewBox="0 0 20 20" fill="currentColor" className="h-4.5 w-4.5">
+      <path d="M3 5.5A1 1 0 0 1 4 4.5h12a1 1 0 1 1 0 2H4a1 1 0 0 1-1-1zm0 5a1 1 0 0 1 1-1h12a1 1 0 1 1 0 2H4a1 1 0 0 1-1-1zm1 4a1 1 0 1 0 0 2h12a1 1 0 1 0 0-2H4z" />
+    </svg>
+  ),
   appearance: (
     <svg viewBox="0 0 20 20" fill="currentColor" className="h-4.5 w-4.5">
       <path d="M10 2a8 8 0 1 0 0 16c.9 0 1.5-.7 1.5-1.5 0-.4-.15-.75-.4-1-.24-.26-.38-.6-.38-1a1.5 1.5 0 0 1 1.5-1.5H14a4 4 0 0 0 4-4c0-3.9-3.6-7-8-7zM5.5 9a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3zm3-4a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3zm5 0a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3z" />
@@ -42,6 +47,7 @@ export function adminNavHrefs(siteId: string): string[] {
     base,
     `${base}/posts`,
     `${base}/categories`,
+    `${base}/menu`,
     `${base}/media`,
     `${base}/appearance`,
     `${base}/settings`,
@@ -55,6 +61,7 @@ export function AdminMenu({ siteId }: { siteId: string }) {
     { href: base, key: "dashboard", label: "仪表盘", exact: true },
     { href: `${base}/posts`, key: "posts", label: "文章" },
     { href: `${base}/categories`, key: "categories", label: "分类" },
+    { href: `${base}/menu`, key: "menu", label: "菜单" },
     { href: `${base}/media`, key: "media", label: "媒体" },
     { href: `${base}/appearance`, key: "appearance", label: "外观" },
     { href: `${base}/settings`, key: "settings", label: "设置" },

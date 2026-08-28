@@ -1,0 +1,29 @@
+---
+import type { GetStaticPaths, Page } from "astro";
+import Base from "../layouts/Base.astro";
+import Pagination from "../components/Pagination.astro";
+import PostCard from "../components/PostCard.astro";
+import { getPublishedPosts, postsPerPage, type Post } from "../lib/gitpress";
+
+// A rest parameter (`[...page]`) matches both `/` (page undefined -> page 1)
+// and `/2`, `/3`, ... — this is Astro's documented pattern for making the
+// homepage double as page 1 of pagination instead of a separate route.
+export const getStaticPaths = (async ({ paginate }) => {
+  const posts = await getPublishedPosts();
+  return paginate(posts, { pageSize: postsPerPage });
+}) satisfies GetStaticPaths;
+
+interface Props {
+  page: Page<Post>;
+}
+
+const { page } = Astro.props;
+---
+
+<Base>
+  {page.data.length === 0 && <p style="text-align:center">No posts yet. Write your first one!</p>}
+  <div class="post-grid">
+    {page.data.map((post) => <PostCard post={post} />)}
+  </div>
+  <Pagination page={page} />
+</Base>
