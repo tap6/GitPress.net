@@ -1,6 +1,6 @@
 import matter from "gray-matter";
 import type { Octokit } from "octokit";
-import { deleteFile, getFileText, listDirectory, putFile, splitRepo } from "./github";
+import { deleteFile, getFileText, listDirectory, putFile, commitFiles, splitRepo } from "./github";
 import { sanitizeMediaFileName, uniqueMediaFileName } from "./mediaName";
 
 /** Content operations = commits against the private data repository. */
@@ -95,6 +95,7 @@ export async function savePost(
   path: string,
   input: SavePostInput,
   isNew: boolean,
+  media: Array<{ name: string; base64: string }> = [],
 ): Promise<void> {
   const ref = splitRepo(dataRepo);
   // Read-modify-write instead of rebuilding frontmatter from scratch, so any
@@ -115,13 +116,18 @@ export async function savePost(
   else delete frontmatter.description;
 
   const text = matter.stringify(`\n${input.body.trim()}\n`, frontmatter);
-  await putFile(
-    octokit,
-    ref,
-    path,
-    { utf8: text },
-    `${isNew ? "Add" : "Update"} post: ${input.title}`,
-  );
+  const files = [
+    ...media.map((item) => ({
+      path: `media/${sanitizeMediaFileName(item.name)}`,
+      base64: item.base64,
+    })),
+    { path, utf8: text },
+  ];
+  const message =
+    media.length > 0
+      ? `${isNew ? "Add" : "Update"} post: ${input.title} (+${media.length} image${media.length === 1 ? "" : "s"})`
+      : `${isNew ? "Add" : "Update"} post: ${input.title}`;
+  await commitFiles(octokit, ref, files, message);
 }
 
 export interface UpdatePostMetaInput {

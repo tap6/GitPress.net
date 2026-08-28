@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { AdminMenu } from "@/components/AdminMenu";
 import { BuildStatusBar } from "@/components/BuildStatusBar";
+import { IdleRoutePrefetch } from "@/components/IdleRoutePrefetch";
 import { PermissionUpdateBanner } from "@/components/PermissionUpdateBanner";
 import { RouteLoadingBar } from "@/components/RouteLoadingBar";
 import type { PermissionGap } from "@/lib/github";
@@ -111,6 +112,7 @@ export function SiteAdminShell({
           </button>
         </div>
         <AdminMenu siteId={siteId} />
+        <IdleRoutePrefetch siteId={siteId} />
         <div className="mt-6 border-t border-white/10 px-4 py-3">
           <Link href="/dashboard" className="text-xs text-wp-sidebar-text hover:text-white">
             ← 全部站点

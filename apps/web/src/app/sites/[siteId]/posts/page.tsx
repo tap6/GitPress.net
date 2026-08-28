@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { PostsTable } from "./PostsTable";
-import { getSiteCategories, listPosts } from "@/lib/content";
-import { getInstallationOctokit } from "@/lib/github";
+import { cachedListPosts, cachedSiteCategories } from "@/lib/siteDataCache";
 import { requireSite } from "@/lib/sites";
 
 export const metadata = { title: "文章" };
@@ -16,10 +15,9 @@ export default async function PostsPage({
   const { siteId } = await params;
   const { saved } = await searchParams;
   const { site, installation } = await requireSite(siteId);
-  const octokit = await getInstallationOctokit(installation.installationId);
   const [posts, categories] = await Promise.all([
-    listPosts(octokit, site.dataRepo),
-    getSiteCategories(octokit, site.dataRepo),
+    cachedListPosts(installation.installationId, site.dataRepo),
+    cachedSiteCategories(installation.installationId, site.dataRepo),
   ]);
 
   return (

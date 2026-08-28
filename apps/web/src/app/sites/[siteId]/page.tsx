@@ -1,8 +1,14 @@
 import Link from "next/link";
 import { rebuildAction } from "@/lib/actions";
 import { describeBuildTrigger, formatDuration } from "@/lib/buildLabels";
-import { listPosts } from "@/lib/content";
-import { getInstallationOctokit, getInstallationPermissionGap, listBuildRuns, splitRepo } from "@/lib/github";
+import {
+  GITHUB_ACTIONS_FREE_INCLUDED_MINUTES,
+  getInstallationOctokit,
+  getInstallationPermissionGap,
+  listBuildRuns,
+  splitRepo,
+} from "@/lib/github";
+import { cachedActionsUsage, cachedListPosts } from "@/lib/siteDataCache";
 import { requireSite } from "@/lib/sites";
 import { BuildStatusPoller, RunElapsed } from "@/components/BuildStatus";
 import { ProgressButton } from "@/components/ProgressButton";
@@ -27,10 +33,17 @@ export default async function SiteDashboard({
   const { site, installation } = await requireSite(siteId);
 
   const octokit = await getInstallationOctokit(installation.installationId);
-  const [posts, { runs, actionsPermissionMissing }, permissionGap] = await Promise.all([
-    listPosts(octokit, site.dataRepo),
+  const [posts, { runs, actionsPermissionMissing }, permissionGap, usage] = await Promise.all([
+    cachedListPosts(installation.installationId, site.dataRepo),
     listBuildRuns(octokit, splitRepo(site.dataRepo)),
     getInstallationPermissionGap(installation.installationId),
+    cachedActionsUsage({
+      installationId: installation.installationId,
+      dataRepo: site.dataRepo,
+      accountLogin: installation.accountLogin,
+      accountType: installation.accountType,
+      userToken: installation.userToken,
+    }),
   ]);
   const published = posts.filter((post) => !post.draft).length;
   const drafts = posts.length - published;
@@ -69,6 +82,79 @@ export default async function SiteDashboard({
           <p className="text-3xl font-light">{site.themeName}</p>
           <p className="mt-1 text-sm text-neutral-500">当前主题</p>
         </div>
+      </div>
+
+      <div className="mt-6 rounded border border-neutral-200 bg-white p-5 shadow-sm">
+        <h2 className="text-sm font-semibold">GitHub Actions 用量 · {usage.periodLabel}</h2>
+        <p className="mt-1 text-xs text-neutral-400">
+          构建跑在私有数据仓库上,会计入 GitHub 每月免费额度;公开仓库不消耗分钟数。GitPress
+          已把插图改成随文章一次提交,避免每张图单独触发一次构建。
+        </p>
+        {usage.actionsPermissionMissing ? (
+          <p className="mt-3 text-sm text-neutral-500">
+            当前安装还没有 Actions 读取权限,无法统计本站构建时长。
+            {permissionGap ? (
+              <>
+                {" "}
+                <a href={permissionGap.reviewUrl} className="text-wp-accent hover:underline">
+                  前往 GitHub 批准
+                </a>
+              </>
+            ) : null}
+          </p>
+        ) : (
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <div>
+              <p className="text-3xl font-light">
+                {usage.siteMinutesThisMonth ?? "—"}
+                <span className="ml-1 text-base font-normal text-neutral-400">分钟</span>
+              </p>
+              <p className="mt-1 text-sm text-neutral-500">
+                本站本月约 {usage.siteRunCountThisMonth ?? 0} 次构建
+              </p>
+            </div>
+            <div>
+              {usage.accountMinutesThisMonth != null ? (
+                <>
+                  <p className="text-3xl font-light">
+                    {Math.round(usage.accountMinutesThisMonth)}
+                    {usage.accountIncludedMinutes != null && (
+                      <span className="text-lg font-normal text-neutral-400">
+                        {" "}
+                        / {Math.round(usage.accountIncludedMinutes)}
+                      </span>
+                    )}
+                    <span className="ml-1 text-base font-normal text-neutral-400">分钟</span>
+                  </p>
+                  <p className="mt-1 text-sm text-neutral-500">
+                    整个 GitHub 帐户本月(含其它私有仓库)
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="text-3xl font-light">
+                    {GITHUB_ACTIONS_FREE_INCLUDED_MINUTES}
+                    <span className="ml-1 text-base font-normal text-neutral-400">分钟 / 月</span>
+                  </p>
+                  <p className="mt-1 text-sm text-neutral-500">
+                    免费帐户私有仓库参考额度
+                    {usage.billingUnavailable
+                      ? "。GitHub 不向 GitHub App 开放帐户账单接口,完整用量请在账单页查看。"
+                      : ""}
+                  </p>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+        <a
+          href={usage.billingUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="mt-3 inline-block text-sm text-wp-accent hover:underline"
+        >
+          打开 GitHub 账单页 ↗
+        </a>
       </div>
 
       <div className="mt-6 grid gap-4 lg:grid-cols-2">

@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
 import { PostEditor } from "@/components/PostEditor";
-import { getPost, getSiteCategories } from "@/lib/content";
+import { getPost } from "@/lib/content";
 import { getInstallationOctokit } from "@/lib/github";
+import { cachedSiteCategories } from "@/lib/siteDataCache";
 import { requireSite } from "@/lib/sites";
 
 export const metadata = { title: "编辑文章" };
@@ -24,7 +25,7 @@ export default async function EditPostPage({
   const octokit = await getInstallationOctokit(installation.installationId);
   const post = await getPost(octokit, site.dataRepo, path);
   if (!post) redirect(`/sites/${siteId}/posts`);
-  const categories = await getSiteCategories(octokit, site.dataRepo);
+  const categories = await cachedSiteCategories(installation.installationId, site.dataRepo);
 
   return (
     <div>

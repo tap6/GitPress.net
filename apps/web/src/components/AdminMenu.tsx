@@ -36,6 +36,18 @@ const ICONS: Record<string, React.ReactNode> = {
   ),
 };
 
+export function adminNavHrefs(siteId: string): string[] {
+  const base = `/sites/${siteId}`;
+  return [
+    base,
+    `${base}/posts`,
+    `${base}/categories`,
+    `${base}/media`,
+    `${base}/appearance`,
+    `${base}/settings`,
+  ];
+}
+
 export function AdminMenu({ siteId }: { siteId: string }) {
   const pathname = usePathname();
   const base = `/sites/${siteId}`;
@@ -56,6 +68,7 @@ export function AdminMenu({ siteId }: { siteId: string }) {
           <Link
             key={item.key}
             href={item.href}
+            prefetch
             className={`flex items-center gap-2.5 px-4 py-2.5 text-[13px] transition ${
               active
                 ? "bg-wp-accent text-white"

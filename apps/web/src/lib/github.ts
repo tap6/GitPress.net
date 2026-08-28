@@ -248,6 +248,80 @@ export async function putFile(
   });
 }
 
+export interface CommitFile {
+  path: string;
+  utf8?: string;
+  base64?: string;
+}
+
+/**
+ * One git commit containing many files (Git Data API: blobs + tree + commit).
+ * The Contents API is one-file-per-commit, which would fire a GitHub Actions
+ * run for every image; batching means N images + the post become a single
+ * `on: push` build.
+ */
+export async function commitFiles(
+  octokit: Octokit,
+  ref: RepoRef,
+  files: CommitFile[],
+  message: string,
+): Promise<void> {
+  const meaningful = files.filter((file) => file.utf8 != null || file.base64 != null);
+  if (meaningful.length === 0) return;
+  if (meaningful.length === 1) {
+    const [file] = meaningful;
+    await putFile(octokit, ref, file.path, file, message);
+    return;
+  }
+
+  const { data: repo } = await octokit.request("GET /repos/{owner}/{repo}", { ...ref });
+  const branch = repo.default_branch || "main";
+  const { data: head } = await octokit.request("GET /repos/{owner}/{repo}/git/ref/{ref}", {
+    ...ref,
+    ref: `heads/${branch}`,
+  });
+  const parentSha = head.object.sha;
+  const { data: parent } = await octokit.request("GET /repos/{owner}/{repo}/git/commits/{commit_sha}", {
+    ...ref,
+    commit_sha: parentSha,
+  });
+
+  const tree = await Promise.all(
+    meaningful.map(async (file) => {
+      const content =
+        file.base64 ?? Buffer.from(file.utf8 ?? "", "utf8").toString("base64");
+      const { data: blob } = await octokit.request("POST /repos/{owner}/{repo}/git/blobs", {
+        ...ref,
+        content,
+        encoding: "base64",
+      });
+      return {
+        path: file.path,
+        mode: "100644" as const,
+        type: "blob" as const,
+        sha: blob.sha,
+      };
+    }),
+  );
+
+  const { data: newTree } = await octokit.request("POST /repos/{owner}/{repo}/git/trees", {
+    ...ref,
+    base_tree: parent.tree.sha,
+    tree,
+  });
+  const { data: commit } = await octokit.request("POST /repos/{owner}/{repo}/git/commits", {
+    ...ref,
+    message,
+    tree: newTree.sha,
+    parents: [parentSha],
+  });
+  await octokit.request("PATCH /repos/{owner}/{repo}/git/refs/{ref}", {
+    ...ref,
+    ref: `heads/${branch}`,
+    sha: commit.sha,
+  });
+}
+
 export interface RepoFile {
   path: string;
   name: string;
@@ -595,4 +669,191 @@ export async function listBuildRuns(octokit: Octokit, ref: RepoRef): Promise<Bui
     if (status !== 403) console.error("listBuildRuns failed:", error);
     return { runs: [], actionsPermissionMissing: status === 403 };
   }
+}
+
+/** Free-plan included minutes for private-repo Actions (public repos are free). */
+export const GITHUB_ACTIONS_FREE_INCLUDED_MINUTES = 2000;
+
+export interface ActionsUsage {
+  actionsPermissionMissing: boolean;
+  /** Wall-clock minutes of this site's data-repo workflow runs so far this UTC month. */
+  siteMinutesThisMonth: number | null;
+  siteRunCountThisMonth: number | null;
+  /** Account-wide Actions minutes from GitHub billing, if the user token can read it. */
+  accountMinutesThisMonth: number | null;
+  accountIncludedMinutes: number | null;
+  billingUnavailable: boolean;
+  billingUrl: string;
+  periodLabel: string;
+}
+
+function pad2(n: number): string {
+  return String(n).padStart(2, "0");
+}
+
+function actionsMinutesFromUsageItems(
+  items: Array<{ product?: string; sku?: string; unitType?: string; netQuantity?: number; quantity?: number }>,
+): number | null {
+  const matched = items.filter(
+    (item) => /action/i.test(item.product ?? "") || /action/i.test(item.sku ?? ""),
+  );
+  if (matched.length === 0) return null;
+  let minutes = 0;
+  for (const item of matched) {
+    const quantity = item.netQuantity ?? item.quantity ?? 0;
+    const unit = (item.unitType ?? "minute").toLowerCase();
+    if (unit.includes("hour")) minutes += quantity * 60;
+    else if (unit.includes("second")) minutes += quantity / 60;
+    else minutes += quantity;
+  }
+  return minutes;
+}
+
+async function githubJson(token: string, url: string): Promise<unknown | null> {
+  const response = await fetch(url, {
+    headers: {
+      Accept: "application/vnd.github+json",
+      Authorization: `Bearer ${token}`,
+      "X-GitHub-Api-Version": "2022-11-28",
+    },
+  });
+  if (!response.ok) return null;
+  try {
+    return await response.json();
+  } catch {
+    return null;
+  }
+}
+
+async function fetchAccountActionsBilling(
+  userToken: string,
+  accountLogin: string,
+  accountType: string,
+  year: number,
+  month: number,
+): Promise<{ minutes: number | null; included: number | null }> {
+  const isOrg = accountType === "Organization";
+  const encoded = encodeURIComponent(accountLogin);
+  const summaryUrl = isOrg
+    ? `https://api.github.com/organizations/${encoded}/settings/billing/usage/summary?year=${year}&month=${month}`
+    : `https://api.github.com/users/${encoded}/settings/billing/usage/summary?year=${year}&month=${month}`;
+  const summary = await githubJson(userToken, summaryUrl);
+  if (summary && typeof summary === "object") {
+    const items = (summary as { usageItems?: Array<Record<string, unknown>> }).usageItems ?? [];
+    const minutes = actionsMinutesFromUsageItems(
+      items.map((item) => ({
+        product: typeof item.product === "string" ? item.product : undefined,
+        sku: typeof item.sku === "string" ? item.sku : undefined,
+        unitType: typeof item.unitType === "string" ? item.unitType : undefined,
+        netQuantity: typeof item.netQuantity === "number" ? item.netQuantity : undefined,
+        quantity: typeof item.quantity === "number" ? item.quantity : undefined,
+      })),
+    );
+    if (minutes != null) return { minutes, included: null };
+  }
+
+  const legacyUrl = isOrg
+    ? `https://api.github.com/orgs/${encoded}/settings/billing/actions`
+    : `https://api.github.com/users/${encoded}/settings/billing/actions`;
+  const legacy = await githubJson(userToken, legacyUrl);
+  if (legacy && typeof legacy === "object") {
+    const data = legacy as { total_minutes_used?: unknown; included_minutes?: unknown };
+    return {
+      minutes: typeof data.total_minutes_used === "number" ? data.total_minutes_used : null,
+      included: typeof data.included_minutes === "number" ? data.included_minutes : null,
+    };
+  }
+  return { minutes: null, included: null };
+}
+
+/**
+ * Dashboard figure for GitHub Actions: this site's data-repo minutes this
+ * month (Actions API), plus account-wide billing when the stored user token
+ * is allowed to read it. Installation tokens almost never can.
+ */
+export async function getActionsUsage(options: {
+  octokit: Octokit;
+  dataRepo: string;
+  accountLogin: string;
+  accountType: string;
+  userToken?: string | null;
+}): Promise<ActionsUsage> {
+  const now = new Date();
+  const year = now.getUTCFullYear();
+  const month = now.getUTCMonth() + 1;
+  const periodLabel = `${year}年${month}月`;
+  const billingUrl =
+    options.accountType === "Organization"
+      ? `https://github.com/organizations/${options.accountLogin}/settings/billing`
+      : "https://github.com/settings/billing";
+
+  const empty: ActionsUsage = {
+    actionsPermissionMissing: false,
+    siteMinutesThisMonth: null,
+    siteRunCountThisMonth: null,
+    accountMinutesThisMonth: null,
+    accountIncludedMinutes: null,
+    billingUnavailable: true,
+    billingUrl,
+    periodLabel,
+  };
+
+  const ref = splitRepo(options.dataRepo);
+  let siteSeconds = 0;
+  let siteRunCount = 0;
+  try {
+    for (let page = 1; page <= 5; page += 1) {
+      const { data } = await options.octokit.request("GET /repos/{owner}/{repo}/actions/runs", {
+        ...ref,
+        per_page: 100,
+        page,
+        created: `>=${year}-${pad2(month)}-01`,
+      });
+      const runs = data.workflow_runs ?? [];
+      siteRunCount += runs.length;
+      for (const run of runs) {
+        const startedAt = run.run_started_at ?? run.created_at;
+        const endedAt = run.status === "completed" ? run.updated_at : now.toISOString();
+        siteSeconds += Math.max(
+          0,
+          (new Date(endedAt).getTime() - new Date(startedAt).getTime()) / 1000,
+        );
+      }
+      if (runs.length < 100) break;
+    }
+  } catch (error: unknown) {
+    const status = (error as { status?: number }).status;
+    if (status === 403) {
+      return { ...empty, actionsPermissionMissing: true };
+    }
+    console.error("getActionsUsage runs failed:", error);
+    return empty;
+  }
+
+  let accountMinutesThisMonth: number | null = null;
+  let accountIncludedMinutes: number | null = null;
+  let billingUnavailable = true;
+  if (options.userToken) {
+    const billing = await fetchAccountActionsBilling(
+      options.userToken,
+      options.accountLogin,
+      options.accountType,
+      year,
+      month,
+    );
+    accountMinutesThisMonth = billing.minutes;
+    accountIncludedMinutes = billing.included;
+    billingUnavailable = billing.minutes == null && billing.included == null;
+  }
+
+  return {
+    actionsPermissionMissing: false,
+    siteMinutesThisMonth: Math.ceil(siteSeconds / 60),
+    siteRunCountThisMonth: siteRunCount,
+    accountMinutesThisMonth,
+    accountIncludedMinutes,
+    billingUnavailable,
+    billingUrl,
+    periodLabel,
+  };
 }

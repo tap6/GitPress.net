@@ -7,18 +7,27 @@ import { EditorContent, useEditor, type Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { generateDraftAction, uploadEditorImageAction } from "@/lib/actions";
+import { generateDraftAction } from "@/lib/actions";
 import { ImageUploadTray, type ImageUploadTask } from "@/components/ImageUploadTray";
-import { uniqueMediaFileName } from "@/lib/mediaName";
+import {
+  MAX_BATCH_BYTES,
+  MAX_BATCH_IMAGES,
+  MAX_IMAGE_BYTES,
+  uniqueMediaFileName,
+} from "@/lib/mediaName";
+import { readPendingMedia, writePendingMedia } from "@/lib/pendingMedia";
 
 interface Props {
   /** Form field name that receives the serialized Markdown on submit. */
   name: string;
   siteId: string;
+  /** Existing post path, or empty for a new post — keys IndexedDB pending images. */
+  draftKey?: string;
   defaultValue?: string;
   placeholder?: string;
   /** Fires whenever the serialized Markdown changes — lets the parent (e.g. for "AI 生成摘要") read the latest body text. */
   onChange?: (markdown: string) => void;
+  onPendingMediaChange?: (files: File[]) => void;
 }
 
 function createGitPressImage(siteId: string, previews: Map<string, string>) {
@@ -69,9 +78,18 @@ function imageFilesFromList(list: FileList | null | undefined): File[] {
  *
  * Images are stored as `/media/file.jpg` (what the published site serves).
  * The admin origin cannot load that path, so the node view shows a blob
- * preview while uploading and a same-origin proxy afterwards.
+ * preview until save, then a same-origin proxy afterwards. Files stay in
+ * the browser until the post is saved, so N pictures become one Git commit.
  */
-export function RichTextEditor({ name, siteId, defaultValue = "", placeholder, onChange }: Props) {
+export function RichTextEditor({
+  name,
+  siteId,
+  draftKey = "",
+  defaultValue = "",
+  placeholder,
+  onChange,
+  onPendingMediaChange,
+}: Props) {
   const [markdown, setMarkdownState] = useState(defaultValue);
   const [mode, setMode] = useState<"rich" | "source">("rich");
   const [tasks, setTasks] = useState<ImageUploadTask[]>([]);
@@ -80,7 +98,26 @@ export function RichTextEditor({ name, siteId, defaultValue = "", placeholder, o
   const fileInputRef = useRef<HTMLInputElement>(null);
   const editorRef = useRef<Editor | null>(null);
   const previews = useRef(new Map<string, string>());
+  const pendingFiles = useRef(new Map<string, File>());
+  const onPendingRef = useRef(onPendingMediaChange);
+  onPendingRef.current = onPendingMediaChange;
   const uploadFilesRef = useRef<(files: File[]) => void>(() => {});
+
+  function emitPending() {
+    onPendingRef.current?.([...pendingFiles.current.values()]);
+  }
+
+  function persistPending() {
+    void writePendingMedia(
+      siteId,
+      draftKey,
+      [...pendingFiles.current.values()].map((file) => ({
+        name: file.name,
+        type: file.type,
+        blob: file,
+      })),
+    );
+  }
 
   function setMarkdown(value: string) {
     setMarkdownState(value);
@@ -134,17 +171,56 @@ export function RichTextEditor({ name, siteId, defaultValue = "", placeholder, o
     };
   }, []);
 
-  async function uploadImages(files: File[]) {
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const stored = await readPendingMedia(siteId, draftKey);
+      if (cancelled || stored.length === 0) return;
+      for (const item of stored) {
+        if (pendingFiles.current.has(item.name)) continue;
+        const file = new File([item.blob], item.name, { type: item.type || "image/jpeg" });
+        pendingFiles.current.set(item.name, file);
+        const src = `/media/${item.name}`;
+        if (!previews.current.has(src)) {
+          const blobUrl = URL.createObjectURL(file);
+          previews.current.set(src, blobUrl);
+        }
+        setTasks((prev) =>
+          prev.some((task) => task.id === item.name)
+            ? prev
+            : [
+                ...prev,
+                {
+                  id: item.name,
+                  name: item.name,
+                  preview: previews.current.get(src) ?? "",
+                  status: "queued",
+                },
+              ],
+        );
+      }
+      emitPending();
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // Restore once per editor mount / draft identity.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [siteId, draftKey]);
+
+  function queueImages(files: File[]) {
     const current = editorRef.current;
     if (!current || files.length === 0) return;
 
+    let queuedBytes = [...pendingFiles.current.values()].reduce((sum, file) => sum + file.size, 0);
+    let queuedCount = pendingFiles.current.size;
+
     for (const file of files) {
-      if (file.size > 8 * 1024 * 1024) {
-        const id = `${file.name}-too-big-${Date.now()}`;
+      if (file.size > MAX_IMAGE_BYTES) {
         setTasks((prev) => [
           ...prev,
           {
-            id,
+            id: `${file.name}-too-big-${Date.now()}`,
             name: file.name,
             preview: "",
             status: "error",
@@ -153,48 +229,53 @@ export function RichTextEditor({ name, siteId, defaultValue = "", placeholder, o
         ]);
         continue;
       }
+      if (queuedCount >= MAX_BATCH_IMAGES) {
+        setTasks((prev) => [
+          ...prev,
+          {
+            id: `${file.name}-too-many-${Date.now()}`,
+            name: file.name,
+            preview: "",
+            status: "error",
+            error: `一次最多 ${MAX_BATCH_IMAGES} 张,请先保存文章`,
+          },
+        ]);
+        continue;
+      }
+      if (queuedBytes + file.size > MAX_BATCH_BYTES) {
+        setTasks((prev) => [
+          ...prev,
+          {
+            id: `${file.name}-too-heavy-${Date.now()}`,
+            name: file.name,
+            preview: "",
+            status: "error",
+            error: "待提交图片合计不超过 20MB",
+          },
+        ]);
+        continue;
+      }
 
       const fileName = uniqueMediaFileName(file.name);
       const src = `/media/${fileName}`;
-      const blobUrl = URL.createObjectURL(file);
+      const named = new File([file], fileName, { type: file.type });
+      const blobUrl = URL.createObjectURL(named);
       previews.current.set(src, blobUrl);
-      const taskId = fileName;
+      pendingFiles.current.set(fileName, named);
+      queuedBytes += named.size;
+      queuedCount += 1;
       setTasks((prev) => [
         ...prev,
-        { id: taskId, name: file.name, preview: blobUrl, status: "uploading" },
+        { id: fileName, name: file.name, preview: blobUrl, status: "queued" },
       ]);
-      current
-        .chain()
-        .focus()
-        .setImage({ src, alt: file.name.replace(/\.[^.]+$/, "") })
-        .run();
-
-      const named = new File([file], fileName, { type: file.type });
-      const formData = new FormData();
-      formData.set("siteId", siteId);
-      formData.set("file", named);
-      const result = await uploadEditorImageAction(formData);
-      if (result.error || !result.url) {
-        setTasks((prev) =>
-          prev.map((task) =>
-            task.id === taskId
-              ? { ...task, status: "error", error: result.error ?? "上传失败" }
-              : task,
-          ),
-        );
-        continue;
-      }
-      setTasks((prev) =>
-        prev.map((task) => (task.id === taskId ? { ...task, status: "done" } : task)),
-      );
-      window.setTimeout(() => {
-        setTasks((prev) => prev.filter((task) => task.id !== taskId || task.status !== "done"));
-      }, 3500);
+      current.chain().focus().setImage({ src, alt: file.name.replace(/\.[^.]+$/, "") }).run();
     }
+    emitPending();
+    persistPending();
   }
 
   uploadFilesRef.current = (files) => {
-    void uploadImages(files);
+    queueImages(files);
   };
 
   function switchToSource() {
@@ -245,7 +326,7 @@ export function RichTextEditor({ name, siteId, defaultValue = "", placeholder, o
     editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
   }
 
-  const uploading = tasks.some((task) => task.status === "uploading");
+  const queued = tasks.some((task) => task.status === "queued");
 
   return (
     <div>
@@ -409,8 +490,10 @@ export function RichTextEditor({ name, siteId, defaultValue = "", placeholder, o
           className="w-full rounded-b border border-t-0 border-neutral-300 bg-white px-4 py-3 font-mono text-sm leading-relaxed shadow-sm focus:border-wp-accent focus:outline-none"
         />
       )}
-      {uploading && (
-        <p className="mt-1 text-[11px] text-neutral-400">图片正在写入你的数据仓库,编辑框里已是本地预览。</p>
+      {queued && (
+        <p className="mt-1 text-[11px] text-neutral-400">
+          图片目前只在本机预览,点右侧「发布 / 保存」时会和文章一起写入数据仓库,只触发一次构建。
+        </p>
       )}
       <ImageUploadTray
         tasks={tasks}

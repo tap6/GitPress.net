@@ -1,6 +1,5 @@
 import { PostEditor } from "@/components/PostEditor";
-import { getSiteCategories } from "@/lib/content";
-import { getInstallationOctokit } from "@/lib/github";
+import { cachedSiteCategories } from "@/lib/siteDataCache";
 import { requireSite } from "@/lib/sites";
 
 export const metadata = { title: "写文章" };
@@ -12,8 +11,7 @@ export default async function NewPostPage({
 }) {
   const { siteId } = await params;
   const { site, installation } = await requireSite(siteId);
-  const octokit = await getInstallationOctokit(installation.installationId);
-  const categories = await getSiteCategories(octokit, site.dataRepo);
+  const categories = await cachedSiteCategories(installation.installationId, site.dataRepo);
 
   return (
     <div>

@@ -10,6 +10,17 @@ import {
   useLocalPostDraft,
   type LocalDraftFields,
 } from "@/lib/localDraft";
+import { clearPendingMedia, writePendingMedia } from "@/lib/pendingMedia";
+
+function isNextRedirectError(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "digest" in error &&
+    typeof (error as { digest: unknown }).digest === "string" &&
+    (error as { digest: string }).digest.startsWith("NEXT_REDIRECT")
+  );
+}
 
 interface Props {
   siteId: string;
@@ -40,6 +51,8 @@ export function PostEditor({ siteId, path = "", categories = [], initial }: Prop
   const [editorKey, setEditorKey] = useState(0);
   const [summarizing, setSummarizing] = useState(false);
   const [summaryError, setSummaryError] = useState<string | null>(null);
+  const [pendingCount, setPendingCount] = useState(0);
+  const pendingFilesRef = useRef<File[]>([]);
 
   const fields: LocalDraftFields = {
     title,
@@ -68,12 +81,39 @@ export function PostEditor({ siteId, path = "", categories = [], initial }: Prop
   localRef.current = local;
   const boundSave = useMemo(
     () => async (prev: SavePostState, formData: FormData) => {
+      const bodyText = String(formData.get("body") ?? "");
+      const snapshot = pendingFilesRef.current.filter((file) =>
+        bodyText.includes(`/media/${file.name}`),
+      );
+      for (const file of snapshot) {
+        formData.append("media", file, file.name);
+      }
       localRef.current.clearForSubmit();
-      const result = await savePostAction(prev, formData);
-      if (result?.error) localRef.current.persistNow();
-      return result;
+      await clearPendingMedia(siteId, path);
+      try {
+        const result = await savePostAction(prev, formData);
+        if (result?.error) {
+          localRef.current.persistNow();
+          await writePendingMedia(
+            siteId,
+            path,
+            snapshot.map((file) => ({ name: file.name, type: file.type, blob: file })),
+          );
+        }
+        return result;
+      } catch (error) {
+        if (!isNextRedirectError(error)) {
+          localRef.current.persistNow();
+          await writePendingMedia(
+            siteId,
+            path,
+            snapshot.map((file) => ({ name: file.name, type: file.type, blob: file })),
+          );
+        }
+        throw error;
+      }
     },
-    [],
+    [path, siteId],
   );
   const [state, formAction] = useActionState<SavePostState, FormData>(boundSave, {});
 
@@ -121,7 +161,10 @@ export function PostEditor({ siteId, path = "", categories = [], initial }: Prop
               </button>
               <button
                 type="button"
-                onClick={local.discardPending}
+                onClick={() => {
+                  void clearPendingMedia(siteId, path);
+                  local.discardPending();
+                }}
                 className="text-xs text-sky-700 hover:underline"
               >
                 丢弃,用仓库里的版本
@@ -150,8 +193,13 @@ export function PostEditor({ siteId, path = "", categories = [], initial }: Prop
           key={editorKey}
           name="body"
           siteId={siteId}
+          draftKey={path}
           defaultValue={body}
           onChange={setBody}
+          onPendingMediaChange={(files) => {
+            pendingFilesRef.current = files;
+            setPendingCount(files.length);
+          }}
           placeholder="开始写作…"
         />
         <p className="text-[11px] text-neutral-400">
@@ -194,7 +242,7 @@ export function PostEditor({ siteId, path = "", categories = [], initial }: Prop
               />
             </label>
             <ProgressButton
-              expectedSeconds={4}
+              expectedSeconds={5 + pendingCount * 2}
               pendingLabel="提交中"
               buildSiteId={siteId}
               className="w-full rounded bg-wp-accent px-4 py-2 font-medium text-white hover:bg-wp-accent-dark"

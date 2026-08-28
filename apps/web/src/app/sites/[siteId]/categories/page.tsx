@@ -1,6 +1,5 @@
 import { CategoriesForm } from "@/components/CategoriesForm";
-import { getSiteCategories } from "@/lib/content";
-import { getInstallationOctokit } from "@/lib/github";
+import { cachedSiteCategories } from "@/lib/siteDataCache";
 import { requireSite } from "@/lib/sites";
 
 export const metadata = { title: "分类" };
@@ -12,8 +11,7 @@ export default async function CategoriesPage({
 }) {
   const { siteId } = await params;
   const { site, installation } = await requireSite(siteId);
-  const octokit = await getInstallationOctokit(installation.installationId);
-  const categories = await getSiteCategories(octokit, site.dataRepo);
+  const categories = await cachedSiteCategories(installation.installationId, site.dataRepo);
 
   return (
     <div className="max-w-3xl">

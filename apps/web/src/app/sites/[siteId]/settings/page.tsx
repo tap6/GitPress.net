@@ -3,8 +3,8 @@ import { AiSettingsForm } from "@/components/AiSettingsForm";
 import { ProgressButton } from "@/components/ProgressButton";
 import { SettingsForm } from "@/components/SettingsForm";
 import { getAiConfig } from "@/lib/ai";
-import { getSiteConfig } from "@/lib/content";
-import { getInstallationOctokit, getInstallationPermissionGap } from "@/lib/github";
+import { getInstallationPermissionGap } from "@/lib/github";
+import { cachedSiteConfig } from "@/lib/siteDataCache";
 import { requireSite } from "@/lib/sites";
 
 export const metadata = { title: "设置" };
@@ -16,9 +16,8 @@ export default async function SettingsPage({
 }) {
   const { siteId } = await params;
   const { site, installation, user } = await requireSite(siteId);
-  const octokit = await getInstallationOctokit(installation.installationId);
   const [config, permissionGap, aiConfig] = await Promise.all([
-    getSiteConfig(octokit, site.dataRepo),
+    cachedSiteConfig(installation.installationId, site.dataRepo),
     getInstallationPermissionGap(installation.installationId),
     getAiConfig(user.id),
   ]);

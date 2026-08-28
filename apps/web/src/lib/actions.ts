@@ -19,7 +19,14 @@ import {
   uploadMedia,
 } from "./content";
 import { getInstallationOctokit, listBuildRuns, splitRepo } from "./github";
+import {
+  MAX_BATCH_BYTES,
+  MAX_BATCH_IMAGES,
+  MAX_IMAGE_BYTES,
+  sanitizeMediaFileName,
+} from "./mediaName";
 import { provisionSite, rotateDeployKey, triggerRebuild } from "./provision";
+import { revalidateSiteData } from "./siteDataCache";
 import { requireSite, requireUser } from "./sites";
 import { getBuiltinTheme } from "./themes";
 
@@ -131,6 +138,24 @@ export async function savePostAction(
   const path = existingPath || `content/posts/${slugify(String(formData.get("slug") ?? "") || title)}.md`;
 
   const octokit = await getInstallationOctokit(installation.installationId);
+  const mediaFiles = formData.getAll("media");
+  const media: Array<{ name: string; base64: string }> = [];
+  let batchBytes = 0;
+  for (const file of mediaFiles) {
+    if (!(file instanceof File) || file.size === 0) continue;
+    if (!file.type.startsWith("image/")) {
+      return { error: "只能随文章提交图片文件。" };
+    }
+    if (file.size > MAX_IMAGE_BYTES) return { error: "单个文件最大 8MB" };
+    batchBytes += file.size;
+    if (media.length >= MAX_BATCH_IMAGES) {
+      return { error: `一次最多随文章提交 ${MAX_BATCH_IMAGES} 张图片。` };
+    }
+    if (batchBytes > MAX_BATCH_BYTES) return { error: "一次保存的图片合计不超过 20MB。" };
+    const buffer = Buffer.from(await file.arrayBuffer());
+    media.push({ name: sanitizeMediaFileName(file.name), base64: buffer.toString("base64") });
+  }
+
   try {
     await savePost(
       octokit,
@@ -138,12 +163,17 @@ export async function savePostAction(
       path,
       { title, date, draft, tags, category, description, body },
       isNew,
+      media,
     );
   } catch (error) {
     return { error: `保存失败:${error instanceof Error ? error.message : String(error)}` };
   }
 
-  revalidatePath(`/sites/${siteId}/posts`);
+  revalidateSiteData(site.dataRepo, [
+    `/sites/${siteId}/posts`,
+    `/sites/${siteId}`,
+    `/sites/${siteId}/media`,
+  ]);
   redirect(`/sites/${siteId}/posts?saved=1`);
 }
 
@@ -154,7 +184,7 @@ export async function deletePostAction(formData: FormData): Promise<void> {
   if (!path.startsWith("content/posts/")) throw new Error("Invalid path");
   const octokit = await getInstallationOctokit(installation.installationId);
   await deletePost(octokit, site.dataRepo, path);
-  revalidatePath(`/sites/${siteId}/posts`);
+  revalidateSiteData(site.dataRepo, [`/sites/${siteId}/posts`, `/sites/${siteId}`]);
 }
 
 export interface UpdatePostMetaState {
@@ -195,7 +225,7 @@ export async function updatePostMetaAction(
   } catch (error) {
     return { error: `保存失败:${error instanceof Error ? error.message : String(error)}` };
   }
-  revalidatePath(`/sites/${siteId}/posts`);
+  revalidateSiteData(site.dataRepo, [`/sites/${siteId}/posts`, `/sites/${siteId}`]);
   return {};
 }
 
@@ -236,7 +266,7 @@ export async function bulkPostsAction(
   } catch (error) {
     return { error: `操作失败:${error instanceof Error ? error.message : String(error)}` };
   }
-  revalidatePath(`/sites/${siteId}/posts`);
+  revalidateSiteData(site.dataRepo, [`/sites/${siteId}/posts`, `/sites/${siteId}`]);
   return {};
 }
 
@@ -253,7 +283,7 @@ export async function uploadMediaAction(formData: FormData): Promise<void> {
   const buffer = Buffer.from(await file.arrayBuffer());
   const octokit = await getInstallationOctokit(installation.installationId);
   await uploadMedia(octokit, site.dataRepo, file.name, buffer.toString("base64"));
-  revalidatePath(`/sites/${siteId}/media`);
+  revalidateSiteData(site.dataRepo, [`/sites/${siteId}/media`]);
 }
 
 export interface UploadEditorImageState {
@@ -262,9 +292,9 @@ export interface UploadEditorImageState {
 }
 
 /**
- * Same upload as `uploadMediaAction`, but called directly from client code
- * (not a `<form>` submission) so the rich text editor can insert the
- * resulting `/media/...` path as an <img> the moment the upload finishes.
+ * Immediate single-file upload (one Git commit). The post editor no longer
+ * uses this — images are attached to `savePostAction` so N pictures share one
+ * Actions run. Kept for any client that still needs a direct media commit.
  */
 export async function uploadEditorImageAction(formData: FormData): Promise<UploadEditorImageState> {
   const siteId = String(formData.get("siteId"));
@@ -275,6 +305,7 @@ export async function uploadEditorImageAction(formData: FormData): Promise<Uploa
   const buffer = Buffer.from(await file.arrayBuffer());
   const octokit = await getInstallationOctokit(installation.installationId);
   const url = await uploadMedia(octokit, site.dataRepo, file.name, buffer.toString("base64"));
+  revalidateSiteData(site.dataRepo, [`/sites/${siteId}/media`]);
   return { url };
 }
 
@@ -285,7 +316,7 @@ export async function deleteMediaAction(formData: FormData): Promise<void> {
   if (!path.startsWith("media/")) throw new Error("Invalid path");
   const octokit = await getInstallationOctokit(installation.installationId);
   await deleteMedia(octokit, site.dataRepo, path);
-  revalidatePath(`/sites/${siteId}/media`);
+  revalidateSiteData(site.dataRepo, [`/sites/${siteId}/media`]);
 }
 
 // ---------------------------------------------------------------------------
@@ -310,7 +341,7 @@ export async function switchThemeAction(formData: FormData): Promise<void> {
     `Switch theme to ${themeName}`,
   );
   await db.update(sites).set({ themeName }).where(eq(sites.id, siteId));
-  revalidatePath(`/sites/${siteId}/appearance`);
+  revalidateSiteData(site.dataRepo, [`/sites/${siteId}/appearance`, `/sites/${siteId}`]);
 }
 
 export async function saveThemeOptionsAction(formData: FormData): Promise<void> {
@@ -335,7 +366,7 @@ export async function saveThemeOptionsAction(formData: FormData): Promise<void> 
     "Update theme options",
   );
   await db.update(sites).set({ themeConfig: config }).where(eq(sites.id, siteId));
-  revalidatePath(`/sites/${siteId}/appearance`);
+  revalidateSiteData(site.dataRepo, [`/sites/${siteId}/appearance`]);
 }
 
 export interface SaveSettingsState {
@@ -378,7 +409,7 @@ export async function saveSettingsAction(
   }
 
   await db.update(sites).set({ name, description, language }).where(eq(sites.id, siteId));
-  revalidatePath(`/sites/${siteId}/settings`);
+  revalidateSiteData(site.dataRepo, [`/sites/${siteId}/settings`, `/sites/${siteId}`]);
   return { saved: true };
 }
 
@@ -422,8 +453,7 @@ export async function saveCategoriesAction(
     return { error: `保存失败:${error instanceof Error ? error.message : String(error)}` };
   }
 
-  revalidatePath(`/sites/${siteId}/categories`);
-  revalidatePath(`/sites/${siteId}/posts`);
+  revalidateSiteData(site.dataRepo, [`/sites/${siteId}/categories`, `/sites/${siteId}/posts`]);
   return { saved: true };
 }
 
@@ -431,7 +461,7 @@ export async function rebuildAction(formData: FormData): Promise<void> {
   const siteId = String(formData.get("siteId"));
   const { site, installation } = await requireSite(siteId);
   await triggerRebuild(installation.installationId, site.dataRepo);
-  revalidatePath(`/sites/${siteId}`);
+  revalidateSiteData(site.dataRepo, [`/sites/${siteId}`]);
 }
 
 /**
@@ -443,8 +473,7 @@ export async function rotateDeployKeyAction(formData: FormData): Promise<void> {
   const siteId = String(formData.get("siteId"));
   const { site, installation } = await requireSite(siteId);
   await rotateDeployKey(installation.installationId, site.dataRepo, site.siteRepo);
-  revalidatePath(`/sites/${siteId}`);
-  revalidatePath(`/sites/${siteId}/settings`);
+  revalidateSiteData(site.dataRepo, [`/sites/${siteId}`, `/sites/${siteId}/settings`]);
 }
 
 // ---------------------------------------------------------------------------

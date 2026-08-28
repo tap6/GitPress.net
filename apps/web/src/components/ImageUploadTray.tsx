@@ -4,14 +4,13 @@ export interface ImageUploadTask {
   id: string;
   name: string;
   preview: string;
-  status: "uploading" | "done" | "error";
+  status: "queued" | "uploading" | "done" | "error";
   error?: string;
 }
 
 /**
- * Bottom-right queue for editor image uploads. GitHub Contents commits take
- * several seconds; putting progress next to a broken <img> (or only in the
- * toolbar) made it look like the insert had failed.
+ * Bottom-right queue for editor images. Inserts stay local until the post is
+ * saved, so we don't fire a GitHub Actions run per picture.
  */
 export function ImageUploadTray({
   tasks,
@@ -25,7 +24,7 @@ export function ImageUploadTray({
   return (
     <div className="pointer-events-auto fixed bottom-4 right-4 z-50 w-72 overflow-hidden rounded-lg border border-neutral-200 bg-white shadow-xl">
       <div className="border-b border-neutral-100 px-3 py-2 text-xs font-semibold text-neutral-700">
-        图片上传
+        待随文章提交
       </div>
       <ul className="max-h-64 overflow-y-auto">
         {tasks.map((task) => (
@@ -40,6 +39,9 @@ export function ImageUploadTray({
             )}
             <div className="min-w-0 flex-1">
               <p className="truncate text-xs font-medium text-neutral-800">{task.name}</p>
+              {task.status === "queued" && (
+                <p className="text-[11px] text-neutral-400">已插入预览,点保存时一并写入仓库</p>
+              )}
               {task.status === "uploading" && (
                 <>
                   <p className="text-[11px] text-neutral-400">正在写入数据仓库…</p>
@@ -52,7 +54,7 @@ export function ImageUploadTray({
                 <p className="text-[11px] text-emerald-600">已插入文章</p>
               )}
               {task.status === "error" && (
-                <p className="truncate text-[11px] text-red-600">{task.error ?? "上传失败"}</p>
+                <p className="truncate text-[11px] text-red-600">{task.error ?? "无法使用"}</p>
               )}
             </div>
             {task.status !== "uploading" && (

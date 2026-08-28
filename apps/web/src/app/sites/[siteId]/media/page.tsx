@@ -1,7 +1,6 @@
 import { deleteMediaAction, uploadMediaAction } from "@/lib/actions";
 import { ProgressButton } from "@/components/ProgressButton";
-import { listMedia } from "@/lib/content";
-import { getInstallationOctokit } from "@/lib/github";
+import { cachedListMedia } from "@/lib/siteDataCache";
 import { requireSite } from "@/lib/sites";
 
 export const metadata = { title: "媒体" };
@@ -19,8 +18,7 @@ export default async function MediaPage({
 }) {
   const { siteId } = await params;
   const { site, installation } = await requireSite(siteId);
-  const octokit = await getInstallationOctokit(installation.installationId);
-  const media = await listMedia(octokit, site.dataRepo);
+  const media = await cachedListMedia(installation.installationId, site.dataRepo);
 
   return (
     <div className="max-w-6xl">
@@ -40,7 +38,9 @@ export default async function MediaPage({
         >
           上传到数据仓库
         </ProgressButton>
-        <span className="text-xs text-neutral-400">单个文件 ≤ 8MB</span>
+        <span className="text-xs text-neutral-400">
+          单个文件 ≤ 8MB。这里会立即写入仓库并触发一次构建;写文章时插入的图会等到保存文章再一起提交。
+        </span>
       </form>
 
       {media.length === 0 ? (

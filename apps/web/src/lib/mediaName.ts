@@ -7,6 +7,10 @@ export function sanitizeMediaFileName(fileName: string): string {
   return base;
 }
 
+export const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
+export const MAX_BATCH_IMAGES = 20;
+export const MAX_BATCH_BYTES = 20 * 1024 * 1024;
+
 /** Generate a collision-resistant name before inserting into the editor. */
 export function uniqueMediaFileName(fileName: string): string {
   const trimmed = fileName.split(/[/\\]/).pop() ?? "image";
@@ -19,5 +23,6 @@ export function uniqueMediaFileName(fileName: string): string {
       .toLowerCase()
       .replace(/[^\p{Letter}\p{Number}]+/gu, "-")
       .replace(/^-+|-+$/g, "") || "image";
-  return `${stem}-${Date.now()}.${ext}`;
+  const rand = Math.random().toString(36).slice(2, 8);
+  return `${stem}-${Date.now().toString(36)}-${rand}.${ext}`;
 }
