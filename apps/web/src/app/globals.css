@@ -83,6 +83,15 @@ body {
   max-width: 100%;
   border-radius: 4px;
 }
+.gp-editor-image-wrap {
+  display: block;
+  margin: 0.6em 0;
+}
+.gp-editor-image-wrap img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 4px;
+}
 .gp-editor p.is-editor-empty:first-child::before {
   float: left;
   height: 0;

@@ -9,10 +9,12 @@ import { deleteAiConfig, generateDraft, generateSummary, getAiConfig, saveAiConf
 import {
   deleteMedia,
   deletePost,
+  parseTagList,
   saveSiteCategories,
   savePost,
   slugify,
   type SiteCategory,
+  updatePostMeta,
   updateSiteConfig,
   uploadMedia,
 } from "./content";
@@ -121,10 +123,7 @@ export async function savePostAction(
   const date = String(formData.get("date") ?? "") || new Date().toISOString().slice(0, 10);
   const draft = formData.get("draft") === "on";
   const description = String(formData.get("description") ?? "").trim();
-  const tags = String(formData.get("tags") ?? "")
-    .split(/[,,]/)
-    .map((tag) => tag.trim())
-    .filter(Boolean);
+  const tags = parseTagList(String(formData.get("tags") ?? ""));
   const category = String(formData.get("category") ?? "").trim() || undefined;
 
   const existingPath = String(formData.get("path") ?? "");
@@ -156,6 +155,89 @@ export async function deletePostAction(formData: FormData): Promise<void> {
   const octokit = await getInstallationOctokit(installation.installationId);
   await deletePost(octokit, site.dataRepo, path);
   revalidatePath(`/sites/${siteId}/posts`);
+}
+
+export interface UpdatePostMetaState {
+  error?: string;
+}
+
+function assertPostPath(path: string): string {
+  if (!path.startsWith("content/posts/") || path.includes("..")) {
+    throw new Error("Invalid path");
+  }
+  return path;
+}
+
+/** Quick-edit a single post's metadata from the posts list (body is left as-is). */
+export async function updatePostMetaAction(
+  _prev: UpdatePostMetaState,
+  formData: FormData,
+): Promise<UpdatePostMetaState> {
+  const siteId = String(formData.get("siteId"));
+  const path = assertPostPath(String(formData.get("path") ?? ""));
+  const title = String(formData.get("title") ?? "").trim();
+  if (!title) return { error: "请填写标题。" };
+  const date = String(formData.get("date") ?? "") || new Date().toISOString().slice(0, 10);
+  const draft = String(formData.get("status") ?? "") === "draft";
+  const tags = parseTagList(String(formData.get("tags") ?? ""));
+  const categoryRaw = String(formData.get("category") ?? "").trim();
+
+  const { site, installation } = await requireSite(siteId);
+  const octokit = await getInstallationOctokit(installation.installationId);
+  try {
+    await updatePostMeta(octokit, site.dataRepo, path, {
+      title,
+      date,
+      draft,
+      tags,
+      category: categoryRaw || null,
+    });
+  } catch (error) {
+    return { error: `保存失败:${error instanceof Error ? error.message : String(error)}` };
+  }
+  revalidatePath(`/sites/${siteId}/posts`);
+  return {};
+}
+
+export interface BulkPostsState {
+  error?: string;
+}
+
+/**
+ * Bulk publish / unpublish (draft) / delete. "不可见" is the existing `draft:
+ * true` flag — static sites have no logged-in-only view, so draft is the
+ * way to keep a post out of the public build.
+ */
+export async function bulkPostsAction(
+  _prev: BulkPostsState,
+  formData: FormData,
+): Promise<BulkPostsState> {
+  const siteId = String(formData.get("siteId"));
+  const op = String(formData.get("op") ?? "");
+  const paths = formData
+    .getAll("paths")
+    .map(String)
+    .filter((path) => path.startsWith("content/posts/") && !path.includes(".."));
+  if (paths.length === 0) return { error: "请先勾选文章。" };
+  if (op !== "draft" && op !== "publish" && op !== "delete") {
+    return { error: "未知操作。" };
+  }
+
+  const { site, installation } = await requireSite(siteId);
+  const octokit = await getInstallationOctokit(installation.installationId);
+  try {
+    if (op === "delete") {
+      await Promise.all(paths.map((path) => deletePost(octokit, site.dataRepo, path)));
+    } else {
+      await Promise.all(
+        paths.map((path) => updatePostMeta(octokit, site.dataRepo, path, { draft: op === "draft" })),
+      );
+    }
+  } catch (error) {
+    return { error: `操作失败:${error instanceof Error ? error.message : String(error)}` };
+  }
+  revalidatePath(`/sites/${siteId}/posts`);
+  return {};
 }
 
 // ---------------------------------------------------------------------------
@@ -193,7 +275,6 @@ export async function uploadEditorImageAction(formData: FormData): Promise<Uploa
   const buffer = Buffer.from(await file.arrayBuffer());
   const octokit = await getInstallationOctokit(installation.installationId);
   const url = await uploadMedia(octokit, site.dataRepo, file.name, buffer.toString("base64"));
-  revalidatePath(`/sites/${siteId}/media`);
   return { url };
 }
 
@@ -459,6 +540,7 @@ export async function saveAiSettingsAction(
   }
 
   revalidatePath("/account/ai");
+  revalidatePath("/dashboard");
   return { saved: true };
 }
 
@@ -466,6 +548,7 @@ export async function clearAiSettingsAction(): Promise<void> {
   const user = await requireUser();
   await deleteAiConfig(user.id);
   revalidatePath("/account/ai");
+  revalidatePath("/dashboard");
 }
 
 export interface GenerateSummaryState {

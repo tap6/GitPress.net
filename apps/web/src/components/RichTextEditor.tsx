@@ -6,8 +6,10 @@ import { Markdown } from "@tiptap/markdown";
 import { EditorContent, useEditor, type Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Link from "next/link";
-import { useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { generateDraftAction, uploadEditorImageAction } from "@/lib/actions";
+import { ImageUploadTray, type ImageUploadTask } from "@/components/ImageUploadTray";
+import { uniqueMediaFileName } from "@/lib/mediaName";
 
 interface Props {
   /** Form field name that receives the serialized Markdown on submit. */
@@ -19,31 +21,79 @@ interface Props {
   onChange?: (markdown: string) => void;
 }
 
+function createGitPressImage(siteId: string, previews: Map<string, string>) {
+  return Image.extend({
+    addNodeView() {
+      return ({ node }) => {
+        const wrap = document.createElement("span");
+        wrap.className = "gp-editor-image-wrap";
+        const img = document.createElement("img");
+        wrap.appendChild(img);
+        const sync = (current: typeof node) => {
+          const src = String(current.attrs.src ?? "");
+          img.alt = String(current.attrs.alt ?? "");
+          const preview = previews.get(src);
+          if (preview) {
+            img.src = preview;
+          } else if (src.startsWith("/media/")) {
+            const fileName = src.slice("/media/".length);
+            img.src = `/api/sites/${siteId}/media/${fileName.split("/").map(encodeURIComponent).join("/")}`;
+          } else {
+            img.src = src;
+          }
+        };
+        sync(node);
+        return {
+          dom: wrap,
+          update(updated) {
+            if (updated.type.name !== "image") return false;
+            sync(updated);
+            return true;
+          },
+        };
+      };
+    },
+  });
+}
+
+function imageFilesFromList(list: FileList | null | undefined): File[] {
+  if (!list) return [];
+  return [...list].filter((file) => file.type.startsWith("image/"));
+}
+
 /**
  * WYSIWYG post editor backed by Tiptap. Content is kept as plain Markdown at
  * all times (via @tiptap/markdown's bidirectional parser/serializer) so the
  * file committed to the data repo stays a normal, portable .md file — this
  * component only changes how the text is authored, not how it's stored.
+ *
+ * Images are stored as `/media/file.jpg` (what the published site serves).
+ * The admin origin cannot load that path, so the node view shows a blob
+ * preview while uploading and a same-origin proxy afterwards.
  */
 export function RichTextEditor({ name, siteId, defaultValue = "", placeholder, onChange }: Props) {
   const [markdown, setMarkdownState] = useState(defaultValue);
   const [mode, setMode] = useState<"rich" | "source">("rich");
-  const [uploading, setUploading] = useState(false);
-  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [tasks, setTasks] = useState<ImageUploadTask[]>([]);
   const [generatingDraft, setGeneratingDraft] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const editorRef = useRef<Editor | null>(null);
+  const previews = useRef(new Map<string, string>());
+  const uploadFilesRef = useRef<(files: File[]) => void>(() => {});
 
   function setMarkdown(value: string) {
     setMarkdownState(value);
     onChange?.(value);
   }
 
+  const imageExtension = useMemo(() => createGitPressImage(siteId, previews.current), [siteId]);
+
   const editor = useEditor({
     immediatelyRender: false,
     extensions: [
       StarterKit.configure({ link: { openOnClick: false } }),
-      Image,
+      imageExtension,
       Placeholder.configure({ placeholder: placeholder ?? "开始写作…" }),
       Markdown,
     ],
@@ -54,11 +104,98 @@ export function RichTextEditor({ name, siteId, defaultValue = "", placeholder, o
         class:
           "gp-editor min-h-[420px] w-full max-w-none rounded-b border border-t-0 border-neutral-300 bg-white px-4 py-3 text-sm leading-relaxed focus:outline-none",
       },
+      handlePaste(_view, event) {
+        const files = imageFilesFromList(event.clipboardData?.files);
+        if (files.length === 0) return false;
+        event.preventDefault();
+        uploadFilesRef.current(files);
+        return true;
+      },
+      handleDrop(_view, event) {
+        const files = imageFilesFromList(event.dataTransfer?.files);
+        if (files.length === 0) return false;
+        event.preventDefault();
+        uploadFilesRef.current(files);
+        return true;
+      },
     },
     onUpdate: ({ editor: current }) => {
       setMarkdown(current.getMarkdown());
     },
   });
+
+  editorRef.current = editor;
+
+  useEffect(() => {
+    const map = previews.current;
+    return () => {
+      for (const url of map.values()) URL.revokeObjectURL(url);
+      map.clear();
+    };
+  }, []);
+
+  async function uploadImages(files: File[]) {
+    const current = editorRef.current;
+    if (!current || files.length === 0) return;
+
+    for (const file of files) {
+      if (file.size > 8 * 1024 * 1024) {
+        const id = `${file.name}-too-big-${Date.now()}`;
+        setTasks((prev) => [
+          ...prev,
+          {
+            id,
+            name: file.name,
+            preview: "",
+            status: "error",
+            error: "单个文件最大 8MB",
+          },
+        ]);
+        continue;
+      }
+
+      const fileName = uniqueMediaFileName(file.name);
+      const src = `/media/${fileName}`;
+      const blobUrl = URL.createObjectURL(file);
+      previews.current.set(src, blobUrl);
+      const taskId = fileName;
+      setTasks((prev) => [
+        ...prev,
+        { id: taskId, name: file.name, preview: blobUrl, status: "uploading" },
+      ]);
+      current
+        .chain()
+        .focus()
+        .setImage({ src, alt: file.name.replace(/\.[^.]+$/, "") })
+        .run();
+
+      const named = new File([file], fileName, { type: file.type });
+      const formData = new FormData();
+      formData.set("siteId", siteId);
+      formData.set("file", named);
+      const result = await uploadEditorImageAction(formData);
+      if (result.error || !result.url) {
+        setTasks((prev) =>
+          prev.map((task) =>
+            task.id === taskId
+              ? { ...task, status: "error", error: result.error ?? "上传失败" }
+              : task,
+          ),
+        );
+        continue;
+      }
+      setTasks((prev) =>
+        prev.map((task) => (task.id === taskId ? { ...task, status: "done" } : task)),
+      );
+      window.setTimeout(() => {
+        setTasks((prev) => prev.filter((task) => task.id !== taskId || task.status !== "done"));
+      }, 3500);
+    }
+  }
+
+  uploadFilesRef.current = (files) => {
+    void uploadImages(files);
+  };
 
   function switchToSource() {
     if (editor) setMarkdown(editor.getMarkdown());
@@ -68,24 +205,6 @@ export function RichTextEditor({ name, siteId, defaultValue = "", placeholder, o
   function switchToRich() {
     editor?.commands.setContent(markdown, { contentType: "markdown" });
     setMode("rich");
-  }
-
-  async function handleImagePick(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file || !editor) return;
-    setUploading(true);
-    setUploadError(null);
-    const formData = new FormData();
-    formData.set("siteId", siteId);
-    formData.set("file", file);
-    const result = await uploadEditorImageAction(formData);
-    setUploading(false);
-    if (result.error || !result.url) {
-      setUploadError(result.error ?? "上传失败");
-      return;
-    }
-    editor.chain().focus().setImage({ src: result.url }).run();
   }
 
   async function handleGenerateDraft() {
@@ -101,17 +220,12 @@ export function RichTextEditor({ name, siteId, defaultValue = "", placeholder, o
       return;
     }
     try {
-      // @tiptap/markdown patches insertContent to accept `contentType`, same
-      // as the setContent calls used elsewhere in this file — this inserts
-      // the generated Markdown at the current cursor position.
       editor
         .chain()
         .focus()
         .insertContent(result.draft, { contentType: "markdown" } as never)
         .run();
     } catch {
-      // Fall back to appending at the end if the markdown-aware insert isn't
-      // available for some reason — still gets the content into the editor.
       const current = editor.getMarkdown();
       const next = `${current}\n\n${result.draft}`;
       editor.commands.setContent(next, { contentType: "markdown" });
@@ -130,6 +244,8 @@ export function RichTextEditor({ name, siteId, defaultValue = "", placeholder, o
     }
     editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
   }
+
+  const uploading = tasks.some((task) => task.status === "uploading");
 
   return (
     <div>
@@ -227,18 +343,23 @@ export function RichTextEditor({ name, siteId, defaultValue = "", placeholder, o
           🔗 链接
         </ToolbarButton>
         <ToolbarButton
-          disabled={mode !== "rich" || uploading}
+          disabled={mode !== "rich"}
           label="插入图片"
           onClick={() => fileInputRef.current?.click()}
         >
-          {uploading ? "上传中…" : "🖼 图片"}
+          🖼 图片
         </ToolbarButton>
         <input
           ref={fileInputRef}
           type="file"
           accept="image/*"
           hidden
-          onChange={handleImagePick}
+          multiple
+          onChange={(event) => {
+            const files = imageFilesFromList(event.target.files);
+            event.target.value = "";
+            uploadFilesRef.current(files);
+          }}
         />
         <Divider />
         <ToolbarButton
@@ -266,16 +387,11 @@ export function RichTextEditor({ name, siteId, defaultValue = "", placeholder, o
         </div>
       </div>
 
-      {uploadError && (
-        <p className="border-x border-neutral-300 bg-red-50 px-3 py-1.5 text-xs text-red-600">
-          {uploadError}
-        </p>
-      )}
       {aiError && (
         <p className="border-x border-neutral-300 bg-amber-50 px-3 py-1.5 text-xs text-amber-700">
           {aiError}{" "}
           {aiError.includes("AI 设置") && (
-            <Link href="/account/ai" className="underline hover:text-amber-900">
+            <Link href={`/sites/${siteId}/settings#account-ai`} className="underline hover:text-amber-900">
               前往配置 →
             </Link>
           )}
@@ -293,6 +409,13 @@ export function RichTextEditor({ name, siteId, defaultValue = "", placeholder, o
           className="w-full rounded-b border border-t-0 border-neutral-300 bg-white px-4 py-3 font-mono text-sm leading-relaxed shadow-sm focus:border-wp-accent focus:outline-none"
         />
       )}
+      {uploading && (
+        <p className="mt-1 text-[11px] text-neutral-400">图片正在写入你的数据仓库,编辑框里已是本地预览。</p>
+      )}
+      <ImageUploadTray
+        tasks={tasks}
+        onDismiss={(id) => setTasks((prev) => prev.filter((task) => task.id !== id))}
+      />
     </div>
   );
 }

@@ -6,9 +6,11 @@ import { clearAiSettingsAction, saveAiSettingsAction, type SaveAiSettingsState }
 interface Props {
   hasExisting: boolean;
   initial: { baseUrl: string; model: string };
+  /** When true, skip the outer card — parent already provides a panel. */
+  embedded?: boolean;
 }
 
-export function AiSettingsForm({ hasExisting, initial }: Props) {
+export function AiSettingsForm({ hasExisting, initial, embedded = false }: Props) {
   const [state, formAction] = useActionState<SaveAiSettingsState, FormData>(
     saveAiSettingsAction,
     {},
@@ -16,7 +18,14 @@ export function AiSettingsForm({ hasExisting, initial }: Props) {
 
   return (
     <div className="space-y-4">
-      <form action={formAction} className="space-y-4 rounded border border-neutral-200 bg-white p-5 text-sm shadow-sm">
+      <form
+        action={formAction}
+        className={
+          embedded
+            ? "space-y-4 text-sm"
+            : "space-y-4 rounded border border-neutral-200 bg-white p-5 text-sm shadow-sm"
+        }
+      >
         <label className="block">
           <span className="font-medium">Base URL</span>
           <input

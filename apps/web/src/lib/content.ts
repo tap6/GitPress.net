@@ -1,6 +1,7 @@
 import matter from "gray-matter";
 import type { Octokit } from "octokit";
 import { deleteFile, getFileText, listDirectory, putFile, splitRepo } from "./github";
+import { sanitizeMediaFileName, uniqueMediaFileName } from "./mediaName";
 
 /** Content operations = commits against the private data repository. */
 
@@ -123,6 +124,66 @@ export async function savePost(
   );
 }
 
+export interface UpdatePostMetaInput {
+  title?: string;
+  date?: string;
+  draft?: boolean;
+  tags?: string[];
+  /** `null` clears the category; omit to leave it unchanged. */
+  category?: string | null;
+}
+
+/**
+ * Update frontmatter only (title / date / draft / tags / category), leaving
+ * the Markdown body and any unknown fields untouched. Used by the posts-list
+ * quick-edit and bulk status actions so we don't have to round-trip the
+ * full editor.
+ */
+export async function updatePostMeta(
+  octokit: Octokit,
+  dataRepo: string,
+  path: string,
+  input: UpdatePostMetaInput,
+): Promise<void> {
+  const ref = splitRepo(dataRepo);
+  const existing = await getFileText(octokit, ref, path);
+  if (!existing) throw new Error("文章不存在");
+  const parsed = matter(existing.text);
+  const frontmatter: Record<string, unknown> = parsed.data ?? {};
+
+  if (input.title !== undefined) frontmatter.title = input.title;
+  if (input.date !== undefined) frontmatter.date = input.date;
+  if (input.draft !== undefined) {
+    if (input.draft) frontmatter.draft = true;
+    else delete frontmatter.draft;
+  }
+  if (input.tags !== undefined) {
+    if (input.tags.length > 0) frontmatter.tags = input.tags;
+    else delete frontmatter.tags;
+  }
+  if (input.category !== undefined) {
+    if (input.category) frontmatter.categories = [input.category];
+    else delete frontmatter.categories;
+  }
+
+  const body = parsed.content.replace(/^\n/, "");
+  const text = matter.stringify(`\n${body.trim()}\n`, frontmatter);
+  await putFile(
+    octokit,
+    ref,
+    path,
+    { utf8: text },
+    `Update post meta: ${String(frontmatter.title ?? path)}`,
+  );
+}
+
+export function parseTagList(input: string): string[] {
+  return input
+    .split(/[,，]/)
+    .map((tag) => tag.trim())
+    .filter(Boolean);
+}
+
 export async function deletePost(octokit: Octokit, dataRepo: string, path: string): Promise<void> {
   await deleteFile(octokit, splitRepo(dataRepo), path, `Delete post: ${path}`);
 }
@@ -156,7 +217,11 @@ export async function uploadMedia(
   fileName: string,
   base64: string,
 ): Promise<string> {
-  const safeName = fileName.replace(/[^\w.\-]+/g, "-");
+  // Editor uploads already send a unique name; media-library uploads get one here.
+  const looksUnique = /-\d{10,}\.[a-z0-9]+$/i.test(fileName);
+  const safeName = looksUnique
+    ? sanitizeMediaFileName(fileName)
+    : uniqueMediaFileName(fileName);
   const path = `media/${safeName}`;
   await putFile(octokit, splitRepo(dataRepo), path, { base64 }, `Upload media: ${safeName}`);
   return `/${path}`;

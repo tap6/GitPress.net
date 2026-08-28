@@ -301,6 +301,52 @@ export async function getFileText(
   }
 }
 
+const MEDIA_TYPES: Record<string, string> = {
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  png: "image/png",
+  gif: "image/gif",
+  webp: "image/webp",
+  svg: "image/svg+xml",
+  avif: "image/avif",
+};
+
+export function mediaContentType(fileName: string): string {
+  const ext = fileName.split(".").pop()?.toLowerCase() ?? "";
+  return MEDIA_TYPES[ext] ?? "application/octet-stream";
+}
+
+/** Read a binary file (images) from a repo. Contents API inlines files ≤ 1MB. */
+export async function getFileBinary(
+  octokit: Octokit,
+  ref: RepoRef,
+  path: string,
+): Promise<{ bytes: Buffer; contentType: string } | null> {
+  try {
+    const { data } = await octokit.request("GET /repos/{owner}/{repo}/contents/{path}", {
+      ...ref,
+      path,
+    });
+    if (Array.isArray(data) || data.type !== "file") return null;
+    const contentType = mediaContentType(data.name);
+    if (typeof data.content === "string" && data.content.length > 0) {
+      return {
+        bytes: Buffer.from(data.content.replace(/\n/g, ""), "base64"),
+        contentType,
+      };
+    }
+    if (!data.download_url) return null;
+    const auth = (await octokit.auth()) as { token?: string };
+    const headers: Record<string, string> = { Accept: "application/octet-stream" };
+    if (auth.token) headers.Authorization = `Bearer ${auth.token}`;
+    const response = await fetch(data.download_url, { headers });
+    if (!response.ok) return null;
+    return { bytes: Buffer.from(await response.arrayBuffer()), contentType };
+  } catch {
+    return null;
+  }
+}
+
 export async function deleteFile(
   octokit: Octokit,
   ref: RepoRef,

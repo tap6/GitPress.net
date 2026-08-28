@@ -13,6 +13,29 @@ export async function requireUser() {
   return session.user as { id: string; name?: string | null; email?: string | null; image?: string | null };
 }
 
+export async function findOwnedSite(siteId: string): Promise<{
+  user: { id: string; name?: string | null };
+  site: SiteRow;
+  installation: InstallationRow;
+} | null> {
+  const session = await auth();
+  if (!session?.user?.id) return null;
+  const user = session.user as { id: string; name?: string | null };
+  const [site] = await db
+    .select()
+    .from(sites)
+    .where(and(eq(sites.id, siteId), eq(sites.userId, user.id)))
+    .limit(1);
+  if (!site) return null;
+  const [installation] = await db
+    .select()
+    .from(githubInstallations)
+    .where(eq(githubInstallations.id, site.installationId))
+    .limit(1);
+  if (!installation) return null;
+  return { user, site, installation };
+}
+
 /** Load a site, enforcing ownership. Redirects if not found. */
 export async function requireSite(siteId: string): Promise<{
   user: { id: string; name?: string | null };
@@ -20,19 +43,9 @@ export async function requireSite(siteId: string): Promise<{
   installation: InstallationRow;
 }> {
   const user = await requireUser();
-  const [site] = await db
-    .select()
-    .from(sites)
-    .where(and(eq(sites.id, siteId), eq(sites.userId, user.id)))
-    .limit(1);
-  if (!site) redirect("/dashboard");
-  const [installation] = await db
-    .select()
-    .from(githubInstallations)
-    .where(eq(githubInstallations.id, site.installationId))
-    .limit(1);
-  if (!installation) redirect("/dashboard");
-  return { user, site, installation };
+  const owned = await findOwnedSite(siteId);
+  if (!owned || owned.user.id !== user.id) redirect("/dashboard");
+  return owned;
 }
 
 export async function listUserSites(userId: string): Promise<SiteRow[]> {

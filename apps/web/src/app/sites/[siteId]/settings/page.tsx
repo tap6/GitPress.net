@@ -1,6 +1,8 @@
 import { rotateDeployKeyAction } from "@/lib/actions";
+import { AiSettingsForm } from "@/components/AiSettingsForm";
 import { ProgressButton } from "@/components/ProgressButton";
 import { SettingsForm } from "@/components/SettingsForm";
+import { getAiConfig } from "@/lib/ai";
 import { getSiteConfig } from "@/lib/content";
 import { getInstallationOctokit, getInstallationPermissionGap } from "@/lib/github";
 import { requireSite } from "@/lib/sites";
@@ -13,11 +15,12 @@ export default async function SettingsPage({
   params: Promise<{ siteId: string }>;
 }) {
   const { siteId } = await params;
-  const { site, installation } = await requireSite(siteId);
+  const { site, installation, user } = await requireSite(siteId);
   const octokit = await getInstallationOctokit(installation.installationId);
-  const [config, permissionGap] = await Promise.all([
+  const [config, permissionGap, aiConfig] = await Promise.all([
     getSiteConfig(octokit, site.dataRepo),
     getInstallationPermissionGap(installation.installationId),
+    getAiConfig(user.id),
   ]);
   const analyticsSnippet =
     typeof config?.site.analyticsSnippet === "string" ? config.site.analyticsSnippet : "";
@@ -37,6 +40,29 @@ export default async function SettingsPage({
             analyticsSnippet,
           }}
         />
+      </div>
+
+      <div
+        id="account-ai"
+        className="mt-6 scroll-mt-16 rounded border border-neutral-200 bg-white shadow-sm"
+      >
+        <h2 className="border-b border-neutral-100 px-5 py-3 text-sm font-semibold">
+          账号 · 全局设置
+        </h2>
+        <div className="space-y-3 p-5">
+          <p className="text-sm text-neutral-500">
+            以下配置跟账号走,对你名下所有站点生效,不用再回到「我的站点」首页修改。
+          </p>
+          <h3 className="text-sm font-medium text-neutral-800">AI 写作</h3>
+          <p className="text-xs text-neutral-400">
+            用于文章编辑器里的「生成摘要」和「生成初稿」。任意 OpenAI 兼容接口均可。
+          </p>
+          <AiSettingsForm
+            embedded
+            hasExisting={aiConfig !== null}
+            initial={{ baseUrl: aiConfig?.baseUrl ?? "", model: aiConfig?.model ?? "" }}
+          />
+        </div>
       </div>
 
       <div className="mt-6 rounded border border-neutral-200 bg-white shadow-sm">
