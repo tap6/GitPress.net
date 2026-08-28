@@ -22,6 +22,11 @@ export const users = pgTable("user", {
   email: text("email").unique(),
   emailVerified: timestamp("emailVerified", { mode: "date" }),
   image: text("image"),
+  /**
+   * Platform operator (`"ops"`). Site owners leave this null.
+   * Access is `role = "ops"` **or** an email in `GITPRESS_OPS_EMAILS`.
+   */
+  role: text("role").$type<"ops" | null>(),
 });
 
 export const accounts = pgTable(
@@ -102,6 +107,11 @@ export const sites = pgTable("site", {
   description: text("description"),
   language: text("language").notNull().default("en"),
   themeName: text("theme_name").notNull(),
+  /**
+   * Mirror of `gitpress.json` `theme.source` for ops dashboards.
+   * `"builtin"` or `github:owner/repo[/<subdir>]#<ref>`. Not a cache of theme files.
+   */
+  themeSource: text("theme_source").notNull().default("builtin"),
   themeConfig: jsonb("theme_config").$type<Record<string, unknown>>().default({}),
   /** "owner/name" */
   dataRepo: text("data_repo").notNull(),
@@ -129,5 +139,32 @@ export const aiSettings = pgTable("ai_settings", {
   baseUrl: text("base_url").notNull(),
   model: text("model").notNull(),
   apiKeyEncrypted: text("api_key_encrypted").notNull(),
+  updatedAt: timestamp("updated_at", { mode: "date" }).notNull().defaultNow(),
+});
+
+/**
+ * Theme store catalog. Each row is a pointer to a public GitHub theme repo
+ * (`github:owner/repo#ref`), not a hosted package. Built-in themes stay in
+ * code (`BUILTIN_THEMES`); they are not duplicated here.
+ */
+export type ThemeListingStatus = "listed" | "hidden" | "pending";
+
+export const themeListings = pgTable("theme_listing", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  /** `theme.json` `name`. */
+  name: text("name").notNull(),
+  displayName: text("display_name").notNull(),
+  description: text("description").notNull().default(""),
+  /** Normalized `github:owner/repo[/<subdir>]#<ref>`. */
+  source: text("source").notNull().unique(),
+  status: text("status").$type<ThemeListingStatus>().notNull().default("listed"),
+  /** Operator-only notes; never shown to site owners. */
+  notes: text("notes"),
+  createdByUserId: text("created_by_user_id").references(() => users.id, {
+    onDelete: "set null",
+  }),
+  createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { mode: "date" }).notNull().defaultNow(),
 });

@@ -54,7 +54,12 @@ export default function MakeThemePage() {
           <li className="rounded-xl border border-neutral-200 p-5 shadow-sm">
             <p className="text-sm font-semibold">4. 在 GitPress 后台导入</p>
             <p className="mt-1 text-sm text-neutral-500">
-              打开站点 → 外观 →「从 GitHub 导入主题」,粘贴仓库 URL。主题商店之后会上线,现在用导入即可。
+              打开站点 → 外观 →「从 GitHub 导入主题」,粘贴仓库 URL。
+              不清楚导入会把主题装到哪?{" "}
+              <a href="/help/import-theme" className="underline hover:text-neutral-700" target="_blank" rel="noreferrer">
+                打开说明
+              </a>
+              。也可以请运营把仓库上架到主题商店,站长就能在外观页一键启用。
             </p>
           </li>
         </ol>
@@ -66,7 +71,7 @@ export default function MakeThemePage() {
         <p className="mt-8 text-sm text-neutral-500">
           完整约定(挂载路径、导航、configSchema、logo/avatar)见开源仓库里的{" "}
           <a
-            href="https://github.com/tap6/gitpress/blob/main/packages/spec/THEME_AUTHORING.md"
+            href="https://github.com/tap6/gitpress/blob/main/spec/THEME_AUTHORING.md"
             className="underline hover:text-neutral-800"
             target="_blank"
             rel="noreferrer"

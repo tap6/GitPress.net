@@ -89,3 +89,14 @@ pnpm dev                 # http://localhost:3000
 node packages/build-action/scripts/prepare-local.mjs themes/classic templates/data-repo
 pnpm --filter @gitpress/theme-classic dev
 ```
+
+## 7. 运营后台(`/ops`)
+
+平台运营控制台,和站长的 `/sites/[id]` 是两回事:
+
+- **鉴权**:邮箱在 `GITPRESS_OPS_EMAILS`(逗号分隔)里,或 `user.role = 'ops'`。
+- **能看**:用户、站点元数据、GitHub App 安装、主题商店目录。
+- **不能**:解密 AI 密钥、读取用户 Markdown/图片、进入别人的写作后台。
+- **主题商店**:`theme_listing` 表只存 `github:owner/repo#ref` 指针。上架后出现在站长「外观」页。内置主题仍由代码里的 `BUILTIN_THEMES` 提供。
+
+第一次开通:把你的登录邮箱写入 `GITPRESS_OPS_EMAILS`,同步表结构(`pnpm db:push`),登录后仪表盘会出现「运营后台」。

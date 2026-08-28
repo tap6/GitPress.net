@@ -13,6 +13,16 @@ export interface LocalDraftFields {
   body: string;
 }
 
+/** Title and body both blank — not worth a local backup (or a restore prompt). */
+export function isEmptyDraft(fields: Pick<LocalDraftFields, "title" | "body">): boolean {
+  const title = fields.title.trim();
+  const body = fields.body
+    .replace(/&nbsp;/gi, " ")
+    .replace(/<[^>]*>/g, " ")
+    .trim();
+  return title.length === 0 && body.length === 0;
+}
+
 interface StoredDraft extends LocalDraftFields {
   savedAt: number;
 }
@@ -40,6 +50,10 @@ function readDraft(key: string): StoredDraft | null {
 }
 
 function writeDraft(key: string, fields: LocalDraftFields): boolean {
+  if (isEmptyDraft(fields)) {
+    clearDraft(key);
+    return true;
+  }
   try {
     const payload: StoredDraft = { ...fields, savedAt: Date.now() };
     localStorage.setItem(key, JSON.stringify(payload));
@@ -99,11 +113,15 @@ export function useLocalPostDraft(
 
   useEffect(() => {
     const stored = readDraft(key);
-    if (stored && fingerprint(stored) !== serverFingerprint) {
-      setPending(stored);
+    if (stored && isEmptyDraft(stored)) {
+      clearDraft(key);
+    }
+    const leftover = stored && !isEmptyDraft(stored) ? stored : null;
+    if (leftover && fingerprint(leftover) !== serverFingerprint) {
+      setPending(leftover);
       setPersistEnabled(false);
     } else {
-      if (stored) clearDraft(key);
+      if (leftover) clearDraft(key);
       setPersistEnabled(true);
     }
     const arm = window.setTimeout(() => setArmed(true), 500);
@@ -123,7 +141,14 @@ export function useLocalPostDraft(
   useEffect(() => {
     if (!persistEnabled) return;
     const timer = window.setTimeout(() => {
-      const ok = writeDraft(key, fieldsRef.current);
+      const current = fieldsRef.current;
+      if (isEmptyDraft(current)) {
+        clearDraft(key);
+        setPersistOk(true);
+        setLastSavedAt(null);
+        return;
+      }
+      const ok = writeDraft(key, current);
       setPersistOk(ok);
       if (ok) setLastSavedAt(Date.now());
     }, 800);
@@ -133,7 +158,13 @@ export function useLocalPostDraft(
   useEffect(() => {
     function flush() {
       if (!persistEnabled) return;
-      const ok = writeDraft(key, fieldsRef.current);
+      const current = fieldsRef.current;
+      if (isEmptyDraft(current)) {
+        clearDraft(key);
+        setLastSavedAt(null);
+        return;
+      }
+      const ok = writeDraft(key, current);
       setPersistOk(ok);
       if (ok) setLastSavedAt(Date.now());
     }
@@ -167,7 +198,14 @@ export function useLocalPostDraft(
       clearDraft(key);
     },
     persistNow() {
-      const ok = writeDraft(key, fieldsRef.current);
+      const current = fieldsRef.current;
+      if (isEmptyDraft(current)) {
+        clearDraft(key);
+        setPersistOk(true);
+        setLastSavedAt(null);
+        return;
+      }
+      const ok = writeDraft(key, current);
       setPersistOk(ok);
       if (ok) setLastSavedAt(Date.now());
     },

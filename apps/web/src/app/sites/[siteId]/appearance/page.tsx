@@ -1,7 +1,8 @@
-import { saveThemeOptionsAction, switchThemeAction } from "@/lib/actions";
+import { applyCatalogThemeAction, saveThemeOptionsAction, switchThemeAction } from "@/lib/actions";
 import { ProgressButton } from "@/components/ProgressButton";
 import { ThemeImportForm } from "@/components/ThemeImportForm";
 import { cachedSiteConfig } from "@/lib/siteDataCache";
+import { listListedThemeCatalog } from "@/lib/themeCatalog";
 import { fetchGithubThemeManifest } from "@/lib/themeSource";
 import { BUILTIN_THEMES, getBuiltinTheme, themeOptionLabel } from "@/lib/themes";
 import { requireSite } from "@/lib/sites";
@@ -15,7 +16,10 @@ export default async function AppearancePage({
 }) {
   const { siteId } = await params;
   const { site, installation } = await requireSite(siteId);
-  const config = await cachedSiteConfig(installation.installationId, site.dataRepo);
+  const [config, catalog] = await Promise.all([
+    cachedSiteConfig(installation.installationId, site.dataRepo),
+    listListedThemeCatalog(),
+  ]);
   const themeSource = String(config?.theme.source ?? "builtin");
   const usingBuiltin = themeSource === "builtin";
   const currentTheme = usingBuiltin ? getBuiltinTheme(site.themeName) : null;
@@ -95,6 +99,55 @@ export default async function AppearancePage({
         })}
       </div>
 
+      {catalog.length > 0 && (
+        <div className="mt-8">
+          <h2 className="text-sm font-semibold text-neutral-700">主题商店</h2>
+          <p className="mt-1 text-xs text-neutral-400">
+            运营上架的 GitHub 主题。启用后由你自己的 Actions 拉取,不会装到 GitPress 服务器。
+          </p>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {catalog.map((listing) => {
+              const active = !usingBuiltin && themeSource === listing.source;
+              return (
+                <div
+                  key={listing.id}
+                  className={`overflow-hidden rounded-lg border-2 bg-white shadow-sm ${
+                    active ? "border-wp-accent" : "border-neutral-200"
+                  }`}
+                >
+                  <div className="border-b border-neutral-100 bg-neutral-50 px-4 py-3">
+                    <p className="text-sm font-semibold">{listing.displayName}</p>
+                    <p className="mt-0.5 font-mono text-[11px] text-neutral-400">{listing.name}</p>
+                  </div>
+                  <div className="p-4">
+                    <p className="text-xs text-neutral-500">{listing.description || "社区主题"}</p>
+                    <p className="mt-2 truncate font-mono text-[10px] text-neutral-400" title={listing.source}>
+                      {listing.source}
+                    </p>
+                    {active ? (
+                      <p className="mt-3 text-xs font-medium text-wp-accent">✓ 当前主题</p>
+                    ) : (
+                      <form action={applyCatalogThemeAction} className="mt-3">
+                        <input type="hidden" name="siteId" value={site.id} />
+                        <input type="hidden" name="listingId" value={listing.id} />
+                        <ProgressButton
+                          expectedSeconds={6}
+                          pendingLabel="启用中"
+                          buildSiteId={site.id}
+                          className="rounded border border-wp-accent px-3 py-1 text-xs text-wp-accent hover:bg-wp-accent hover:text-white"
+                        >
+                          启用
+                        </ProgressButton>
+                      </form>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {optionEntries.length > 0 && (
         <div className="mt-8 max-w-lg rounded border border-neutral-200 bg-white shadow-sm">
           <h2 className="border-b border-neutral-100 px-5 py-3 text-sm font-semibold">
@@ -158,12 +211,22 @@ export default async function AppearancePage({
       )}
 
       <div className="mt-8 max-w-lg rounded border border-neutral-200 bg-white shadow-sm">
-        <h2 className="border-b border-neutral-100 px-5 py-3 text-sm font-semibold">从 GitHub 导入主题</h2>
+        <h2 className="flex items-center justify-between gap-3 border-b border-neutral-100 px-5 py-3 text-sm font-semibold">
+          从 GitHub 导入主题
+          <a
+            href="/help/import-theme"
+            target="_blank"
+            rel="noreferrer"
+            className="text-xs font-medium text-wp-accent hover:underline"
+          >
+            帮助 ↗
+          </a>
+        </h2>
         <ThemeImportForm siteId={site.id} />
       </div>
 
       <p className="mt-6 text-xs text-neutral-400">
-        主题商店即将上线,现在可以通过 GitHub 仓库导入任何符合 spec v1 的 Astro 主题。
+        主题商店由运营在后台维护。也可以从任意公开 GitHub 仓库导入符合 spec v1 的 Astro 主题。
         想自己做一份?看{" "}
         <a href="/make-theme" className="underline hover:text-neutral-600">
           DIY 主题教程

@@ -87,6 +87,12 @@ export function parseGithubThemeInput(raw: string, subdirInput = "", refInput = 
   };
 }
 
+export function githubThemePageUrl(ref: GithubThemeRef): string {
+  const base = `https://github.com/${ref.owner}/${ref.repo}`;
+  if (ref.subdir) return `${base}/tree/${encodeURIComponent(ref.ref)}/${ref.subdir}`;
+  return `${base}/tree/${encodeURIComponent(ref.ref)}`;
+}
+
 export interface RemoteThemeManifest {
   specVersion?: number;
   name?: string;

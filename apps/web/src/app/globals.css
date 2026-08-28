@@ -10,6 +10,9 @@
   --color-wp-canvas: #f0f0f1;
   --color-wp-highlight: #2271b1;
   --color-gp-brand: #e2725b;
+  /* Platform ops console — distinct from WP-admin and marketing brand. */
+  --color-ops-ink: #0f172a;
+  --color-ops-accent: #0f766e;
 }
 
 body {

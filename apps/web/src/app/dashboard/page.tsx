@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { signOut } from "@/auth";
 import { PermissionUpdateBanner } from "@/components/PermissionUpdateBanner";
+import { userHasOpsAccess } from "@/lib/ops";
 import { getInstallationPermissionGap } from "@/lib/github";
 import { listUserInstallations, listUserSites, requireUser } from "@/lib/sites";
 
@@ -13,6 +14,7 @@ export default async function DashboardPage({
 }) {
   const { github } = await searchParams;
   const user = await requireUser();
+  const isOps = await userHasOpsAccess(user);
   const [userSites, installations] = await Promise.all([
     listUserSites(user.id),
     listUserInstallations(user.id),
@@ -32,6 +34,11 @@ export default async function DashboardPage({
             <Link href="/account/ai" className="text-neutral-500 hover:text-neutral-900">
               AI 设置
             </Link>
+            {isOps && (
+              <Link href="/ops" className="font-medium text-ops-accent hover:text-teal-800">
+                运营后台
+              </Link>
+            )}
             <span className="hidden max-w-[10rem] truncate text-neutral-500 sm:inline">
               {user.name ?? user.email}
             </span>

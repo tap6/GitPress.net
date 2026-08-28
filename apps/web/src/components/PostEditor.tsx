@@ -7,6 +7,7 @@ import { ProgressButton } from "@/components/ProgressButton";
 import { RichTextEditor } from "@/components/RichTextEditor";
 import type { SiteCategory } from "@/lib/content";
 import {
+  isEmptyDraft,
   useLocalPostDraft,
   type LocalDraftFields,
 } from "@/lib/localDraft";
@@ -134,6 +135,7 @@ export function PostEditor({ siteId, path = "", categories = [], initial }: Prop
     local.lastSavedAt != null
       ? `本地底稿 ${new Date(local.lastSavedAt).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}`
       : null;
+  const showLocalDraftHint = !isEmptyDraft(fields);
 
   return (
     <form action={formAction} className="flex flex-col gap-6 lg:max-w-6xl lg:flex-row">
@@ -202,13 +204,15 @@ export function PostEditor({ siteId, path = "", categories = [], initial }: Prop
           }}
           placeholder="开始写作…"
         />
-        <p className="text-[11px] text-neutral-400">
-          {local.persistOk
-            ? savedLabel
-              ? `${savedLabel} · 仅存在此浏览器,提交到 GitHub 后才会出现在站点上。`
-              : "正在写入本地底稿…"
-            : "本地底稿写入失败(可能是浏览器存储已满),请尽快点保存提交到 GitHub。"}
-        </p>
+        {showLocalDraftHint && (
+          <p className="text-[11px] text-neutral-400">
+            {local.persistOk
+              ? savedLabel
+                ? `${savedLabel} · 仅存在此浏览器,提交到 GitHub 后才会出现在站点上。`
+                : "正在写入本地底稿…"
+              : "本地底稿写入失败(可能是浏览器存储已满),请尽快点保存提交到 GitHub。"}
+          </p>
+        )}
         {state.error && (
           <p className="rounded bg-red-50 p-3 text-sm text-red-600">{state.error}</p>
         )}

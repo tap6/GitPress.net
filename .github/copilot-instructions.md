@@ -117,8 +117,13 @@ with dev-friendly defaults. The mounted files are gitignored (`themes/*/gitpress
   update `packages/spec` (types + JSON Schema) first, then propagate to the build action and themes.
   Never read/write these files' shapes ad hoc from `apps/web` without going through `@gitpress/spec`.
 - **Everything user-authored stays in the user's repos.** Postgres in `apps/web` is strictly
-  control-plane metadata (accounts, installation/site mappings, encrypted AI keys) — never cache
-  post content or media there as the source of truth.
+  control-plane metadata (accounts, installation/site mappings, encrypted AI keys, theme-store
+  pointers) — never cache post content or media there as the source of truth.
+- **Operations console (`/ops`)** is separate from site-owner admin (`/sites/[id]`). Access is
+  `GITPRESS_OPS_EMAILS` and/or `user.role = "ops"`. It lists metadata only: never decrypt AI keys,
+  never fetch user Markdown/media, never impersonate into another owner's admin. Theme-store rows
+  (`theme_listing`) are GitHub pointers (`github:owner/repo#ref`), not hosted packages; builtins
+  stay in `BUILTIN_THEMES`.
 - **Version pinning everywhere**: build action calls, `theme.source: "builtin"` resolution, and the
   data-repo workflow template (`templates/data-repo/.github/workflows/gitpress-build.yml`) all pin
   to `@v1`. Don't add code paths that float to `latest`/`main`.
