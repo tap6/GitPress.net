@@ -674,11 +674,23 @@ export async function listBuildRuns(octokit: Octokit, ref: RepoRef): Promise<Bui
 /** Free-plan included minutes for private-repo Actions (public repos are free). */
 export const GITHUB_ACTIONS_FREE_INCLUDED_MINUTES = 2000;
 
+export interface ActionsDayUsage {
+  /** Calendar date in Asia/Shanghai, `YYYY-MM-DD`. */
+  date: string;
+  day: number;
+  minutes: number;
+  runCount: number;
+  isToday: boolean;
+  isFuture: boolean;
+}
+
 export interface ActionsUsage {
   actionsPermissionMissing: boolean;
-  /** Wall-clock minutes of this site's data-repo workflow runs so far this UTC month. */
+  /** Wall-clock minutes of this site's data-repo workflow runs so far this month. */
   siteMinutesThisMonth: number | null;
   siteRunCountThisMonth: number | null;
+  /** One entry per calendar day of the current Shanghai month (future days are zero). */
+  daily: ActionsDayUsage[];
   /** Account-wide Actions minutes from GitHub billing, if the user token can read it. */
   accountMinutesThisMonth: number | null;
   accountIncludedMinutes: number | null;
@@ -689,6 +701,37 @@ export interface ActionsUsage {
 
 function pad2(n: number): string {
   return String(n).padStart(2, "0");
+}
+
+function shanghaiParts(date: Date): { year: number; month: number; day: number } {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Shanghai",
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
+  }).formatToParts(date);
+  const num = (type: Intl.DateTimeFormatPartTypes) =>
+    Number(parts.find((part) => part.type === type)?.value);
+  return { year: num("year"), month: num("month"), day: num("day") };
+}
+
+function daysInCalendarMonth(year: number, month: number): number {
+  return new Date(year, month, 0).getDate();
+}
+
+function emptyDaily(year: number, month: number, todayDay: number): ActionsDayUsage[] {
+  const days = daysInCalendarMonth(year, month);
+  return Array.from({ length: days }, (_, index) => {
+    const day = index + 1;
+    return {
+      date: `${year}-${pad2(month)}-${pad2(day)}`,
+      day,
+      minutes: 0,
+      runCount: 0,
+      isToday: day === todayDay,
+      isFuture: day > todayDay,
+    };
+  });
 }
 
 function actionsMinutesFromUsageItems(
@@ -779,18 +822,19 @@ export async function getActionsUsage(options: {
   userToken?: string | null;
 }): Promise<ActionsUsage> {
   const now = new Date();
-  const year = now.getUTCFullYear();
-  const month = now.getUTCMonth() + 1;
+  const { year, month, day: todayDay } = shanghaiParts(now);
   const periodLabel = `${year}年${month}月`;
   const billingUrl =
     options.accountType === "Organization"
       ? `https://github.com/organizations/${options.accountLogin}/settings/billing`
       : "https://github.com/settings/billing";
+  const daily = emptyDaily(year, month, todayDay);
 
   const empty: ActionsUsage = {
     actionsPermissionMissing: false,
     siteMinutesThisMonth: null,
     siteRunCountThisMonth: null,
+    daily: [],
     accountMinutesThisMonth: null,
     accountIncludedMinutes: null,
     billingUnavailable: true,
@@ -799,6 +843,8 @@ export async function getActionsUsage(options: {
   };
 
   const ref = splitRepo(options.dataRepo);
+  const monthStart = new Date(`${year}-${pad2(month)}-01T00:00:00+08:00`);
+  const createdSince = monthStart.toISOString().slice(0, 10);
   let siteSeconds = 0;
   let siteRunCount = 0;
   try {
@@ -807,17 +853,24 @@ export async function getActionsUsage(options: {
         ...ref,
         per_page: 100,
         page,
-        created: `>=${year}-${pad2(month)}-01`,
+        created: `>=${createdSince}`,
       });
       const runs = data.workflow_runs ?? [];
-      siteRunCount += runs.length;
       for (const run of runs) {
         const startedAt = run.run_started_at ?? run.created_at;
+        const started = shanghaiParts(new Date(startedAt));
+        if (started.year !== year || started.month !== month) continue;
         const endedAt = run.status === "completed" ? run.updated_at : now.toISOString();
-        siteSeconds += Math.max(
+        const seconds = Math.max(
           0,
           (new Date(endedAt).getTime() - new Date(startedAt).getTime()) / 1000,
         );
+        const slot = daily[started.day - 1];
+        if (!slot) continue;
+        slot.runCount += 1;
+        slot.minutes += seconds / 60;
+        siteSeconds += seconds;
+        siteRunCount += 1;
       }
       if (runs.length < 100) break;
     }
@@ -828,6 +881,10 @@ export async function getActionsUsage(options: {
     }
     console.error("getActionsUsage runs failed:", error);
     return empty;
+  }
+
+  for (const slot of daily) {
+    slot.minutes = Math.round(slot.minutes * 10) / 10;
   }
 
   let accountMinutesThisMonth: number | null = null;
@@ -850,6 +907,7 @@ export async function getActionsUsage(options: {
     actionsPermissionMissing: false,
     siteMinutesThisMonth: Math.ceil(siteSeconds / 60),
     siteRunCountThisMonth: siteRunCount,
+    daily,
     accountMinutesThisMonth,
     accountIncludedMinutes,
     billingUnavailable,

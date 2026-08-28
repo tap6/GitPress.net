@@ -8,6 +8,7 @@ export function AdminPageSkeleton() {
         <div className="h-24 rounded border border-neutral-200 bg-white" />
         <div className="h-24 rounded border border-neutral-200 bg-white" />
       </div>
+      <div className="mt-6 h-56 rounded border border-neutral-200 bg-white" />
       <div className="mt-6 grid gap-4 lg:grid-cols-2">
         <div className="h-48 rounded border border-neutral-200 bg-white" />
         <div className="h-48 rounded border border-neutral-200 bg-white" />

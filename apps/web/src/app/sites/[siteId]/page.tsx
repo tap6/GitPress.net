@@ -10,6 +10,7 @@ import {
 } from "@/lib/github";
 import { cachedActionsUsage, cachedListPosts } from "@/lib/siteDataCache";
 import { requireSite } from "@/lib/sites";
+import { ActionsUsageChart } from "@/components/ActionsUsageChart";
 import { BuildStatusPoller, RunElapsed } from "@/components/BuildStatus";
 import { ProgressButton } from "@/components/ProgressButton";
 
@@ -103,58 +104,35 @@ export default async function SiteDashboard({
             ) : null}
           </p>
         ) : (
-          <div className="mt-4 grid gap-4 sm:grid-cols-2">
-            <div>
-              <p className="text-3xl font-light">
-                {usage.siteMinutesThisMonth ?? "—"}
-                <span className="ml-1 text-base font-normal text-neutral-400">分钟</span>
-              </p>
-              <p className="mt-1 text-sm text-neutral-500">
-                本站本月约 {usage.siteRunCountThisMonth ?? 0} 次构建
-              </p>
-            </div>
-            <div>
-              {usage.accountMinutesThisMonth != null ? (
-                <>
-                  <p className="text-3xl font-light">
-                    {Math.round(usage.accountMinutesThisMonth)}
-                    {usage.accountIncludedMinutes != null && (
-                      <span className="text-lg font-normal text-neutral-400">
-                        {" "}
-                        / {Math.round(usage.accountIncludedMinutes)}
-                      </span>
-                    )}
-                    <span className="ml-1 text-base font-normal text-neutral-400">分钟</span>
-                  </p>
-                  <p className="mt-1 text-sm text-neutral-500">
-                    整个 GitHub 帐户本月(含其它私有仓库)
-                  </p>
-                </>
-              ) : (
-                <>
-                  <p className="text-3xl font-light">
-                    {GITHUB_ACTIONS_FREE_INCLUDED_MINUTES}
-                    <span className="ml-1 text-base font-normal text-neutral-400">分钟 / 月</span>
-                  </p>
-                  <p className="mt-1 text-sm text-neutral-500">
-                    免费帐户私有仓库参考额度
-                    {usage.billingUnavailable
-                      ? "。GitHub 不向 GitHub App 开放帐户账单接口,完整用量请在账单页查看。"
-                      : ""}
-                  </p>
-                </>
-              )}
-            </div>
+          <div className="mt-4">
+            <ActionsUsageChart
+              daily={usage.daily}
+              siteMinutes={usage.siteMinutesThisMonth ?? 0}
+              siteRunCount={usage.siteRunCountThisMonth ?? 0}
+              accountMinutes={usage.accountMinutesThisMonth}
+              includedMinutes={
+                usage.accountIncludedMinutes ?? GITHUB_ACTIONS_FREE_INCLUDED_MINUTES
+              }
+              quotaIsEstimate={usage.accountIncludedMinutes == null}
+              periodLabel={usage.periodLabel}
+            />
           </div>
         )}
-        <a
-          href={usage.billingUrl}
-          target="_blank"
-          rel="noreferrer"
-          className="mt-3 inline-block text-sm text-wp-accent hover:underline"
-        >
-          打开 GitHub 账单页 ↗
-        </a>
+        <p className="mt-3 text-sm">
+          <a
+            href={usage.billingUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="text-wp-accent hover:underline"
+          >
+            打开 GitHub 账单页 ↗
+          </a>
+          {usage.billingUnavailable && (
+            <span className="ml-2 text-xs text-neutral-400">
+              帐户总额 GitHub App 读不到,以账单页为准
+            </span>
+          )}
+        </p>
       </div>
 
       <div className="mt-6 grid gap-4 lg:grid-cols-2">
