@@ -1,4 +1,5 @@
 import { SiteAdminShell } from "@/components/SiteAdminShell";
+import { getInstallationPermissionGap } from "@/lib/github";
 import { requireSite } from "@/lib/sites";
 
 export default async function AdminLayout({
@@ -9,7 +10,8 @@ export default async function AdminLayout({
   params: Promise<{ siteId: string }>;
 }) {
   const { siteId } = await params;
-  const { site, user } = await requireSite(siteId);
+  const { site, user, installation } = await requireSite(siteId);
+  const permissionGap = await getInstallationPermissionGap(installation.installationId);
 
   return (
     <SiteAdminShell
@@ -18,6 +20,7 @@ export default async function AdminLayout({
       siteUrl={site.url}
       dataRepo={site.dataRepo}
       userName={user.name ?? "博主"}
+      permissionGap={permissionGap}
     >
       {children}
     </SiteAdminShell>

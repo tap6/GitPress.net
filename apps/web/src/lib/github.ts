@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { App, Octokit } from "octokit";
 import { randomBytes } from "node:crypto";
 import nacl from "tweetnacl";
@@ -28,6 +29,92 @@ export function getGitHubApp(): App {
 export function githubAppInstallUrl(): string {
   return `https://github.com/apps/${requiredEnv("GITHUB_APP_SLUG")}/installations/new`;
 }
+
+const PERMISSION_RANK: Record<string, number> = { read: 1, write: 2, admin: 3 };
+
+const PERMISSION_LABELS: Record<string, string> = {
+  actions: "Actions(读取构建记录)",
+  administration: "仓库管理",
+  contents: "仓库内容",
+  metadata: "元数据",
+  pages: "GitHub Pages",
+  secrets: "Actions Secrets",
+  workflows: "工作流文件",
+};
+
+function permissionLabel(name: string): string {
+  return PERMISSION_LABELS[name] ?? name;
+}
+
+function asPermissionMap(value: unknown): Record<string, string> {
+  if (!value || typeof value !== "object") return {};
+  const map: Record<string, string> = {};
+  for (const [key, level] of Object.entries(value as Record<string, unknown>)) {
+    if (typeof level === "string" && level in PERMISSION_RANK) map[key] = level;
+  }
+  return map;
+}
+
+/** App-level requested permissions (JWT). Memoized per request. */
+const getRequestedAppPermissions = cache(async (): Promise<Record<string, string>> => {
+  const app = getGitHubApp();
+  const { data } = await app.octokit.request("GET /app");
+  return asPermissionMap(data?.permissions);
+});
+
+export interface PermissionGap {
+  installationId: number;
+  accountLogin: string;
+  /** GitHub's own "Configure installation" page — the only place new scopes can be accepted. */
+  reviewUrl: string;
+  missing: Array<{ name: string; label: string; requested: string; granted: string | null }>;
+}
+
+/**
+ * Compare the App's currently requested permissions with what this installation
+ * has actually granted. GitHub never auto-upgrades existing installs: the
+ * account owner must click through github.com. Until they do, new scopes
+ * (e.g. Actions) simply 403 — which is why users on gitpress.net see no
+ * "permission update request" after we change the App on our side.
+ */
+export const getInstallationPermissionGap = cache(
+  async (installationId: number): Promise<PermissionGap | null> => {
+    try {
+      const app = getGitHubApp();
+      const [requested, installation] = await Promise.all([
+        getRequestedAppPermissions(),
+        app.octokit.request("GET /app/installations/{installation_id}", {
+          installation_id: installationId,
+        }),
+      ]);
+      const granted = asPermissionMap(installation.data.permissions);
+      const missing: PermissionGap["missing"] = [];
+      for (const [name, requestedLevel] of Object.entries(requested)) {
+        const grantedLevel = granted[name];
+        if ((PERMISSION_RANK[grantedLevel] ?? 0) < (PERMISSION_RANK[requestedLevel] ?? 0)) {
+          missing.push({
+            name,
+            label: permissionLabel(name),
+            requested: requestedLevel,
+            granted: grantedLevel ?? null,
+          });
+        }
+      }
+      if (missing.length === 0) return null;
+      const account = installation.data.account as { login?: string; slug?: string } | null;
+      return {
+        installationId,
+        accountLogin: account?.login ?? account?.slug ?? "GitHub",
+        reviewUrl:
+          installation.data.html_url ||
+          `https://github.com/settings/installations/${installationId}`,
+        missing,
+      };
+    } catch {
+      return null;
+    }
+  },
+);
 
 export async function getInstallationOctokit(installationId: number): Promise<Octokit> {
   return getGitHubApp().getInstallationOctokit(installationId);

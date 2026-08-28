@@ -2,7 +2,7 @@ import { rotateDeployKeyAction } from "@/lib/actions";
 import { ProgressButton } from "@/components/ProgressButton";
 import { SettingsForm } from "@/components/SettingsForm";
 import { getSiteConfig } from "@/lib/content";
-import { getInstallationOctokit } from "@/lib/github";
+import { getInstallationOctokit, getInstallationPermissionGap } from "@/lib/github";
 import { requireSite } from "@/lib/sites";
 
 export const metadata = { title: "设置" };
@@ -15,7 +15,10 @@ export default async function SettingsPage({
   const { siteId } = await params;
   const { site, installation } = await requireSite(siteId);
   const octokit = await getInstallationOctokit(installation.installationId);
-  const config = await getSiteConfig(octokit, site.dataRepo);
+  const [config, permissionGap] = await Promise.all([
+    getSiteConfig(octokit, site.dataRepo),
+    getInstallationPermissionGap(installation.installationId),
+  ]);
   const analyticsSnippet =
     typeof config?.site.analyticsSnippet === "string" ? config.site.analyticsSnippet : "";
 
@@ -92,14 +95,41 @@ export default async function SettingsPage({
             </a>{" "}
             查看真实构建状态。
           </p>
+        </div>
+      </div>
+
+      <div className="mt-6 rounded border border-neutral-200 bg-white shadow-sm">
+        <h2 className="border-b border-neutral-100 px-5 py-3 text-sm font-semibold">GitHub App</h2>
+        <div className="space-y-3 p-5 text-sm leading-relaxed text-neutral-600">
+          {permissionGap ? (
+            <p>
+              检测到安装在 <strong>{permissionGap.accountLogin}</strong> 上的权限尚未与 App
+              最新范围对齐(还差：{permissionGap.missing.map((item) => item.label).join("、")})。
+              GitHub 规定必须由账号本人在 GitHub 上点一次确认,GitPress 无法代为授权。
+            </p>
+          ) : (
+            <p>
+              当前安装看起来已包含 App 请求的全部权限。若构建记录读不到、或刚在 GitHub 上给
+              App 加过新权限,可以再走一遍确认页。
+            </p>
+          )}
           <a
-            href={`https://github.com/settings/installations/${installation.installationId}`}
-            target="_blank"
-            rel="noreferrer"
-            className="mt-2 inline-block text-[11px] text-neutral-300 hover:text-neutral-500 hover:underline"
+            href={
+              permissionGap?.reviewUrl ??
+              `https://github.com/settings/installations/${installation.installationId}`
+            }
+            className={`inline-block rounded px-4 py-2 font-medium ${
+              permissionGap
+                ? "bg-amber-800 text-white hover:bg-amber-900"
+                : "border border-neutral-300 hover:bg-neutral-50"
+            }`}
           >
-            重新授权 / 管理 GitHub App 安装
+            {permissionGap ? "前往 GitHub 批准新权限" : "管理 GitHub App 安装"}
           </a>
+          <p className="text-xs text-neutral-400">
+            会打开 GitHub 的安装配置页。若页面顶部有黄色「Review request」或新权限列表,点
+            Accept / 批准即可,无需卸载重装。
+          </p>
         </div>
       </div>
     </div>

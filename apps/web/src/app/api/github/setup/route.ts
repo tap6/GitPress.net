@@ -5,8 +5,13 @@ import { githubInstallations } from "@/db/schema";
 import { exchangeOAuthCode, fetchInstallationInfo } from "@/lib/github";
 
 /**
- * GitHub App post-install callback:
- *   /api/github/setup?installation_id=...&setup_action=install&code=...
+ * GitHub App post-install / post-update callback:
+ *   /api/github/setup?installation_id=...&setup_action=install|update&code=...
+ *
+ * `setup_action=update` is GitHub redirecting back after the account owner
+ * accepted new App permissions (requires "Redirect on update" in the App
+ * settings). We still upsert the installation row, then send them to the
+ * dashboard instead of the create-site wizard.
  */
 export async function GET(request: NextRequest) {
   const session = await auth();
@@ -53,5 +58,11 @@ export async function GET(request: NextRequest) {
       },
     });
 
+  const setupAction = params.get("setup_action");
+  if (setupAction === "update") {
+    return NextResponse.redirect(new URL("/dashboard?github=permissions-updated", request.url));
+  }
+
   return NextResponse.redirect(new URL("/new?github=connected", request.url));
 }
+

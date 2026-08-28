@@ -39,6 +39,7 @@ GitHub → Settings → Developer settings → **GitHub Apps** → New GitHub Ap
 - **App name / slug**:如 `gitpress-net`(slug 填入 `GITHUB_APP_SLUG`)
 - **Callback URL** 与 **Setup URL**:`https://你的域名/api/github/setup`
 - 勾选 **Request user authorization (OAuth) during installation**(建私有仓库需要)
+- 勾选 **Redirect on update**(用户在 GitHub 上批准新权限后,会回到 `/api/github/setup?setup_action=update`,平台据此提示「权限已更新」。不勾选也能批准,只是批准后会停在 GitHub 页面)
 - 取消勾选 **Expire user authorization tokens**(MVP 不做刷新流程)
 - Webhook:MVP 可以不启用
 - **Repository permissions**:
@@ -53,8 +54,7 @@ GitHub → Settings → Developer settings → **GitHub Apps** → New GitHub Ap
     Actions API 列出/触发 workflow run;这是两个独立的权限位。没有勾选时,
     "手动触发重新构建"仍会工作,因为我们改用直接提交一个空文件来触发 `on: push`,
     但仪表盘会显示"缺少 Actions 权限"提示而不是真实的构建记录。
-    ⚠️ 给已安装的 App 追加权限后,已有的 installation 不会自动生效,需要
-    重新访问安装页面批准新的权限范围。)
+    ⚠️ 给已安装的 App 追加权限后,已有的 installation **不会自动生效**,GitHub 只会给安装者发一封邮件,gitpress.net 的登录会话也不会弹出授权窗。用户必须到 GitHub 安装配置页点一次 Accept。平台会对比 `GET /app` 与该 installation 已授予的权限,若有缺口就在仪表盘/后台顶部显示「前往 GitHub 批准」横幅。批准后旧权限继续可用,新权限立刻生效,不必卸载重装。
 - 生成 **Private key**(PEM)、记录 **App ID**、**Client ID/Secret**,填入 `.env`
   (`GITHUB_APP_PRIVATE_KEY` 中换行写成 `\n`)。
 

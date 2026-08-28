@@ -1,12 +1,25 @@
 import Link from "next/link";
 import { signOut } from "@/auth";
-import { listUserSites, requireUser } from "@/lib/sites";
+import { PermissionUpdateBanner } from "@/components/PermissionUpdateBanner";
+import { getInstallationPermissionGap } from "@/lib/github";
+import { listUserInstallations, listUserSites, requireUser } from "@/lib/sites";
 
 export const metadata = { title: "我的站点" };
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ github?: string }>;
+}) {
+  const { github } = await searchParams;
   const user = await requireUser();
-  const userSites = await listUserSites(user.id);
+  const [userSites, installations] = await Promise.all([
+    listUserSites(user.id),
+    listUserInstallations(user.id),
+  ]);
+  const permissionGaps = (
+    await Promise.all(installations.map((row) => getInstallationPermissionGap(row.installationId)))
+  ).filter((gap) => gap != null);
 
   return (
     <div className="min-h-screen bg-neutral-50">
@@ -35,6 +48,16 @@ export default async function DashboardPage() {
       </header>
 
       <main className="mx-auto max-w-4xl px-4 py-8 sm:px-6 sm:py-10">
+        {github === "permissions-updated" && (
+          <div className="mb-6 rounded-md border-l-4 border-emerald-500 bg-white p-4 text-sm shadow-sm">
+            GitHub App 权限已更新。如果仪表盘里「最近构建」仍提示缺少权限,刷新一次即可。
+          </div>
+        )}
+        {permissionGaps.map((gap) => (
+          <div key={gap.installationId} className="mb-4">
+            <PermissionUpdateBanner gap={gap} compact />
+          </div>
+        ))}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h1 className="text-2xl font-bold">我的站点</h1>
           <Link

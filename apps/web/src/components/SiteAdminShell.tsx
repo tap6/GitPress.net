@@ -5,7 +5,9 @@ import { usePathname } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { AdminMenu } from "@/components/AdminMenu";
 import { BuildStatusBar } from "@/components/BuildStatusBar";
+import { PermissionUpdateBanner } from "@/components/PermissionUpdateBanner";
 import { RouteLoadingBar } from "@/components/RouteLoadingBar";
+import type { PermissionGap } from "@/lib/github";
 
 interface Props {
   siteId: string;
@@ -13,6 +15,7 @@ interface Props {
   siteUrl: string | null;
   dataRepo: string;
   userName: string;
+  permissionGap?: PermissionGap | null;
   children: React.ReactNode;
 }
 
@@ -23,7 +26,15 @@ interface Props {
  * included — is usable from a phone, without maintaining a separate mobile
  * UI/route tree.
  */
-export function SiteAdminShell({ siteId, siteName, siteUrl, dataRepo, userName, children }: Props) {
+export function SiteAdminShell({
+  siteId,
+  siteName,
+  siteUrl,
+  dataRepo,
+  userName,
+  permissionGap,
+  children,
+}: Props) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const pathname = usePathname();
 
@@ -129,6 +140,7 @@ export function SiteAdminShell({ siteId, siteName, siteUrl, dataRepo, userName, 
         <Suspense fallback={null}>
           <RouteLoadingBar />
         </Suspense>
+        {permissionGap && <PermissionUpdateBanner gap={permissionGap} />}
         <BuildStatusBar siteId={siteId} dataRepo={dataRepo} />
         <main className="flex-1 p-4 sm:p-6 lg:p-8">{children}</main>
       </div>

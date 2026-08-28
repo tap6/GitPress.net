@@ -2,7 +2,7 @@ import Link from "next/link";
 import { rebuildAction } from "@/lib/actions";
 import { describeBuildTrigger, formatDuration } from "@/lib/buildLabels";
 import { listPosts } from "@/lib/content";
-import { getInstallationOctokit, listBuildRuns, splitRepo } from "@/lib/github";
+import { getInstallationOctokit, getInstallationPermissionGap, listBuildRuns, splitRepo } from "@/lib/github";
 import { requireSite } from "@/lib/sites";
 import { BuildStatusPoller, RunElapsed } from "@/components/BuildStatus";
 import { ProgressButton } from "@/components/ProgressButton";
@@ -27,9 +27,10 @@ export default async function SiteDashboard({
   const { site, installation } = await requireSite(siteId);
 
   const octokit = await getInstallationOctokit(installation.installationId);
-  const [posts, { runs, actionsPermissionMissing }] = await Promise.all([
+  const [posts, { runs, actionsPermissionMissing }, permissionGap] = await Promise.all([
     listPosts(octokit, site.dataRepo),
     listBuildRuns(octokit, splitRepo(site.dataRepo)),
+    getInstallationPermissionGap(installation.installationId),
   ]);
   const published = posts.filter((post) => !post.draft).length;
   const drafts = posts.length - published;
@@ -108,26 +109,31 @@ export default async function SiteDashboard({
           <div className="p-5 text-sm">
             {actionsPermissionMissing ? (
               <p className="text-neutral-500">
-                GitHub App 缺少「Actions」权限,这里无法读取构建记录(但内容更新仍会正常
-                自动触发构建)。去{" "}
-                <a
-                  href={`https://github.com/${site.dataRepo}/actions`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-wp-accent hover:underline"
-                >
-                  GitHub Actions 页面
-                </a>{" "}
-                查看真实状态,或在{" "}
-                <a
-                  href={`https://github.com/settings/apps`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-wp-accent hover:underline"
-                >
-                  App 设置
-                </a>{" "}
-                中为 App 添加「Actions: Read and write」权限并重新授权安装。
+                当前 GitHub App 安装还没有「Actions」权限,这里无法读取构建记录(文章保存后仍会正常触发构建)。
+                {permissionGap ? (
+                  <>
+                    {" "}
+                    点顶部横幅或{" "}
+                    <a href={permissionGap.reviewUrl} className="text-wp-accent hover:underline">
+                      前往 GitHub 批准新权限
+                    </a>
+                    ,无需卸载重装。
+                  </>
+                ) : (
+                  <>
+                    {" "}
+                    也可以去{" "}
+                    <a
+                      href={`https://github.com/${site.dataRepo}/actions`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-wp-accent hover:underline"
+                    >
+                      GitHub Actions 页面
+                    </a>{" "}
+                    查看真实状态。
+                  </>
+                )}
               </p>
             ) : runs.length === 0 ? (
               <p className="text-neutral-400">暂无构建记录。</p>
