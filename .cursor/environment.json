@@ -1,0 +1,15 @@
+{
+  "name": "GitPress.net",
+  "install": "./.cursor/install.sh",
+  "start": "./.cursor/start.sh",
+  "terminals": [
+    {
+      "name": "web",
+      "command": "pnpm dev",
+      "description": "GitPress.net platform (Next.js) dev server on http://localhost:3000"
+    }
+  ],
+  "ports": [
+    { "name": "web", "port": 3000 }
+  ]
+}
