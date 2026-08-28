@@ -81,8 +81,8 @@ export function CategoriesForm({ siteId, initial }: Props) {
 
       <div className="space-y-2">
         {rows.map((row, index) => (
-          <div key={row.key} className="flex items-center gap-2">
-            <div className="flex shrink-0 flex-col">
+          <div key={row.key} className="flex flex-wrap items-center gap-2 sm:flex-nowrap">
+            <div className="flex shrink-0 flex-row sm:flex-col">
               <button
                 type="button"
                 onClick={() => move(row.key, -1)}
@@ -106,13 +106,13 @@ export function CategoriesForm({ siteId, initial }: Props) {
               value={row.label}
               onChange={(e) => updateLabel(row.key, e.target.value)}
               placeholder="分类名称,例如:技术"
-              className="flex-1 rounded border border-neutral-300 px-3 py-2 focus:border-wp-accent focus:outline-none"
+              className="min-w-[140px] flex-1 rounded border border-neutral-300 px-3 py-2 focus:border-wp-accent focus:outline-none"
             />
             <input
               value={row.slug}
               onChange={(e) => updateSlug(row.key, e.target.value)}
               placeholder="slug,自动生成"
-              className="w-40 rounded border border-neutral-300 px-3 py-2 font-mono text-xs text-neutral-500 focus:border-wp-accent focus:outline-none"
+              className="w-full rounded border border-neutral-300 px-3 py-2 font-mono text-xs text-neutral-500 focus:border-wp-accent focus:outline-none sm:w-40"
             />
             <button
               type="button"

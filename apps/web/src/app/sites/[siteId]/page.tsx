@@ -97,7 +97,7 @@ export default async function SiteDashboard({
 
         {/* Recent builds */}
         <div className="rounded border border-neutral-200 bg-white shadow-sm">
-          <h2 className="flex items-center justify-between border-b border-neutral-100 px-5 py-3 text-sm font-semibold">
+          <h2 className="flex flex-wrap items-center justify-between gap-1 border-b border-neutral-100 px-5 py-3 text-sm font-semibold">
             最近构建
             {hasRunningBuild && (
               <span className="text-xs font-normal text-neutral-400">

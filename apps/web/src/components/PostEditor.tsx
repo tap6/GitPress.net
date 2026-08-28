@@ -47,7 +47,7 @@ export function PostEditor({ siteId, path = "", categories = [], initial }: Prop
   }
 
   return (
-    <form action={formAction} className="flex max-w-6xl gap-6">
+    <form action={formAction} className="flex flex-col gap-6 lg:max-w-6xl lg:flex-row">
       <input type="hidden" name="siteId" value={siteId} />
       <input type="hidden" name="path" value={path} />
 
@@ -80,7 +80,7 @@ export function PostEditor({ siteId, path = "", categories = [], initial }: Prop
       </div>
 
       {/* Sidebar: publish box */}
-      <div className="w-72 shrink-0 space-y-4">
+      <div className="w-full space-y-4 lg:w-72 lg:shrink-0">
         <div className="rounded border border-neutral-200 bg-white shadow-sm">
           <h2 className="border-b border-neutral-100 px-4 py-2.5 text-sm font-semibold">发布</h2>
           <div className="space-y-3 p-4 text-sm">

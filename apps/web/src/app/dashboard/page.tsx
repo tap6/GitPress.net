@@ -11,15 +11,17 @@ export default async function DashboardPage() {
   return (
     <div className="min-h-screen bg-neutral-50">
       <header className="border-b border-neutral-200 bg-white">
-        <div className="mx-auto flex max-w-4xl items-center justify-between px-6 py-4">
+        <div className="mx-auto flex max-w-4xl flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-4 sm:px-6">
           <Link href="/" className="text-lg font-bold tracking-tight">
             Git<span className="text-gp-brand">Press</span>
           </Link>
-          <div className="flex items-center gap-4 text-sm">
+          <div className="flex flex-wrap items-center gap-3 text-sm sm:gap-4">
             <Link href="/account/ai" className="text-neutral-500 hover:text-neutral-900">
               AI 设置
             </Link>
-            <span className="text-neutral-500">{user.name ?? user.email}</span>
+            <span className="hidden max-w-[10rem] truncate text-neutral-500 sm:inline">
+              {user.name ?? user.email}
+            </span>
             <form
               action={async () => {
                 "use server";
@@ -32,8 +34,8 @@ export default async function DashboardPage() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-4xl px-6 py-10">
-        <div className="flex items-center justify-between">
+      <main className="mx-auto max-w-4xl px-4 py-8 sm:px-6 sm:py-10">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <h1 className="text-2xl font-bold">我的站点</h1>
           <Link
             href="/new"
@@ -61,16 +63,16 @@ export default async function DashboardPage() {
             {userSites.map((site) => (
               <li
                 key={site.id}
-                className="flex items-center justify-between rounded-xl border border-neutral-200 bg-white p-5"
+                className="flex flex-col gap-3 rounded-xl border border-neutral-200 bg-white p-5 sm:flex-row sm:items-center sm:justify-between"
               >
-                <div>
+                <div className="min-w-0">
                   <Link
                     href={`/sites/${site.id}`}
                     className="font-semibold hover:text-gp-brand"
                   >
                     {site.name}
                   </Link>
-                  <p className="mt-1 text-xs text-neutral-400">
+                  <p className="mt-1 truncate text-xs text-neutral-400">
                     {site.dataRepo} · 主题 {site.themeName}
                   </p>
                 </div>

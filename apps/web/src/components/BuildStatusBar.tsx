@@ -146,9 +146,9 @@ export function BuildStatusBar({ siteId, dataRepo }: Props) {
           : "border-sky-200 bg-sky-50 text-sky-800";
 
   return (
-    <div className={`sticky top-0 z-20 border-b px-8 py-2 text-sm ${tone}`}>
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-2">
+    <div className={`sticky top-0 z-20 border-b px-4 py-2 text-sm sm:px-8 ${tone}`}>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
           {phase === "submitting" && <span>🕓 更改已提交,正在等待 GitHub 开始构建…</span>}
           {phase === "building" && (
             <span>

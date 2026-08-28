@@ -42,14 +42,14 @@ export default async function PostsPage({
         </div>
       )}
 
-      <div className="mt-5 overflow-hidden rounded border border-neutral-200 bg-white shadow-sm">
+      <div className="mt-5 overflow-x-auto rounded border border-neutral-200 bg-white shadow-sm">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-neutral-200 bg-neutral-50 text-left text-neutral-500">
               <th className="px-4 py-2.5 font-medium">标题</th>
-              <th className="w-28 px-4 py-2.5 font-medium">分类</th>
-              <th className="w-40 px-4 py-2.5 font-medium">标签</th>
-              <th className="w-28 px-4 py-2.5 font-medium">日期</th>
+              <th className="hidden w-28 px-4 py-2.5 font-medium md:table-cell">分类</th>
+              <th className="hidden w-40 px-4 py-2.5 font-medium md:table-cell">标签</th>
+              <th className="hidden w-28 px-4 py-2.5 font-medium md:table-cell">日期</th>
               <th className="w-24 px-4 py-2.5 font-medium">状态</th>
               <th className="w-20 px-4 py-2.5" />
             </tr>
@@ -74,12 +74,23 @@ export default async function PostsPage({
                   {post.description && (
                     <p className="mt-0.5 truncate text-xs text-neutral-400">{post.description}</p>
                   )}
+                  {(post.category || post.tags.length > 0 || post.date) && (
+                    <p className="mt-1 flex flex-wrap gap-x-2 gap-y-0.5 text-xs text-neutral-400 md:hidden">
+                      {post.category && (
+                        <span>{categoryLabel.get(post.category) ?? post.category}</span>
+                      )}
+                      {post.tags.length > 0 && <span>{post.tags.join(", ")}</span>}
+                      {post.date && <span>{post.date}</span>}
+                    </p>
+                  )}
                 </td>
-                <td className="px-4 py-3 text-neutral-500">
+                <td className="hidden px-4 py-3 text-neutral-500 md:table-cell">
                   {post.category ? categoryLabel.get(post.category) ?? post.category : "—"}
                 </td>
-                <td className="px-4 py-3 text-neutral-500">{post.tags.join(", ")}</td>
-                <td className="px-4 py-3 text-neutral-500">{post.date ?? "—"}</td>
+                <td className="hidden px-4 py-3 text-neutral-500 md:table-cell">
+                  {post.tags.join(", ")}
+                </td>
+                <td className="hidden px-4 py-3 text-neutral-500 md:table-cell">{post.date ?? "—"}</td>
                 <td className="px-4 py-3">
                   {post.draft ? (
                     <span className="rounded bg-amber-100 px-2 py-0.5 text-xs text-amber-700">草稿</span>
