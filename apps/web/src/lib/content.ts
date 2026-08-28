@@ -206,7 +206,8 @@ export interface MediaItem {
   path: string;
   name: string;
   size: number;
-  downloadUrl: string | null;
+  /** Git blob sha — used to cache previews immutably. */
+  sha: string;
 }
 
 export async function listMedia(octokit: Octokit, dataRepo: string): Promise<MediaItem[]> {
@@ -217,7 +218,7 @@ export async function listMedia(octokit: Octokit, dataRepo: string): Promise<Med
       path: file.path,
       name: file.name,
       size: file.size,
-      downloadUrl: file.downloadUrl,
+      sha: file.sha,
     }));
 }
 

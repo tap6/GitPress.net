@@ -25,6 +25,7 @@ import {
   MAX_IMAGE_BYTES,
   sanitizeMediaFileName,
 } from "./mediaName";
+import { assertAllowedMediaUpload } from "./mediaTypes";
 import { provisionSite, rotateDeployKey, triggerRebuild } from "./provision";
 import { revalidateSiteData } from "./siteDataCache";
 import { requireSite, requireUser } from "./sites";
@@ -280,6 +281,7 @@ export async function uploadMediaAction(formData: FormData): Promise<void> {
   const file = formData.get("file");
   if (!(file instanceof File) || file.size === 0) return;
   if (file.size > 8 * 1024 * 1024) throw new Error("单个文件最大 8MB");
+  assertAllowedMediaUpload(file);
   const buffer = Buffer.from(await file.arrayBuffer());
   const octokit = await getInstallationOctokit(installation.installationId);
   await uploadMedia(octokit, site.dataRepo, file.name, buffer.toString("base64"));

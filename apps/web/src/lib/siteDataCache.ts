@@ -3,6 +3,8 @@ import { getSiteCategories, getSiteConfig, listMedia, listPosts } from "./conten
 import { getActionsUsage, getInstallationOctokit } from "./github";
 
 const REVALIDATE_SECONDS = 45;
+/** Media files rarely change except via our own upload/delete, which already busts the tag. */
+const MEDIA_REVALIDATE_SECONDS = 30 * 60;
 
 export function siteDataTag(dataRepo: string): string {
   return `gitpress-data:${dataRepo}`;
@@ -24,8 +26,8 @@ export function cachedListPosts(installationId: number, dataRepo: string) {
 export function cachedListMedia(installationId: number, dataRepo: string) {
   return unstable_cache(
     async () => listMedia(await getInstallationOctokit(installationId), dataRepo),
-    ["list-media", dataRepo],
-    { revalidate: REVALIDATE_SECONDS, tags: [siteDataTag(dataRepo)] },
+    ["list-media-v2", dataRepo],
+    { revalidate: MEDIA_REVALIDATE_SECONDS, tags: [siteDataTag(dataRepo)] },
   )();
 }
 

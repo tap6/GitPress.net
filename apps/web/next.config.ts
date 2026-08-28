@@ -7,10 +7,10 @@ const nextConfig: NextConfig = {
   },
   outputFileTracingRoot: path.join(__dirname, "../.."),
   experimental: {
-    // Client navigations reuse RSC payloads for 30s so admin tab switches
-    // don't re-hit GitHub on every click. Mutations still call revalidateTag.
+    // Client navigations reuse RSC payloads for 3 minutes so admin tab
+    // switches don't re-hit GitHub. Mutations still call revalidateTag.
     staleTimes: {
-      dynamic: 30,
+      dynamic: 180,
       static: 180,
     },
     // Post save can attach a batch of images (one Git commit).

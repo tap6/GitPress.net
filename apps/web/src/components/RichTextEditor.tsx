@@ -15,6 +15,7 @@ import {
   MAX_IMAGE_BYTES,
   uniqueMediaFileName,
 } from "@/lib/mediaName";
+import { mediaPreviewUrl } from "@/lib/mediaUrl";
 import { readPendingMedia, writePendingMedia } from "@/lib/pendingMedia";
 
 interface Props {
@@ -46,7 +47,7 @@ function createGitPressImage(siteId: string, previews: Map<string, string>) {
             img.src = preview;
           } else if (src.startsWith("/media/")) {
             const fileName = src.slice("/media/".length);
-            img.src = `/api/sites/${siteId}/media/${fileName.split("/").map(encodeURIComponent).join("/")}`;
+            img.src = mediaPreviewUrl(siteId, fileName);
           } else {
             img.src = src;
           }

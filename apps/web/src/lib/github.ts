@@ -3,6 +3,7 @@ import { App, Octokit } from "octokit";
 import { randomBytes } from "node:crypto";
 import nacl from "tweetnacl";
 import { blake2b } from "blakejs";
+import { mediaContentType } from "./mediaTypes";
 
 // ---------------------------------------------------------------------------
 // GitHub App plumbing
@@ -375,28 +376,18 @@ export async function getFileText(
   }
 }
 
-const MEDIA_TYPES: Record<string, string> = {
-  jpg: "image/jpeg",
-  jpeg: "image/jpeg",
-  png: "image/png",
-  gif: "image/gif",
-  webp: "image/webp",
-  svg: "image/svg+xml",
-  avif: "image/avif",
-};
-
-export function mediaContentType(fileName: string): string {
-  const ext = fileName.split(".").pop()?.toLowerCase() ?? "";
-  return MEDIA_TYPES[ext] ?? "application/octet-stream";
-}
-
-/** Read a binary file (images) from a repo. Contents API inlines files ≤ 1MB. */
+/** Read a binary file (images/videos) from a repo. Prefer git blob sha when known. */
 export async function getFileBinary(
   octokit: Octokit,
   ref: RepoRef,
   path: string,
-): Promise<{ bytes: Buffer; contentType: string } | null> {
+  sha?: string,
+): Promise<{ bytes: Buffer; contentType: string; sha: string } | null> {
   try {
+    if (sha) {
+      const blob = await readGitBlob(octokit, ref, sha, path);
+      if (blob) return blob;
+    }
     const { data } = await octokit.request("GET /repos/{owner}/{repo}/contents/{path}", {
       ...ref,
       path,
@@ -407,15 +398,33 @@ export async function getFileBinary(
       return {
         bytes: Buffer.from(data.content.replace(/\n/g, ""), "base64"),
         contentType,
+        sha: data.sha,
       };
     }
-    if (!data.download_url) return null;
-    const auth = (await octokit.auth()) as { token?: string };
-    const headers: Record<string, string> = { Accept: "application/octet-stream" };
-    if (auth.token) headers.Authorization = `Bearer ${auth.token}`;
-    const response = await fetch(data.download_url, { headers });
-    if (!response.ok) return null;
-    return { bytes: Buffer.from(await response.arrayBuffer()), contentType };
+    // Files > 1MB are not inlined; the contents payload still has the blob sha.
+    return readGitBlob(octokit, ref, data.sha, path);
+  } catch {
+    return null;
+  }
+}
+
+async function readGitBlob(
+  octokit: Octokit,
+  ref: RepoRef,
+  sha: string,
+  path: string,
+): Promise<{ bytes: Buffer; contentType: string; sha: string } | null> {
+  try {
+    const { data } = await octokit.request("GET /repos/{owner}/{repo}/git/blobs/{file_sha}", {
+      ...ref,
+      file_sha: sha,
+    });
+    if (typeof data.content !== "string") return null;
+    const bytes =
+      data.encoding === "base64"
+        ? Buffer.from(data.content.replace(/\n/g, ""), "base64")
+        : Buffer.from(data.content, "utf8");
+    return { bytes, contentType: mediaContentType(path), sha: data.sha };
   } catch {
     return null;
   }
