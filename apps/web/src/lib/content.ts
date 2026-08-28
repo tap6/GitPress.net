@@ -1,7 +1,11 @@
 import matter from "gray-matter";
 import type { Octokit } from "octokit";
+import { persistSiteCategory, type SiteCategory } from "./categories";
 import { deleteFile, getFileText, listDirectory, putFile, commitFiles, splitRepo } from "./github";
 import { sanitizeMediaFileName, uniqueMediaFileName } from "./mediaName";
+
+export type { SiteCategory } from "./categories";
+export { isCategoryInNav, persistSiteCategory } from "./categories";
 
 /** Content operations = commits against the private data repository. */
 
@@ -295,17 +299,6 @@ export async function updateSiteConfig(
 // Categories (site-level, ordered list maintained by the site owner)
 // ---------------------------------------------------------------------------
 
-export interface SiteCategory {
-  slug: string;
-  label: string;
-  /** When false, omit from the generated site's top nav. Missing means true. */
-  inNav?: boolean;
-}
-
-export function isCategoryInNav(category: Pick<SiteCategory, "inNav">): boolean {
-  return category.inNav !== false;
-}
-
 export async function getSiteCategories(
   octokit: Octokit,
   dataRepo: string,
@@ -321,11 +314,7 @@ export async function getSiteCategories(
         typeof (item as SiteCategory).slug === "string" &&
         typeof (item as SiteCategory).label === "string",
     )
-    .map((item) => ({
-      slug: item.slug,
-      label: item.label,
-      inNav: isCategoryInNav(item),
-    }));
+    .map((item) => persistSiteCategory(item));
 }
 
 export async function saveSiteCategories(
@@ -337,7 +326,7 @@ export async function saveSiteCategories(
     octokit,
     dataRepo,
     (config) => {
-      config.site.categories = categories;
+      config.site.categories = categories.map(persistSiteCategory);
     },
     "Update categories",
   );

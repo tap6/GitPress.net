@@ -53,14 +53,10 @@ export const themeConfig = {
 export type Post = CollectionEntry<"posts">;
 export type Page = CollectionEntry<"pages">;
 
-function isCategoryInNav(category: SiteCategory): boolean {
-  return category.inNav !== false;
-}
-
 /** Ordered, site-owner-maintained categories — drives archive pages. */
 export const siteCategories: SiteCategory[] = gitpress.site.categories ?? [];
 /** Categories shown in the top nav. Absent `inNav` is treated as true. */
-export const navCategories: SiteCategory[] = siteCategories.filter(isCategoryInNav);
+export const navCategories: SiteCategory[] = siteCategories.filter((category) => category.inNav !== false);
 export const postsPerPage: number = gitpress.site.postsPerPage ?? 10;
 
 export function categoryLabel(slug: string): string {

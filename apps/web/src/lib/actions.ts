@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { db } from "@/db";
 import { githubInstallations, sites } from "@/db/schema";
 import { deleteAiConfig, generateDraft, generateSummary, getAiConfig, saveAiConfig } from "./ai";
+import { persistSiteCategory, type SiteCategory } from "./categories";
 import {
   deleteMedia,
   deletePost,
@@ -13,8 +14,6 @@ import {
   saveSiteCategories,
   savePost,
   slugify,
-  isCategoryInNav,
-  type SiteCategory,
   updatePostMeta,
   updateSiteConfig,
   uploadMedia,
@@ -441,8 +440,11 @@ export async function saveCategoriesAction(
       let slug = slugify(String((item as { slug?: unknown })?.slug ?? "") || label);
       while (seen.has(slug)) slug = `${slug}-2`;
       seen.add(slug);
-      const inNav = isCategoryInNav(item as { inNav?: boolean });
-      return { slug, label, inNav };
+      return persistSiteCategory({
+        slug,
+        label,
+        inNav: (item as { inNav?: unknown }).inNav === false ? false : undefined,
+      });
     });
   } catch (error) {
     return { error: error instanceof Error ? error.message : "分类数据格式有误" };
