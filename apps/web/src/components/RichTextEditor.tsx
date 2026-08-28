@@ -6,7 +6,7 @@ import { Markdown } from "@tiptap/markdown";
 import { EditorContent, useEditor, type Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { generateDraftAction } from "@/lib/actions";
 import { ImageUploadTray, type ImageUploadTask } from "@/components/ImageUploadTray";
 import {
@@ -29,6 +29,9 @@ interface Props {
   /** Fires whenever the serialized Markdown changes — lets the parent (e.g. for "AI 生成摘要") read the latest body text. */
   onChange?: (markdown: string) => void;
   onPendingMediaChange?: (files: File[]) => void;
+  /** Stretch the writing surface into leftover admin canvas. */
+  fill?: boolean;
+  onToggleFill?: () => void;
 }
 
 function createGitPressImage(siteId: string, previews: Map<string, string>) {
@@ -90,6 +93,8 @@ export function RichTextEditor({
   placeholder,
   onChange,
   onPendingMediaChange,
+  fill = false,
+  onToggleFill,
 }: Props) {
   const [markdown, setMarkdownState] = useState(defaultValue);
   const [mode, setMode] = useState<"rich" | "source">("rich");
@@ -98,6 +103,8 @@ export function RichTextEditor({
   const [aiError, setAiError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const editorRef = useRef<Editor | null>(null);
+  const paneRef = useRef<HTMLDivElement>(null);
+  const [paneHeight, setPaneHeight] = useState<number | null>(null);
   const previews = useRef(new Map<string, string>());
   const pendingFiles = useRef(new Map<string, File>());
   const onPendingRef = useRef(onPendingMediaChange);
@@ -329,10 +336,46 @@ export function RichTextEditor({
 
   const queued = tasks.some((task) => task.status === "queued");
 
+  useLayoutEffect(() => {
+    if (!fill) {
+      setPaneHeight(null);
+      return;
+    }
+    const pane = paneRef.current;
+    if (!pane) return;
+
+    function measure() {
+      const node = paneRef.current;
+      if (!node) return;
+      const main = node.closest("main");
+      const bottom = main ? main.getBoundingClientRect().bottom : window.innerHeight;
+      const top = node.getBoundingClientRect().top;
+      const next = Math.max(420, Math.floor(bottom - top));
+      setPaneHeight((prev) => (prev === next ? prev : next));
+    }
+
+    measure();
+    const frame = window.requestAnimationFrame(measure);
+    window.addEventListener("resize", measure);
+    const observer = new ResizeObserver(measure);
+    const main = pane.closest("main");
+    if (main) observer.observe(main);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.removeEventListener("resize", measure);
+      observer.disconnect();
+    };
+  }, [fill, mode, aiError]);
+
   return (
-    <div>
+    <div className={fill ? "flex min-h-0 flex-1 flex-col" : ""}>
       <input type="hidden" name={name} value={markdown} />
-      <div className="flex flex-wrap items-center gap-1 rounded-t border border-neutral-300 bg-neutral-50 p-1.5">
+      <div
+        ref={paneRef}
+        className={fill ? "flex min-h-[70dvh] flex-col overflow-hidden lg:min-h-0" : ""}
+        style={fill && paneHeight != null ? { height: paneHeight } : undefined}
+      >
+      <div className="flex shrink-0 flex-wrap items-center gap-1 rounded-t border border-neutral-300 bg-neutral-50 p-1.5">
         <ToolbarButton
           active={editor?.isActive("bold")}
           disabled={mode !== "rich"}
@@ -466,6 +509,15 @@ export function RichTextEditor({
           >
             Markdown 源码
           </ToolbarButton>
+          {onToggleFill && (
+            <ToolbarButton
+              active={fill}
+              label={fill ? "恢复默认高度" : "铺满下方空白"}
+              onClick={onToggleFill}
+            >
+              {fill ? "收起" : "铺满"}
+            </ToolbarButton>
+          )}
         </div>
       </div>
 
@@ -481,18 +533,20 @@ export function RichTextEditor({
       )}
 
       {mode === "rich" ? (
-        <EditorContent editor={editor} />
+        <EditorContent editor={editor} className={fill ? "gp-editor-fill" : undefined} />
       ) : (
         <textarea
-          rows={20}
+          rows={fill ? undefined : 20}
           value={markdown}
           onChange={(e) => setMarkdown(e.target.value)}
           placeholder={placeholder}
-          className="w-full rounded-b border border-t-0 border-neutral-300 bg-white px-4 py-3 font-mono text-sm leading-relaxed shadow-sm focus:border-wp-accent focus:outline-none"
+          className={`w-full rounded-b border border-t-0 border-neutral-300 bg-white px-4 py-3 font-mono text-sm leading-relaxed shadow-sm focus:border-wp-accent focus:outline-none ${
+            fill ? "min-h-0 flex-1 resize-none" : ""
+          }`}
         />
       )}
       {queued && (
-        <p className="mt-1 text-[11px] text-neutral-400">
+        <p className="mt-1 shrink-0 text-[11px] text-neutral-400">
           图片目前只在本机预览,点右侧「发布 / 保存」时会和文章一起写入数据仓库,只触发一次构建。
         </p>
       )}
@@ -500,6 +554,7 @@ export function RichTextEditor({
         tasks={tasks}
         onDismiss={(id) => setTasks((prev) => prev.filter((task) => task.id !== id))}
       />
+      </div>
     </div>
   );
 }

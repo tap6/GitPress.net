@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useMemo, useRef, useState } from "react";
+import { useActionState, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { generateSummaryAction, savePostAction, type SavePostState } from "@/lib/actions";
 import { ProgressButton } from "@/components/ProgressButton";
 import { RichTextEditor } from "@/components/RichTextEditor";
@@ -54,6 +54,27 @@ export function PostEditor({ siteId, path = "", categories = [], initial }: Prop
   const [summaryError, setSummaryError] = useState<string | null>(null);
   const [pendingCount, setPendingCount] = useState(0);
   const pendingFilesRef = useRef<File[]>([]);
+  const [fillEditor, setFillEditor] = useState(true);
+
+  useLayoutEffect(() => {
+    try {
+      if (localStorage.getItem("gitpress.editor.fill") === "0") setFillEditor(false);
+    } catch {
+      /* private mode */
+    }
+  }, []);
+
+  function toggleFillEditor() {
+    setFillEditor((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem("gitpress.editor.fill", next ? "1" : "0");
+      } catch {
+        /* private mode */
+      }
+      return next;
+    });
+  }
 
   const fields: LocalDraftFields = {
     title,
@@ -138,14 +159,17 @@ export function PostEditor({ siteId, path = "", categories = [], initial }: Prop
   const showLocalDraftHint = !isEmptyDraft(fields);
 
   return (
-    <form action={formAction} className="flex flex-col gap-6 lg:max-w-6xl lg:flex-row">
+    <form
+      action={formAction}
+      className={`flex flex-col gap-6 lg:flex-row ${fillEditor ? "min-h-0 flex-1 lg:items-stretch" : ""}`}
+    >
       <input type="hidden" name="siteId" value={siteId} />
       <input type="hidden" name="path" value={path} />
 
       {/* Main column */}
-      <div className="min-w-0 flex-1 space-y-4">
+      <div className={`min-w-0 flex-1 ${fillEditor ? "flex min-h-0 flex-col gap-4" : "space-y-4"}`}>
         {local.pending && (
-          <div className="rounded border-l-4 border-sky-500 bg-sky-50 p-3 text-sm text-sky-900">
+          <div className="shrink-0 rounded border-l-4 border-sky-500 bg-sky-50 p-3 text-sm text-sky-900">
             <p>
               这个浏览器里有一份未提交的底稿
               {local.pending.savedAt
@@ -180,7 +204,7 @@ export function PostEditor({ siteId, path = "", categories = [], initial }: Prop
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="在此输入标题"
-          className="w-full rounded border border-neutral-300 bg-white px-4 py-3 text-lg shadow-sm focus:border-wp-accent focus:outline-none"
+          className="w-full shrink-0 rounded border border-neutral-300 bg-white px-4 py-3 text-lg shadow-sm focus:border-wp-accent focus:outline-none"
         />
         {!path && (
           <input
@@ -188,8 +212,20 @@ export function PostEditor({ siteId, path = "", categories = [], initial }: Prop
             value={slug}
             onChange={(e) => setSlug(e.target.value)}
             placeholder="URL 标识(留空由标题自动生成,建议英文)"
-            className="w-full rounded border border-neutral-300 bg-white px-4 py-2 text-sm shadow-sm focus:border-wp-accent focus:outline-none"
+            className="w-full shrink-0 rounded border border-neutral-300 bg-white px-4 py-2 text-sm shadow-sm focus:border-wp-accent focus:outline-none"
           />
+        )}
+        {showLocalDraftHint && (
+          <p className="shrink-0 text-[11px] text-neutral-400">
+            {local.persistOk
+              ? savedLabel
+                ? `${savedLabel} · 仅存在此浏览器,提交到 GitHub 后才会出现在站点上。`
+                : "正在写入本地底稿…"
+              : "本地底稿写入失败(可能是浏览器存储已满),请尽快点保存提交到 GitHub。"}
+          </p>
+        )}
+        {state.error && (
+          <p className="shrink-0 rounded bg-red-50 p-3 text-sm text-red-600">{state.error}</p>
         )}
         <RichTextEditor
           key={editorKey}
@@ -203,23 +239,13 @@ export function PostEditor({ siteId, path = "", categories = [], initial }: Prop
             setPendingCount(files.length);
           }}
           placeholder="开始写作…"
+          fill={fillEditor}
+          onToggleFill={toggleFillEditor}
         />
-        {showLocalDraftHint && (
-          <p className="text-[11px] text-neutral-400">
-            {local.persistOk
-              ? savedLabel
-                ? `${savedLabel} · 仅存在此浏览器,提交到 GitHub 后才会出现在站点上。`
-                : "正在写入本地底稿…"
-              : "本地底稿写入失败(可能是浏览器存储已满),请尽快点保存提交到 GitHub。"}
-          </p>
-        )}
-        {state.error && (
-          <p className="rounded bg-red-50 p-3 text-sm text-red-600">{state.error}</p>
-        )}
       </div>
 
       {/* Sidebar: publish box */}
-      <div className="w-full space-y-4 lg:w-72 lg:shrink-0">
+      <div className={`w-full space-y-4 lg:w-72 lg:shrink-0 ${fillEditor ? "lg:self-start" : ""}`}>
         <div className="rounded border border-neutral-200 bg-white shadow-sm">
           <h2 className="border-b border-neutral-100 px-4 py-2.5 text-sm font-semibold">发布</h2>
           <div className="space-y-3 p-4 text-sm">

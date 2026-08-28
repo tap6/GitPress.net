@@ -121,7 +121,7 @@ export function SiteAdminShell({
       </aside>
 
       {/* Main column */}
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         {/* Admin bar — desktop only, the mobile top bar above covers this role on small screens. */}
         <div className="hidden items-center justify-between gap-3 bg-wp-base px-5 py-1.5 text-[13px] text-wp-sidebar-text lg:flex">
           <div className="flex min-w-0 items-center gap-2">
@@ -144,7 +144,7 @@ export function SiteAdminShell({
         </Suspense>
         {permissionGap && <PermissionUpdateBanner gap={permissionGap} />}
         <BuildStatusBar siteId={siteId} dataRepo={dataRepo} />
-        <main className="flex-1 p-4 sm:p-6 lg:p-8">{children}</main>
+        <main className="flex min-h-0 flex-1 flex-col p-4 sm:p-6 lg:p-8">{children}</main>
       </div>
     </div>
   );

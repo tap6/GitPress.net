@@ -95,6 +95,19 @@ body {
   height: auto;
   border-radius: 4px;
 }
+/* Fill-mode host: ProseMirror grows with the remaining admin canvas. */
+.gp-editor-fill {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 0%;
+  flex-direction: column;
+  overflow: auto;
+}
+.gp-editor-fill .gp-editor {
+  flex: 1 0 auto;
+  min-height: 100%;
+}
+
 .gp-editor p.is-editor-empty:first-child::before {
   float: left;
   height: 0;
