@@ -5,8 +5,9 @@ import Placeholder from "@tiptap/extension-placeholder";
 import { Markdown } from "@tiptap/markdown";
 import { EditorContent, useEditor, type Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
+import Link from "next/link";
 import { useRef, useState } from "react";
-import { uploadEditorImageAction } from "@/lib/actions";
+import { generateDraftAction, uploadEditorImageAction } from "@/lib/actions";
 
 interface Props {
   /** Form field name that receives the serialized Markdown on submit. */
@@ -14,6 +15,8 @@ interface Props {
   siteId: string;
   defaultValue?: string;
   placeholder?: string;
+  /** Fires whenever the serialized Markdown changes — lets the parent (e.g. for "AI 生成摘要") read the latest body text. */
+  onChange?: (markdown: string) => void;
 }
 
 /**
@@ -22,12 +25,19 @@ interface Props {
  * file committed to the data repo stays a normal, portable .md file — this
  * component only changes how the text is authored, not how it's stored.
  */
-export function RichTextEditor({ name, siteId, defaultValue = "", placeholder }: Props) {
-  const [markdown, setMarkdown] = useState(defaultValue);
+export function RichTextEditor({ name, siteId, defaultValue = "", placeholder, onChange }: Props) {
+  const [markdown, setMarkdownState] = useState(defaultValue);
   const [mode, setMode] = useState<"rich" | "source">("rich");
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [generatingDraft, setGeneratingDraft] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  function setMarkdown(value: string) {
+    setMarkdownState(value);
+    onChange?.(value);
+  }
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -76,6 +86,37 @@ export function RichTextEditor({ name, siteId, defaultValue = "", placeholder }:
       return;
     }
     editor.chain().focus().setImage({ src: result.url }).run();
+  }
+
+  async function handleGenerateDraft() {
+    if (!editor) return;
+    const topic = window.prompt("输入主题或要点,AI 会在光标处插入一段 Markdown 初稿:");
+    if (!topic || !topic.trim()) return;
+    setGeneratingDraft(true);
+    setAiError(null);
+    const result = await generateDraftAction(siteId, topic.trim());
+    setGeneratingDraft(false);
+    if (result.error || !result.draft) {
+      setAiError(result.error ?? "生成失败");
+      return;
+    }
+    try {
+      // @tiptap/markdown patches insertContent to accept `contentType`, same
+      // as the setContent calls used elsewhere in this file — this inserts
+      // the generated Markdown at the current cursor position.
+      editor
+        .chain()
+        .focus()
+        .insertContent(result.draft, { contentType: "markdown" } as never)
+        .run();
+    } catch {
+      // Fall back to appending at the end if the markdown-aware insert isn't
+      // available for some reason — still gets the content into the editor.
+      const current = editor.getMarkdown();
+      const next = `${current}\n\n${result.draft}`;
+      editor.commands.setContent(next, { contentType: "markdown" });
+      setMarkdown(next);
+    }
   }
 
   function setLink() {
@@ -199,6 +240,14 @@ export function RichTextEditor({ name, siteId, defaultValue = "", placeholder }:
           hidden
           onChange={handleImagePick}
         />
+        <Divider />
+        <ToolbarButton
+          disabled={mode !== "rich" || generatingDraft}
+          label="AI 生成初稿"
+          onClick={handleGenerateDraft}
+        >
+          {generatingDraft ? "生成中…" : "✨ AI 初稿"}
+        </ToolbarButton>
         <div className="ml-auto flex items-center gap-1">
           <ToolbarButton
             active={mode === "rich"}
@@ -220,6 +269,16 @@ export function RichTextEditor({ name, siteId, defaultValue = "", placeholder }:
       {uploadError && (
         <p className="border-x border-neutral-300 bg-red-50 px-3 py-1.5 text-xs text-red-600">
           {uploadError}
+        </p>
+      )}
+      {aiError && (
+        <p className="border-x border-neutral-300 bg-amber-50 px-3 py-1.5 text-xs text-amber-700">
+          {aiError}{" "}
+          {aiError.includes("AI 设置") && (
+            <Link href="/account/ai" className="underline hover:text-amber-900">
+              前往配置 →
+            </Link>
+          )}
         </p>
       )}
 

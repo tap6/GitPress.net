@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { PostEditor } from "@/components/PostEditor";
-import { getPost } from "@/lib/content";
+import { getPost, getSiteCategories } from "@/lib/content";
 import { getInstallationOctokit } from "@/lib/github";
 import { requireSite } from "@/lib/sites";
 
@@ -24,6 +24,7 @@ export default async function EditPostPage({
   const octokit = await getInstallationOctokit(installation.installationId);
   const post = await getPost(octokit, site.dataRepo, path);
   if (!post) redirect(`/sites/${siteId}/posts`);
+  const categories = await getSiteCategories(octokit, site.dataRepo);
 
   return (
     <div>
@@ -31,11 +32,13 @@ export default async function EditPostPage({
       <PostEditor
         siteId={siteId}
         path={post.path}
+        categories={categories}
         initial={{
           title: post.title,
           date: post.date,
           draft: post.draft,
           tags: post.tags,
+          category: post.category,
           description: post.description,
           body: post.body,
         }}

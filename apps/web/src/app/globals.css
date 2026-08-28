@@ -90,3 +90,17 @@ body {
   content: attr(data-placeholder);
   pointer-events: none;
 }
+
+/* RouteLoadingBar: an indeterminate sweep, since we have no real progress
+   signal for a route transition — just "something is happening". */
+@keyframes route-loading-sweep {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(300%);
+  }
+}
+.route-loading-bar-fill {
+  animation: route-loading-sweep 0.9s ease-in-out infinite;
+}

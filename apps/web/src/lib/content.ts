@@ -12,6 +12,8 @@ export interface PostSummary {
   date: string | null;
   draft: boolean;
   tags: string[];
+  /** Single-select category slug (stored as the first element of the `categories` array). */
+  category: string | null;
   description: string;
 }
 
@@ -23,18 +25,24 @@ export interface PostDetail extends PostSummary {
 export async function listPosts(octokit: Octokit, dataRepo: string): Promise<PostSummary[]> {
   const ref = splitRepo(dataRepo);
   const files = await listDirectory(octokit, ref, "content/posts");
-  const posts: PostSummary[] = [];
-  for (const file of files) {
-    if (!file.name.endsWith(".md")) continue;
-    const raw = await getFileText(octokit, ref, file.path);
-    if (!raw) continue;
-    posts.push(summarize(file.path, file.name, raw.text));
-  }
+  const mdFiles = files.filter((file) => file.name.endsWith(".md"));
+  // Fetching each file's contents is a separate GitHub API round-trip; doing
+  // this serially made the posts list visibly slow once a site had more than
+  // a handful of posts, which was part of the "loading feels slow" feedback.
+  const results = await Promise.all(
+    mdFiles.map(async (file) => {
+      const raw = await getFileText(octokit, ref, file.path);
+      if (!raw) return null;
+      return summarize(file.path, file.name, raw.text);
+    }),
+  );
+  const posts = results.filter((post): post is PostSummary => post !== null);
   return posts.sort((a, b) => (b.date ?? "9999").localeCompare(a.date ?? "9999"));
 }
 
 function summarize(path: string, file: string, text: string): PostSummary {
   const { data } = matter(text);
+  const categories = Array.isArray(data.categories) ? data.categories.map(String) : [];
   return {
     path,
     file,
@@ -42,6 +50,7 @@ function summarize(path: string, file: string, text: string): PostSummary {
     date: data.date ? String(data.date).slice(0, 10) : null,
     draft: data.draft === true,
     tags: Array.isArray(data.tags) ? data.tags.map(String) : [],
+    category: categories[0] ?? null,
     description: typeof data.description === "string" ? data.description : "",
   };
 }
@@ -64,6 +73,8 @@ export interface SavePostInput {
   date: string;
   draft: boolean;
   tags: string[];
+  /** Single-select category slug, or empty/undefined for "no category". */
+  category?: string;
   description: string;
   body: string;
 }
@@ -84,18 +95,28 @@ export async function savePost(
   input: SavePostInput,
   isNew: boolean,
 ): Promise<void> {
-  const frontmatter: Record<string, unknown> = {
-    title: input.title,
-    date: input.date,
-  };
+  const ref = splitRepo(dataRepo);
+  // Read-modify-write instead of rebuilding frontmatter from scratch, so any
+  // field this app doesn't know about yet (added by a theme, a future
+  // GitPress version, or hand-edited by the user) survives a save from here.
+  const existing = isNew ? null : await getFileText(octokit, ref, path);
+  const frontmatter: Record<string, unknown> = existing ? matter(existing.text).data : {};
+
+  frontmatter.title = input.title;
+  frontmatter.date = input.date;
   if (input.draft) frontmatter.draft = true;
+  else delete frontmatter.draft;
   if (input.tags.length > 0) frontmatter.tags = input.tags;
+  else delete frontmatter.tags;
+  if (input.category) frontmatter.categories = [input.category];
+  else delete frontmatter.categories;
   if (input.description) frontmatter.description = input.description;
+  else delete frontmatter.description;
 
   const text = matter.stringify(`\n${input.body.trim()}\n`, frontmatter);
   await putFile(
     octokit,
-    splitRepo(dataRepo),
+    ref,
     path,
     { utf8: text },
     `${isNew ? "Add" : "Update"} post: ${input.title}`,
@@ -197,4 +218,46 @@ export async function updateSiteConfig(
     message,
   );
   return config;
+}
+
+// ---------------------------------------------------------------------------
+// Categories (site-level, ordered list maintained by the site owner)
+// ---------------------------------------------------------------------------
+
+export interface SiteCategory {
+  slug: string;
+  label: string;
+}
+
+export async function getSiteCategories(
+  octokit: Octokit,
+  dataRepo: string,
+): Promise<SiteCategory[]> {
+  const config = await getSiteConfig(octokit, dataRepo);
+  const categories = config?.site.categories;
+  if (!Array.isArray(categories)) return [];
+  return categories
+    .filter(
+      (item): item is SiteCategory =>
+        !!item &&
+        typeof item === "object" &&
+        typeof (item as SiteCategory).slug === "string" &&
+        typeof (item as SiteCategory).label === "string",
+    )
+    .map((item) => ({ slug: item.slug, label: item.label }));
+}
+
+export async function saveSiteCategories(
+  octokit: Octokit,
+  dataRepo: string,
+  categories: SiteCategory[],
+): Promise<void> {
+  await updateSiteConfig(
+    octokit,
+    dataRepo,
+    (config) => {
+      config.site.categories = categories;
+    },
+    "Update categories",
+  );
 }

@@ -1,34 +1,53 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
-import { savePostAction, type SavePostState } from "@/lib/actions";
+import { useActionState, useState } from "react";
+import { generateSummaryAction, savePostAction, type SavePostState } from "@/lib/actions";
 import { ProgressButton } from "@/components/ProgressButton";
 import { RichTextEditor } from "@/components/RichTextEditor";
+import type { SiteCategory } from "@/lib/content";
 
 interface Props {
   siteId: string;
   /** Existing repo path when editing; empty when creating. */
   path?: string;
+  categories?: SiteCategory[];
   initial?: {
     title: string;
     date: string | null;
     draft: boolean;
     tags: string[];
+    category?: string | null;
     description: string;
     body: string;
   };
 }
 
-export function PostEditor({ siteId, path = "", initial }: Props) {
+export function PostEditor({ siteId, path = "", categories = [], initial }: Props) {
   const [state, formAction] = useActionState<SavePostState, FormData>(
     savePostAction,
     {},
   );
   const today = new Date().toISOString().slice(0, 10);
+  const [body, setBody] = useState(initial?.body ?? "");
+  const [description, setDescription] = useState(initial?.description ?? "");
+  const [summarizing, setSummarizing] = useState(false);
+  const [summaryError, setSummaryError] = useState<string | null>(null);
+
+  async function handleGenerateSummary() {
+    setSummarizing(true);
+    setSummaryError(null);
+    const result = await generateSummaryAction(siteId, body);
+    setSummarizing(false);
+    if (result.error || !result.summary) {
+      setSummaryError(result.error ?? "生成失败");
+      return;
+    }
+    setDescription(result.summary);
+  }
 
   return (
-    <form action={formAction} className="flex max-w-5xl gap-6">
+    <form action={formAction} className="flex max-w-6xl gap-6">
       <input type="hidden" name="siteId" value={siteId} />
       <input type="hidden" name="path" value={path} />
 
@@ -52,6 +71,7 @@ export function PostEditor({ siteId, path = "", initial }: Props) {
           name="body"
           siteId={siteId}
           defaultValue={initial?.body ?? ""}
+          onChange={setBody}
           placeholder="开始写作…"
         />
         {state.error && (
@@ -60,7 +80,7 @@ export function PostEditor({ siteId, path = "", initial }: Props) {
       </div>
 
       {/* Sidebar: publish box */}
-      <div className="w-64 shrink-0 space-y-4">
+      <div className="w-72 shrink-0 space-y-4">
         <div className="rounded border border-neutral-200 bg-white shadow-sm">
           <h2 className="border-b border-neutral-100 px-4 py-2.5 text-sm font-semibold">发布</h2>
           <div className="space-y-3 p-4 text-sm">
@@ -103,6 +123,29 @@ export function PostEditor({ siteId, path = "", initial }: Props) {
           <h2 className="border-b border-neutral-100 px-4 py-2.5 text-sm font-semibold">元信息</h2>
           <div className="space-y-3 p-4 text-sm">
             <label className="block">
+              <span className="text-neutral-500">分类</span>
+              <select
+                name="category"
+                defaultValue={initial?.category ?? ""}
+                className="mt-1 w-full rounded border border-neutral-300 bg-white px-2 py-1.5"
+              >
+                <option value="">未分类</option>
+                {categories.map((category) => (
+                  <option key={category.slug} value={category.slug}>
+                    {category.label}
+                  </option>
+                ))}
+              </select>
+              {categories.length === 0 && (
+                <Link
+                  href={`/sites/${siteId}/categories`}
+                  className="mt-1 block text-xs text-wp-accent hover:underline"
+                >
+                  还没有分类,去创建一个 →
+                </Link>
+              )}
+            </label>
+            <label className="block">
               <span className="text-neutral-500">标签(逗号分隔)</span>
               <input
                 name="tags"
@@ -112,13 +155,34 @@ export function PostEditor({ siteId, path = "", initial }: Props) {
               />
             </label>
             <label className="block">
-              <span className="text-neutral-500">摘要</span>
+              <span className="flex items-center justify-between text-neutral-500">
+                摘要
+                <button
+                  type="button"
+                  onClick={handleGenerateSummary}
+                  disabled={summarizing}
+                  className="text-xs font-medium text-wp-accent hover:underline disabled:opacity-50"
+                >
+                  {summarizing ? "生成中…" : "✨ AI 生成摘要"}
+                </button>
+              </span>
               <textarea
                 name="description"
                 rows={3}
-                defaultValue={initial?.description ?? ""}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
                 className="mt-1 w-full rounded border border-neutral-300 px-2 py-1.5"
               />
+              {summaryError && (
+                <span className="mt-1 block text-xs text-amber-700">
+                  {summaryError}{" "}
+                  {summaryError.includes("AI 设置") && (
+                    <Link href="/account/ai" className="underline hover:text-amber-900">
+                      前往配置 →
+                    </Link>
+                  )}
+                </span>
+              )}
             </label>
           </div>
         </div>

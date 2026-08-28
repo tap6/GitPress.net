@@ -23,7 +23,7 @@ export default async function MediaPage({
   const media = await listMedia(octokit, site.dataRepo);
 
   return (
-    <div className="max-w-4xl">
+    <div className="max-w-6xl">
       <h1 className="text-2xl font-normal text-neutral-800">媒体库</h1>
 
       <form
@@ -46,7 +46,7 @@ export default async function MediaPage({
       {media.length === 0 ? (
         <p className="mt-8 text-sm text-neutral-400">媒体库为空。上传的图片保存在数据仓库的 media/ 目录。</p>
       ) : (
-        <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+        <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
           {media.map((item) => (
             <div
               key={item.path}

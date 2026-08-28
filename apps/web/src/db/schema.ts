@@ -114,3 +114,20 @@ export const sites = pgTable("site", {
   pagesEnabled: boolean("pages_enabled").notNull().default(false),
   createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
 });
+
+/**
+ * One AI provider configuration per user (shared across all of their sites —
+ * in practice one person uses one AI key everywhere). The API key is
+ * encrypted with `encryptSecret` (see lib/crypto.ts) before it ever reaches
+ * the database.
+ */
+export const aiSettings = pgTable("ai_settings", {
+  userId: text("user_id")
+    .primaryKey()
+    .references(() => users.id, { onDelete: "cascade" }),
+  /** OpenAI-compatible base URL, e.g. https://api.openai.com/v1 */
+  baseUrl: text("base_url").notNull(),
+  model: text("model").notNull(),
+  apiKeyEncrypted: text("api_key_encrypted").notNull(),
+  updatedAt: timestamp("updated_at", { mode: "date" }).notNull().defaultNow(),
+});

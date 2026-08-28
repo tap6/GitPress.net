@@ -32,7 +32,30 @@
           "description": "Path prefix the site is served under (GitHub Pages project sites use /<repo>/)."
         },
         "author": { "type": "string" },
-        "timezone": { "type": "string", "default": "UTC" }
+        "timezone": { "type": "string", "default": "UTC" },
+        "categories": {
+          "type": "array",
+          "description": "Ordered, site-owner-maintained categories. Themes render these as top nav links plus /categories/<slug>/ archive pages. Distinct from posts' free-form tags — each post picks at most one category from this list.",
+          "items": {
+            "type": "object",
+            "required": ["slug", "label"],
+            "properties": {
+              "slug": { "type": "string", "minLength": 1 },
+              "label": { "type": "string", "minLength": 1 }
+            },
+            "additionalProperties": true
+          }
+        },
+        "postsPerPage": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 10,
+          "description": "Posts per page for the homepage and category archives."
+        },
+        "analyticsSnippet": {
+          "type": "string",
+          "description": "Raw HTML/script snippet (GA4, Umami, Plausible, Clarity, ...) inserted verbatim before </head> on every page. Empty/absent means no analytics are injected."
+        }
       },
       "additionalProperties": true
     },

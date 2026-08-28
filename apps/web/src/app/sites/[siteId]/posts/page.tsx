@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { deletePostAction } from "@/lib/actions";
 import { ProgressButton } from "@/components/ProgressButton";
-import { listPosts } from "@/lib/content";
+import { getSiteCategories, listPosts } from "@/lib/content";
 import { getInstallationOctokit } from "@/lib/github";
 import { requireSite } from "@/lib/sites";
 
@@ -18,10 +18,14 @@ export default async function PostsPage({
   const { saved } = await searchParams;
   const { site, installation } = await requireSite(siteId);
   const octokit = await getInstallationOctokit(installation.installationId);
-  const posts = await listPosts(octokit, site.dataRepo);
+  const [posts, categories] = await Promise.all([
+    listPosts(octokit, site.dataRepo),
+    getSiteCategories(octokit, site.dataRepo),
+  ]);
+  const categoryLabel = new Map(categories.map((category) => [category.slug, category.label]));
 
   return (
-    <div className="max-w-4xl">
+    <div className="max-w-6xl">
       <div className="flex items-center gap-3">
         <h1 className="text-2xl font-normal text-neutral-800">文章</h1>
         <Link
@@ -43,6 +47,7 @@ export default async function PostsPage({
           <thead>
             <tr className="border-b border-neutral-200 bg-neutral-50 text-left text-neutral-500">
               <th className="px-4 py-2.5 font-medium">标题</th>
+              <th className="w-28 px-4 py-2.5 font-medium">分类</th>
               <th className="w-40 px-4 py-2.5 font-medium">标签</th>
               <th className="w-28 px-4 py-2.5 font-medium">日期</th>
               <th className="w-24 px-4 py-2.5 font-medium">状态</th>
@@ -52,7 +57,7 @@ export default async function PostsPage({
           <tbody>
             {posts.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-neutral-400">
+                <td colSpan={6} className="px-4 py-8 text-center text-neutral-400">
                   还没有文章,点击「写文章」开始。
                 </td>
               </tr>
@@ -69,6 +74,9 @@ export default async function PostsPage({
                   {post.description && (
                     <p className="mt-0.5 truncate text-xs text-neutral-400">{post.description}</p>
                   )}
+                </td>
+                <td className="px-4 py-3 text-neutral-500">
+                  {post.category ? categoryLabel.get(post.category) ?? post.category : "—"}
                 </td>
                 <td className="px-4 py-3 text-neutral-500">{post.tags.join(", ")}</td>
                 <td className="px-4 py-3 text-neutral-500">{post.date ?? "—"}</td>

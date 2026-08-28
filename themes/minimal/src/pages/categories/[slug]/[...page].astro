@@ -1,0 +1,52 @@
+---
+import type { GetStaticPaths, Page } from "astro";
+import Base from "../../../layouts/Base.astro";
+import Pagination from "../../../components/Pagination.astro";
+import {
+  getPostsByCategory,
+  postSlug,
+  withBase,
+  postsPerPage,
+  siteCategories,
+  categoryLabel,
+  type Post,
+} from "../../../lib/gitpress";
+
+export const getStaticPaths = (async ({ paginate }) => {
+  const paths = await Promise.all(
+    siteCategories.map(async (category) => {
+      const posts = await getPostsByCategory(category.slug);
+      return paginate(posts, { pageSize: postsPerPage, params: { slug: category.slug } });
+    }),
+  );
+  return paths.flat();
+}) satisfies GetStaticPaths;
+
+interface Props {
+  page: Page<Post>;
+}
+
+const { slug } = Astro.params;
+const { page } = Astro.props;
+
+function shortDate(date: Date | undefined): string {
+  if (!date) return "";
+  return date.toISOString().slice(0, 10);
+}
+---
+
+<Base title={categoryLabel(slug!)}>
+  <h1 class="page-heading">{categoryLabel(slug!)}</h1>
+  {page.data.length === 0 && <p>This category has no posts yet.</p>}
+  {
+    page.data.map((post) => (
+      <article class="post-item">
+        <p class="post-meta">{shortDate(post.data.date)}</p>
+        <h2>
+          <a href={withBase(`/posts/${postSlug(post)}/`)}>{post.data.title}</a>
+        </h2>
+      </article>
+    ))
+  }
+  <Pagination page={page} />
+</Base>

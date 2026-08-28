@@ -213,3 +213,21 @@ a:hover {
   letter-spacing: -0.015em;
   margin: 0 0 1.5rem;
 }
+
+.pagination {
+  margin-top: 2.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--rule);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.88rem;
+}
+
+.pagination-status {
+  color: var(--muted);
+}
+
+.pagination-disabled {
+  color: var(--rule);
+}

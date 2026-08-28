@@ -5,11 +5,14 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/db";
 import { githubInstallations, sites } from "@/db/schema";
+import { deleteAiConfig, generateDraft, generateSummary, getAiConfig, saveAiConfig } from "./ai";
 import {
   deleteMedia,
   deletePost,
+  saveSiteCategories,
   savePost,
   slugify,
+  type SiteCategory,
   updateSiteConfig,
   uploadMedia,
 } from "./content";
@@ -122,6 +125,7 @@ export async function savePostAction(
     .split(/[,,]/)
     .map((tag) => tag.trim())
     .filter(Boolean);
+  const category = String(formData.get("category") ?? "").trim() || undefined;
 
   const existingPath = String(formData.get("path") ?? "");
   const isNew = !existingPath;
@@ -129,7 +133,13 @@ export async function savePostAction(
 
   const octokit = await getInstallationOctokit(installation.installationId);
   try {
-    await savePost(octokit, site.dataRepo, path, { title, date, draft, tags, description, body }, isNew);
+    await savePost(
+      octokit,
+      site.dataRepo,
+      path,
+      { title, date, draft, tags, category, description, body },
+      isNew,
+    );
   } catch (error) {
     return { error: `保存失败:${error instanceof Error ? error.message : String(error)}` };
   }
@@ -263,6 +273,7 @@ export async function saveSettingsAction(
   if (!name) return { error: "请填写站点名称。" };
   const description = String(formData.get("description") ?? "").trim();
   const language = String(formData.get("language") ?? "en");
+  const analyticsSnippet = String(formData.get("analyticsSnippet") ?? "").trim();
 
   const octokit = await getInstallationOctokit(installation.installationId);
   try {
@@ -273,6 +284,11 @@ export async function saveSettingsAction(
         config.site.title = name;
         config.site.description = description;
         config.site.language = language;
+        if (analyticsSnippet) {
+          config.site.analyticsSnippet = analyticsSnippet;
+        } else {
+          delete config.site.analyticsSnippet;
+        }
       },
       "Update site settings",
     );
@@ -282,6 +298,51 @@ export async function saveSettingsAction(
 
   await db.update(sites).set({ name, description, language }).where(eq(sites.id, siteId));
   revalidatePath(`/sites/${siteId}/settings`);
+  return { saved: true };
+}
+
+// ---------------------------------------------------------------------------
+// Categories
+// ---------------------------------------------------------------------------
+
+export interface SaveCategoriesState {
+  error?: string;
+  saved?: boolean;
+}
+
+export async function saveCategoriesAction(
+  _prev: SaveCategoriesState,
+  formData: FormData,
+): Promise<SaveCategoriesState> {
+  const siteId = String(formData.get("siteId"));
+  const { site, installation } = await requireSite(siteId);
+
+  let categories: SiteCategory[];
+  try {
+    const parsed = JSON.parse(String(formData.get("categoriesJson") ?? "[]"));
+    if (!Array.isArray(parsed)) throw new Error("invalid");
+    const seen = new Set<string>();
+    categories = parsed.map((item: unknown) => {
+      const label = String((item as { label?: unknown })?.label ?? "").trim();
+      if (!label) throw new Error("分类名称不能为空");
+      let slug = slugify(String((item as { slug?: unknown })?.slug ?? "") || label);
+      while (seen.has(slug)) slug = `${slug}-2`;
+      seen.add(slug);
+      return { slug, label };
+    });
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "分类数据格式有误" };
+  }
+
+  const octokit = await getInstallationOctokit(installation.installationId);
+  try {
+    await saveSiteCategories(octokit, site.dataRepo, categories);
+  } catch (error) {
+    return { error: `保存失败:${error instanceof Error ? error.message : String(error)}` };
+  }
+
+  revalidatePath(`/sites/${siteId}/categories`);
+  revalidatePath(`/sites/${siteId}/posts`);
   return { saved: true };
 }
 
@@ -356,4 +417,101 @@ export async function getBuildStatusAction(siteId: string): Promise<BuildStatusS
     commitMessage: latest.commitMessage,
     actionsPermissionMissing: false,
   };
+}
+
+// ---------------------------------------------------------------------------
+// AI settings (per-user, shared across all of the user's sites)
+// ---------------------------------------------------------------------------
+
+export interface SaveAiSettingsState {
+  error?: string;
+  saved?: boolean;
+}
+
+export async function saveAiSettingsAction(
+  _prev: SaveAiSettingsState,
+  formData: FormData,
+): Promise<SaveAiSettingsState> {
+  const user = await requireUser();
+  const baseUrl = String(formData.get("baseUrl") ?? "").trim().replace(/\/+$/, "");
+  const model = String(formData.get("model") ?? "").trim();
+  const apiKeyInput = String(formData.get("apiKey") ?? "").trim();
+
+  if (!baseUrl || !/^https?:\/\//.test(baseUrl)) {
+    return { error: "请填写有效的 Base URL(以 http(s):// 开头)。" };
+  }
+  if (!model) return { error: "请填写模型名称。" };
+
+  // Leaving the key field blank on an already-configured account keeps the
+  // existing key (the form never re-displays the decrypted key, so an empty
+  // submit here means "unchanged", not "clear it").
+  let apiKey = apiKeyInput;
+  if (!apiKey) {
+    const existing = await getAiConfig(user.id);
+    if (!existing) return { error: "请填写 API Key。" };
+    apiKey = existing.apiKey;
+  }
+
+  try {
+    await saveAiConfig(user.id, { baseUrl, model, apiKey });
+  } catch (error) {
+    return { error: `保存失败:${error instanceof Error ? error.message : String(error)}` };
+  }
+
+  revalidatePath("/account/ai");
+  return { saved: true };
+}
+
+export async function clearAiSettingsAction(): Promise<void> {
+  const user = await requireUser();
+  await deleteAiConfig(user.id);
+  revalidatePath("/account/ai");
+}
+
+export interface GenerateSummaryState {
+  error?: string;
+  summary?: string;
+}
+
+/** Called directly from the editor (not a `<form>`), so it can fill a field in place. */
+export async function generateSummaryAction(
+  siteId: string,
+  body: string,
+): Promise<GenerateSummaryState> {
+  const { user } = await requireSite(siteId);
+  if (!body.trim()) return { error: "正文还是空的,先写点什么吧。" };
+  const config = await getAiConfig(user.id);
+  if (!config) return { error: "还没有配置 AI,请先前往「AI 设置」。" };
+  try {
+    const summary = await generateSummary(config, body);
+    return { summary };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : String(error) };
+  }
+}
+
+export interface GenerateDraftState {
+  error?: string;
+  draft?: string;
+}
+
+export async function generateDraftAction(
+  siteId: string,
+  prompt: string,
+): Promise<GenerateDraftState> {
+  const { user } = await requireSite(siteId);
+  if (!prompt.trim()) return { error: "请先填写主题或要点。" };
+  const config = await getAiConfig(user.id);
+  if (!config) return { error: "还没有配置 AI,请先前往「AI 设置」。" };
+  try {
+    const draft = await generateDraft(config, prompt);
+    return { draft };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : String(error) };
+  }
+}
+
+export async function hasAiConfigAction(siteId: string): Promise<boolean> {
+  const { user } = await requireSite(siteId);
+  return (await getAiConfig(user.id)) !== null;
 }

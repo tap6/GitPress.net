@@ -16,13 +16,13 @@ export default async function AppearancePage({
   const themeConfig = (site.themeConfig ?? {}) as Record<string, unknown>;
 
   return (
-    <div className="max-w-4xl">
+    <div className="max-w-5xl">
       <h1 className="text-2xl font-normal text-neutral-800">外观 · 主题</h1>
       <p className="mt-1 text-sm text-neutral-500">
         主题只改变呈现方式,你的文章与图片保存在数据仓库中,换主题零影响。
       </p>
 
-      <div className="mt-6 grid gap-4 sm:grid-cols-3">
+      <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {BUILTIN_THEMES.map((theme) => {
           const active = theme.name === site.themeName;
           return (

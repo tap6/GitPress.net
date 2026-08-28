@@ -1,6 +1,8 @@
 import { rotateDeployKeyAction } from "@/lib/actions";
 import { ProgressButton } from "@/components/ProgressButton";
 import { SettingsForm } from "@/components/SettingsForm";
+import { getSiteConfig } from "@/lib/content";
+import { getInstallationOctokit } from "@/lib/github";
 import { requireSite } from "@/lib/sites";
 
 export const metadata = { title: "设置" };
@@ -11,7 +13,11 @@ export default async function SettingsPage({
   params: Promise<{ siteId: string }>;
 }) {
   const { siteId } = await params;
-  const { site } = await requireSite(siteId);
+  const { site, installation } = await requireSite(siteId);
+  const octokit = await getInstallationOctokit(installation.installationId);
+  const config = await getSiteConfig(octokit, site.dataRepo);
+  const analyticsSnippet =
+    typeof config?.site.analyticsSnippet === "string" ? config.site.analyticsSnippet : "";
 
   return (
     <div className="max-w-2xl">
@@ -25,6 +31,7 @@ export default async function SettingsPage({
             name: site.name,
             description: site.description ?? "",
             language: site.language,
+            analyticsSnippet,
           }}
         />
       </div>
@@ -85,6 +92,14 @@ export default async function SettingsPage({
             </a>{" "}
             查看真实构建状态。
           </p>
+          <a
+            href={`https://github.com/settings/installations/${installation.installationId}`}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-2 inline-block text-[11px] text-neutral-300 hover:text-neutral-500 hover:underline"
+          >
+            重新授权 / 管理 GitHub App 安装
+          </a>
         </div>
       </div>
     </div>

@@ -16,6 +16,9 @@ export default async function DashboardPage() {
             Git<span className="text-gp-brand">Press</span>
           </Link>
           <div className="flex items-center gap-4 text-sm">
+            <Link href="/account/ai" className="text-neutral-500 hover:text-neutral-900">
+              AI 设置
+            </Link>
             <span className="text-neutral-500">{user.name ?? user.email}</span>
             <form
               action={async () => {

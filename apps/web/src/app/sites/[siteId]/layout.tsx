@@ -1,6 +1,8 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { AdminMenu } from "@/components/AdminMenu";
 import { BuildStatusBar } from "@/components/BuildStatusBar";
+import { RouteLoadingBar } from "@/components/RouteLoadingBar";
 import { requireSite } from "@/lib/sites";
 
 export default async function AdminLayout({
@@ -52,6 +54,9 @@ export default async function AdminLayout({
           </div>
           <span>你好,{user.name ?? "博主"}</span>
         </div>
+        <Suspense fallback={null}>
+          <RouteLoadingBar />
+        </Suspense>
         <BuildStatusBar siteId={site.id} dataRepo={site.dataRepo} />
         <main className="flex-1 p-8">{children}</main>
       </div>

@@ -36,7 +36,7 @@ export default async function SiteDashboard({
   const hasRunningBuild = runs.some((run) => run.conclusion == null);
 
   return (
-    <div className="max-w-4xl">
+    <div className="max-w-6xl">
       <BuildStatusPoller active={hasRunningBuild} />
       <h1 className="text-2xl font-normal text-neutral-800">仪表盘</h1>
 
