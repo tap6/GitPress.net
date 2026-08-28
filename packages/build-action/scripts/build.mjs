@@ -18,6 +18,7 @@ import {
   readFileSync,
   readdirSync,
   rmSync,
+  statSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -161,6 +162,9 @@ if (!existsSync(distDir) || readdirSync(distDir).length === 0) {
 }
 log("Astro build succeeded.");
 
+const buildId = (process.env.GITHUB_SHA ?? `local-${Date.now()}`).slice(0, 12);
+injectVisitorCacheBust(distDir, buildId, config.site?.basePath);
+
 // ---------------------------------------------------------------------------
 // 5. Publish dist/ to the site repository
 // ---------------------------------------------------------------------------
@@ -223,3 +227,83 @@ try {
 // The site repo may be empty (unborn default branch): push current HEAD to main.
 gitIn(["push", "origin", "HEAD:main"]);
 log(`Published to ${siteRepo}. GitHub Pages / Vercel will pick it up from here.`);
+
+/**
+ * GitHub Pages caches HTML (~10 min) and ignores custom Cache-Control.
+ * Visitors who only hit Cmd+R often keep a stale document after a theme
+ * switch. We stamp every HTML page with this build's id, ship a tiny
+ * no-store JSON sidecar, and reload once if they disagree. A navigate
+ * network-first service worker covers subsequent visits. vercel.json helps
+ * sites imported into Vercel. Themes must not implement this themselves.
+ */
+function injectVisitorCacheBust(distDir, buildId, basePath) {
+  const prefix = posixPrefix(basePath);
+  const builtAt = new Date().toISOString();
+  writeFileSync(
+    join(distDir, "gitpress-build.json"),
+    `${JSON.stringify({ id: buildId, builtAt })}\n`,
+  );
+  writeFileSync(join(distDir, "sw.js"), serviceWorkerSource());
+  writeFileSync(join(distDir, "vercel.json"), `${JSON.stringify(vercelHeaders(), null, 2)}\n`);
+
+  const snippet = cacheBustSnippet(buildId, prefix);
+  let patched = 0;
+  for (const file of walkHtmlFiles(distDir)) {
+    let html = readFileSync(file, "utf8");
+    if (html.includes("gitpress-build-check")) continue;
+    if (html.includes("</head>")) html = html.replace("</head>", `${snippet}</head>`);
+    else if (html.includes("</HEAD>")) html = html.replace("</HEAD>", `${snippet}</HEAD>`);
+    else continue;
+    writeFileSync(file, html);
+    patched += 1;
+  }
+  log(`Injected cache-bust (id ${buildId}) into ${patched} HTML file(s).`);
+}
+
+function posixPrefix(basePath) {
+  if (!basePath || basePath === "/") return "";
+  const value = String(basePath);
+  return value.endsWith("/") ? value.slice(0, -1) : value;
+}
+
+function walkHtmlFiles(dir) {
+  const out = [];
+  for (const name of readdirSync(dir)) {
+    if (name === "." || name === "..") continue;
+    const p = join(dir, name);
+    if (statSync(p).isDirectory()) out.push(...walkHtmlFiles(p));
+    else if (name.endsWith(".html")) out.push(p);
+  }
+  return out;
+}
+
+function vercelHeaders() {
+  const html = [{ key: "Cache-Control", value: "public, max-age=0, must-revalidate" }];
+  return {
+    headers: [
+      { source: "/", headers: html },
+      { source: "/index.html", headers: html },
+      { source: "/:path(.*).html", headers: html },
+      { source: "/gitpress-build.json", headers: html },
+      { source: "/sw.js", headers: html },
+    ],
+  };
+}
+
+function cacheBustSnippet(buildId, prefix) {
+  const meta = `${prefix}/gitpress-build.json`;
+  const sw = `${prefix}/sw.js`;
+  const scope = prefix ? `${prefix}/` : "/";
+  return `<script id="gitpress-build-check">(function(){var BUILD_ID=${JSON.stringify(buildId)};var META=${JSON.stringify(meta)};var SW=${JSON.stringify(sw)};var SCOPE=${JSON.stringify(scope)};try{if("serviceWorker"in navigator)navigator.serviceWorker.register(SW,{scope:SCOPE});}catch(e){}fetch(META+(META.indexOf("?")>=0?"&":"?")+"t="+Date.now(),{cache:"no-store"}).then(function(r){return r.ok?r.json():null;}).then(function(meta){if(!meta||!meta.id||meta.id===BUILD_ID)return;var key="gp-bust:"+meta.id;try{if(sessionStorage.getItem(key))return;sessionStorage.setItem(key,"1");}catch(e){}if(typeof caches!=="undefined"){caches.keys().then(function(keys){return Promise.all(keys.map(function(k){return caches.delete(k);}));}).finally(function(){location.reload();});}else{location.reload();}}).catch(function(){});})();</script>`;
+}
+
+function serviceWorkerSource() {
+  return `self.addEventListener("install",function(){self.skipWaiting();});
+self.addEventListener("activate",function(event){event.waitUntil(self.clients.claim());});
+self.addEventListener("fetch",function(event){
+  if(event.request.mode!=="navigate")return;
+  event.respondWith(fetch(event.request,{cache:"no-store"}).catch(function(){return caches.match(event.request);}));
+});
+`;
+}
+

@@ -72,6 +72,17 @@ export interface SiteInfo {
   author?: string;
   timezone?: string;
   /**
+   * Public path to the site logo (typically `/media/logo-….png`). Themes
+   * honour `theme.config.showLogo` (default true) when deciding whether to
+   * render it. Survives theme switches — it lives on `site`, not `theme.config`.
+   */
+  logo?: string;
+  /**
+   * Public path to a circular author/site avatar (typically `/media/avatar-….png`).
+   * Themes honour `theme.config.showAvatar` (default false).
+   */
+  avatar?: string;
+  /**
    * Ordered list of categories maintained by the site owner. Themes render
    * `/categories/<slug>/` archive pages for every entry, and top nav links
    * for those with `inNav !== false`. Distinct from the free-form `tags` on
@@ -96,11 +107,11 @@ export interface SiteInfo {
    * these items, nothing more or less.
    *
    * When absent (sites created before this field existed, or that have not
-   * opened the menu editor yet), themes fall back to their own legacy
-   * implicit nav so existing sites keep their current menu unchanged after a
-   * spec/theme upgrade. This exists specifically so site owners — not theme
-   * authors — decide what belongs in the header, instead of every category
-   * and page being unconditionally forced into one unbounded row.
+   * opened the menu editor yet), themes fall back to their own implicit nav
+   * (typically Home + inNav categories + pages). RSS belongs in the footer
+   * by default; it is only in the header if the owner explicitly adds it
+   * here. Default nav item labels should follow `site.language` (e.g. "首页"
+   * / "Home") so non-English owners are not stuck with English chrome.
    */
   nav?: NavItem[];
 }

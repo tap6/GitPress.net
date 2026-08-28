@@ -1,6 +1,6 @@
 ---
 import { getCollection } from "astro:content";
-import { gitpress, themeConfig, withBase, buildNav } from "../lib/gitpress";
+import { gitpress, themeConfig, withBase, buildNav, mediaHref } from "../lib/gitpress";
 import "../styles/global.css";
 
 interface Props {
@@ -13,6 +13,13 @@ const site = gitpress.site;
 const pageTitle = title ? `${title} · ${site.title}` : site.title;
 const navPages = await getCollection("pages");
 const navLinks = buildNav(navPages);
+const logoHref = mediaHref(site.logo);
+const avatarHref = mediaHref(site.avatar);
+const showLogo = themeConfig.showLogo !== false && Boolean(logoHref);
+const showAvatar = themeConfig.showAvatar === true && Boolean(avatarHref);
+const showTitle = themeConfig.showTitle !== false || !showLogo;
+const showTagline = themeConfig.showTagline === true;
+const faviconHref = logoHref ?? avatarHref;
 ---
 
 <!doctype html>
@@ -29,11 +36,29 @@ const navLinks = buildNav(navPages);
       title={site.title}
       href={withBase("/rss.xml")}
     />
+    {faviconHref && <link rel="icon" href={faviconHref} />}
     {site.analyticsSnippet && <Fragment set:html={site.analyticsSnippet} />}
   </head>
   <body>
     <header class="site-header">
-      <p class="site-title"><a href={withBase("/")}>{site.title}</a></p>
+      <div class="site-brand">
+        {showAvatar && avatarHref && <img class="site-avatar" src={avatarHref} alt="" width="48" height="48" />}
+        <div class="site-brand-copy">
+          {
+            showLogo && logoHref && (
+              <a href={withBase("/")} class="site-logo-link">
+                <img class="site-logo" src={logoHref} alt={showTitle ? "" : site.title} />
+              </a>
+            )
+          }
+          {showTitle && (
+            <p class="site-title">
+              <a href={withBase("/")}>{site.title}</a>
+            </p>
+          )}
+          {showTagline && site.description && <p class="site-tagline">{site.description}</p>}
+        </div>
+      </div>
       <input type="checkbox" id="nav-toggle" class="nav-toggle-checkbox" />
       <label for="nav-toggle" class="nav-toggle-label" aria-label="Toggle menu">
         <span></span><span></span><span></span>
@@ -55,6 +80,7 @@ const navLinks = buildNav(navPages);
       <p>
         © {new Date().getFullYear()} {site.author ?? site.title} ·
         <a href="https://gitpress.net" rel="generator">GitPress</a>
+        · <a href={withBase("/rss.xml")}>RSS</a>
       </p>
     </footer>
   </body>

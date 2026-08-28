@@ -62,12 +62,47 @@ a:hover {
   padding: 2.5rem 0 1.5rem;
 }
 
+.site-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  min-width: 0;
+  margin-right: auto;
+}
+
+.site-brand-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.site-logo-link {
+  text-decoration: none;
+}
+
+.site-logo {
+  display: block;
+  max-height: 2.25rem;
+  max-width: 10rem;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+}
+
+.site-avatar {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
 .site-title {
   margin: 0;
   font-size: 1.2rem;
   font-weight: 800;
   letter-spacing: -0.01em;
-  margin-right: auto;
 }
 
 .site-title a {

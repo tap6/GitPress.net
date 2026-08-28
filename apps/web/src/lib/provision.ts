@@ -1,4 +1,5 @@
 import type { Octokit } from "octokit";
+import { defaultAboutTitle, languageBase } from "./locale";
 import {
   addDeployKey,
   createRepository,
@@ -111,11 +112,11 @@ export async function provisionSite(input: ProvisionInput): Promise<ProvisionRes
     },
     {
       path: "content/posts/hello-world.md",
-      content: helloPost(today),
+      content: helloPost(today, site.language),
     },
     {
       path: "content/pages/about.md",
-      content: aboutPage(),
+      content: aboutPage(site.language),
     },
     {
       path: "media/.gitkeep",
@@ -222,7 +223,42 @@ jobs:
 `;
 }
 
-function helloPost(today: string): string {
+function helloPost(today: string, language: string): string {
+  const base = languageBase(language);
+  if (base === "zh") {
+    return `---
+title: "你好,世界"
+date: "${today}"
+tags: [hello]
+description: "我在 GitPress 上的第一篇文章。"
+---
+
+欢迎来到你的新博客。这篇文章存在私有**数据仓库**的 \`content/posts/\` 里——可以在 GitPress 后台改,也可以用任何编辑器改完提交,站点会自动重建。
+
+几点说明:
+
+- 在 frontmatter 里写 \`draft: true\`,文章就不会出现在公开站点。草稿永远不会离开这个私有仓库。
+- 图片放进 \`media/\` 文件夹,用 \`![说明](/media/your-image.jpg)\` 引用。
+- 主题和选项在 \`gitpress.json\`。换主题不会动你的文章。
+
+开始写作吧。
+`;
+  }
+  if (base === "ja") {
+    return `---
+title: "Hello, world"
+date: "${today}"
+tags: [hello]
+description: "GitPress での最初の記事です。"
+---
+
+新しいブログへようこそ。この記事は非公開の**データリポジトリ**の \`content/posts/\` にあります。GitPress の管理画面でも、好きなエディタでも編集できます。コミットするとサイトが自動で再ビルドされます。
+
+- frontmatter に \`draft: true\` を書くと公開サイトに出ません。下書きはこの非公開リポジトリから出ません。
+- 画像は \`media/\` に置き、\`![alt](/media/your-image.jpg)\` で参照します。
+- テーマは \`gitpress.json\` にあります。テーマを変えても本文は消えません。
+`;
+  }
   return `---
 title: "Hello, world"
 date: "${today}"
@@ -247,13 +283,32 @@ Happy publishing!
 `;
 }
 
-function aboutPage(): string {
+function aboutPage(language: string): string {
+  const title = defaultAboutTitle(language);
+  const base = languageBase(language);
+  if (base === "zh") {
+    return `---
+title: "${title}"
+---
+
+在这里介绍你自己。本页位于 \`content/pages/about.md\`,会出现在站点导航里。导航上显示的名字也可以在后台「菜单」里单独修改。
+`;
+  }
+  if (base === "ja") {
+    return `---
+title: "${title}"
+---
+
+自己紹介をここに書いてください。このページは \`content/pages/about.md\` にあり、サイトのナビゲーションに表示されます。ナビ上の名前は管理画面の「メニュー」で別に変えられます。
+`;
+  }
   return `---
-title: About
+title: "${title}"
 ---
 
 Write something about yourself here. This page lives in \`content/pages/about.md\`
-and shows up in your site navigation.
+and shows up in your site navigation. You can also override the nav label in the
+Menu editor without renaming the page.
 `;
 }
 

@@ -1,5 +1,8 @@
 import { saveThemeOptionsAction, switchThemeAction } from "@/lib/actions";
 import { ProgressButton } from "@/components/ProgressButton";
+import { ThemeImportForm } from "@/components/ThemeImportForm";
+import { cachedSiteConfig } from "@/lib/siteDataCache";
+import { fetchGithubThemeManifest } from "@/lib/themeSource";
 import { BUILTIN_THEMES, getBuiltinTheme, themeOptionLabel } from "@/lib/themes";
 import { requireSite } from "@/lib/sites";
 
@@ -11,9 +14,16 @@ export default async function AppearancePage({
   params: Promise<{ siteId: string }>;
 }) {
   const { siteId } = await params;
-  const { site } = await requireSite(siteId);
-  const currentTheme = getBuiltinTheme(site.themeName);
+  const { site, installation } = await requireSite(siteId);
+  const config = await cachedSiteConfig(installation.installationId, site.dataRepo);
+  const themeSource = String(config?.theme.source ?? "builtin");
+  const usingBuiltin = themeSource === "builtin";
+  const currentTheme = usingBuiltin ? getBuiltinTheme(site.themeName) : null;
+  const importedManifest = usingBuiltin ? null : await fetchGithubThemeManifest(themeSource);
+  const optionSchema = currentTheme?.configSchema ?? importedManifest?.configSchema;
+  const optionTitle = currentTheme?.displayName ?? importedManifest?.displayName ?? site.themeName;
   const themeConfig = (site.themeConfig ?? {}) as Record<string, unknown>;
+  const optionEntries = Object.entries(optionSchema?.properties ?? {});
 
   return (
     <div className="max-w-5xl">
@@ -22,9 +32,17 @@ export default async function AppearancePage({
         主题只改变呈现方式,你的文章与图片保存在数据仓库中,换主题零影响。
       </p>
 
+      {!usingBuiltin && (
+        <div className="mt-5 rounded border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          当前使用导入主题 <strong>{site.themeName}</strong>
+          <span className="mt-1 block font-mono text-xs text-amber-800/80">{themeSource}</span>
+          点选上方内置主题可改回去。
+        </div>
+      )}
+
       <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {BUILTIN_THEMES.map((theme) => {
-          const active = theme.name === site.themeName;
+          const active = usingBuiltin && theme.name === site.themeName;
           return (
             <div
               key={theme.name}
@@ -77,14 +95,14 @@ export default async function AppearancePage({
         })}
       </div>
 
-      {currentTheme && Object.keys(currentTheme.configSchema.properties ?? {}).length > 0 && (
+      {optionEntries.length > 0 && (
         <div className="mt-8 max-w-lg rounded border border-neutral-200 bg-white shadow-sm">
           <h2 className="border-b border-neutral-100 px-5 py-3 text-sm font-semibold">
-            {currentTheme.displayName} 主题选项
+            {optionTitle} 主题选项
           </h2>
           <form action={saveThemeOptionsAction} className="space-y-4 p-5 text-sm">
             <input type="hidden" name="siteId" value={site.id} />
-            {Object.entries(currentTheme.configSchema.properties ?? {}).map(([key, property]) => {
+            {optionEntries.map(([key, property]) => {
               const current = themeConfig[key] ?? property.default;
               const name = `opt_${key}`;
               return (
@@ -139,9 +157,18 @@ export default async function AppearancePage({
         </div>
       )}
 
+      <div className="mt-8 max-w-lg rounded border border-neutral-200 bg-white shadow-sm">
+        <h2 className="border-b border-neutral-100 px-5 py-3 text-sm font-semibold">从 GitHub 导入主题</h2>
+        <ThemeImportForm siteId={site.id} />
+      </div>
+
       <p className="mt-6 text-xs text-neutral-400">
-        即将推出:主题商店(分享你的主题)与 AI 生成主题(使用你自己的 API Key)。
-        主题规范已开源,任何符合 spec v1 的 Astro 主题都可以接入。
+        主题商店即将上线,现在可以通过 GitHub 仓库导入任何符合 spec v1 的 Astro 主题。
+        想自己做一份?看{" "}
+        <a href="/make-theme" className="underline hover:text-neutral-600">
+          DIY 主题教程
+        </a>
+        ,里面有给 AI 的完整第一条提示词。
       </p>
     </div>
   );

@@ -108,6 +108,10 @@ const KNOWN_OPTION_LABELS: Record<string, string> = {
   showCovers: "卡片显示封面图",
   showReadingTime: "显示阅读时长",
   defaultAppearance: "默认外观",
+  showLogo: "显示 Logo",
+  showAvatar: "显示头像",
+  showTitle: "显示站点名称",
+  showTagline: "显示站点简介",
 };
 
 export function themeOptionLabel(key: string, property: ThemeConfigProperty): string {

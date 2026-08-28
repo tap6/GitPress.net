@@ -8,7 +8,9 @@
  * generated site's navigation (order, visibility, labels — including
  * whether Home/RSS appear at all). When absent, themes fall back to their
  * own legacy implicit nav, so sites that have never opened this menu editor
- * keep their current header unchanged.
+ * keep their current header unchanged. RSS belongs in the footer by default;
+ * it is only in the header if the owner adds it here. Home/RSS labels should
+ * follow the site language when the owner has not set an override.
  */
 export type NavItem =
   | { type: "home"; label?: string }

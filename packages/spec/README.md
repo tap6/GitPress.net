@@ -28,6 +28,8 @@ GitPress 生态的共同契约:平台、构建 Action、所有主题(包括 AI �
 {
   "site": {
     "title": "我的博客",
+    "logo": "/media/logo.png",
+    "avatar": "/media/avatar.png",
     "categories": [
       { "slug": "tech", "label": "技术" },
       { "slug": "notes", "label": "随笔", "inNav": false }
@@ -48,9 +50,12 @@ GitPress 生态的共同契约:平台、构建 Action、所有主题(包括 AI �
 - `categories`:站长维护的有序分类列表。主题为每个分类生成 `/categories/<slug>/` 归档页。若尚未配置 `site.nav`,顶部导航只包含 `inNav` 不为 `false` 的项(缺省为 `true`);一旦存在 `site.nav`,顶栏完全由菜单决定,`inNav` 不再影响导航。每篇文章从这个列表选一个主分类(写入 frontmatter 的 `categories` 数组第 0 项),与自由的 `tags` 并存、互不影响。关掉顶栏不等于删除分类。
 - `postsPerPage`:首页与归档页的分页大小,缺省 10。
 - `analyticsSnippet`:原始 HTML/脚本片段,缺省不注入任何统计代码。
-- `nav`:站长显式维护的顶部导航菜单——出现哪些项、顺序如何、叫什么名字,包括「首页」「RSS」是否显示,都由这个数组决定。存在时,它是导航的唯一依据;主题不得在此之外自行拼接分类或页面。**缺省时**,主题回退到各自原有的隐式导航(首页 + `inNav` 分类 + 全部页面 + RSS),保证升级前的站点菜单不变。每项的 `type` 为 `home` / `rss` / `category` / `page` / `link` 之一;`category`/`page` 需要对应的 `slug`,`link` 需要 `url` 与 `label`;其余类型的 `label` 均可选,缺省时由主题给出默认文案(分类名 / 页面标题 / “Home” / “RSS”)。
+- `logo` / `avatar`:站点级图片路径(通常是 `/media/...`),换主题不会丢。是否显示由各主题自己的 `configSchema` 选项决定(如 `showLogo`、`showAvatar`)。
+- `nav`:站长显式维护的顶部导航菜单——出现哪些项、顺序如何、叫什么名字,包括「首页」「RSS」是否显示,都由这个数组决定。存在时,它是导航的唯一依据;主题不得在此之外自行拼接分类或页面。**缺省时**,主题回退到隐式导航(首页 + `inNav` 分类 + 全部页面);RSS 默认放在页脚,只有菜单里显式加入才会出现在顶栏。每项的 `type` 为 `home` / `rss` / `category` / `page` / `link` 之一;`category`/`page` 需要对应的 `slug`,`link` 需要 `url` 与 `label`;其余类型的 `label` 均可选,缺省时由主题按 `site.language` 给出默认文案(如「首页」/ “Home”)。
 
-以上四个字段均为新增的可选字段,不涉及 `schemaVersion` 变更。
+以上字段均为新增的可选字段,不涉及 `schemaVersion` 变更。
+
+制作或导入主题见 [`THEME_AUTHORING.md`](THEME_AUTHORING.md)。
 
 ## 文章 frontmatter(v1)
 
@@ -89,6 +94,10 @@ slug: hello-world       # 缺省时由文件名推导
 | `media/` | `public/media/` |
 
 主题从 `gitpress.config.json` 读取站点信息与自身 `config`,用 Astro content collections 从 `user-content/` 读取文章。
+
+`theme.json` 的 `configSchema` 就是后台「外观」页上的主题选项表单:boolean 渲染为开关,`format: "color"` 渲染为取色器,带 `enum` 的字符串渲染为下拉框。站长级图片(`site.logo` / `site.avatar`)不要放进 `theme.config`,否则换主题会丢。
+
+制作、导入主题的完整约定见 [`THEME_AUTHORING.md`](THEME_AUTHORING.md)。
 
 ## JSON Schemas
 

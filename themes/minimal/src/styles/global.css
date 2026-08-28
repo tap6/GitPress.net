@@ -45,11 +45,52 @@ a:hover {
 .site-header {
   position: relative;
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: 1rem;
   flex-wrap: wrap;
   padding: 2.75rem 0 0.5rem;
+}
+
+.site-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-width: 0;
+}
+
+.site-brand-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.site-logo-link {
+  text-decoration: none;
+}
+
+.site-logo {
+  display: block;
+  max-height: 2rem;
+  max-width: 9rem;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+}
+
+.site-avatar {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.site-tagline {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.82rem;
 }
 
 .site-title {

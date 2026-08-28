@@ -48,10 +48,45 @@ a:hover {
   padding: 3rem 0 1.75rem;
   border-bottom: 1px solid var(--rule);
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 1rem;
+}
+
+.site-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.site-brand-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.site-logo-link {
+  text-decoration: none;
+}
+
+.site-logo {
+  display: block;
+  max-height: 2.5rem;
+  max-width: 10rem;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+}
+
+.site-avatar {
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
 }
 
 .site-title {

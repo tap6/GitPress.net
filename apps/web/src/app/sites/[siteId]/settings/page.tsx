@@ -1,3 +1,4 @@
+import { BrandMediaForm } from "@/components/BrandMediaForm";
 import { rotateDeployKeyAction } from "@/lib/actions";
 import { AiSettingsForm } from "@/components/AiSettingsForm";
 import { ProgressButton } from "@/components/ProgressButton";
@@ -23,6 +24,8 @@ export default async function SettingsPage({
   ]);
   const analyticsSnippet =
     typeof config?.site.analyticsSnippet === "string" ? config.site.analyticsSnippet : "";
+  const logo = typeof config?.site.logo === "string" ? config.site.logo : "";
+  const avatar = typeof config?.site.avatar === "string" ? config.site.avatar : "";
 
   return (
     <div className="max-w-2xl">
@@ -39,6 +42,11 @@ export default async function SettingsPage({
             analyticsSnippet,
           }}
         />
+      </div>
+
+      <div className="mt-6 rounded border border-neutral-200 bg-white shadow-sm">
+        <h2 className="border-b border-neutral-100 px-5 py-3 text-sm font-semibold">Logo 与头像</h2>
+        <BrandMediaForm siteId={site.id} logo={logo} avatar={avatar} />
       </div>
 
       <div

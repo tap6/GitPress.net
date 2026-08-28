@@ -11,11 +11,12 @@
     "./schemas/gitpress.schema.json": "./schemas/gitpress.schema.json",
     "./schemas/theme.schema.json": "./schemas/theme.schema.json"
   },
-  "files": [
-    "src",
-    "schemas",
-    "README.md"
-  ],
+    "files": [
+      "src",
+      "schemas",
+      "README.md",
+      "THEME_AUTHORING.md"
+    ],
   "scripts": {
     "typecheck": "tsc --noEmit"
   },

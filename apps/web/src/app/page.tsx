@@ -46,6 +46,9 @@ export default async function LandingPage() {
           Git<span className="text-gp-brand">Press</span>
         </p>
         <nav className="flex items-center gap-4 text-sm">
+          <Link href="/make-theme" className="text-neutral-500 hover:text-neutral-900">
+            做主题
+          </Link>
           <a
             href="https://github.com/tap6/gitpress"
             className="text-neutral-500 hover:text-neutral-900"
@@ -203,6 +206,35 @@ export default async function LandingPage() {
           </div>
         </section>
 
+        <section className="border-t border-neutral-100 py-16">
+          <div className="mx-auto max-w-6xl px-6">
+            <div className="max-w-2xl">
+              <h2 className="text-2xl font-semibold">用 AI 做自己的主题</h2>
+              <p className="mt-2 text-neutral-500">
+                不需要会写一整套设计系统。复制我们准备好的第一条提示词,让你的 AI 先向你提问,再生成一份 GitPress 能直接导入的 Astro 主题。
+              </p>
+            </div>
+            <div className="mt-8 grid gap-6 md:grid-cols-3">
+              {[
+                { title: "复制提示词", body: "打开「做主题」页,把完整提示词作为和 AI 的第一条消息发出去。" },
+                { title: "回答问题", body: "AI 会问风格、布局、Logo、要暴露哪些选项。你答完它才开始写代码。" },
+                { title: "导入使用", body: "把主题推到公开 GitHub 仓库,在后台「外观」粘贴 URL 即可启用。商店即将上线。" },
+              ].map((item) => (
+                <div key={item.title} className="rounded-xl border border-neutral-200 bg-white p-6 shadow-sm">
+                  <h3 className="font-semibold">{item.title}</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-neutral-500">{item.body}</p>
+                </div>
+              ))}
+            </div>
+            <Link
+              href="/make-theme"
+              className="mt-8 inline-block rounded-md border border-neutral-300 px-5 py-2.5 text-sm font-semibold text-neutral-800 hover:bg-neutral-50"
+            >
+              查看教程与提示词
+            </Link>
+          </div>
+        </section>
+
         <section className="border-t border-neutral-100 bg-neutral-50 py-16">
           <div className="mx-auto max-w-2xl px-6 text-center">
             <h2 className="text-2xl font-semibold">准备好拥有自己的博客了吗?</h2>
@@ -223,7 +255,11 @@ export default async function LandingPage() {
       <footer className="border-t border-neutral-100 py-10 text-center text-sm text-neutral-400">
         <p>© {new Date().getFullYear()} GitPress.net</p>
         <p className="mt-1">
-          主题与构建工具{" "}
+            <Link href="/make-theme" className="text-neutral-500 hover:text-neutral-800">
+              做主题
+            </Link>
+            {" · "}
+            主题与构建工具{" "}
           <a
             href="https://github.com/tap6/gitpress"
             className="text-neutral-500 hover:text-neutral-800"

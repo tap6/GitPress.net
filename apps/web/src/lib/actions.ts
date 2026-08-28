@@ -10,6 +10,7 @@ import { persistSiteCategory, type SiteCategory } from "./categories";
 import {
   deleteMedia,
   deletePost,
+  getSiteConfig,
   parseTagList,
   saveSiteCategories,
   saveSiteNav,
@@ -32,6 +33,12 @@ import { provisionSite, rotateDeployKey, triggerRebuild } from "./provision";
 import { revalidateSiteData } from "./siteDataCache";
 import { requireSite, requireUser } from "./sites";
 import { getBuiltinTheme } from "./themes";
+import {
+  assertUsableThemeManifest,
+  fetchGithubThemeManifest,
+  formatGithubThemeSource,
+  parseGithubThemeInput,
+} from "./themeSource";
 
 // ---------------------------------------------------------------------------
 // Site creation wizard
@@ -351,14 +358,21 @@ export async function switchThemeAction(formData: FormData): Promise<void> {
 export async function saveThemeOptionsAction(formData: FormData): Promise<void> {
   const siteId = String(formData.get("siteId"));
   const { site, installation } = await requireSite(siteId);
-  const theme = getBuiltinTheme(site.themeName);
-  if (!theme) throw new Error("Unknown theme");
+  const octokit = await getInstallationOctokit(installation.installationId);
+  const siteConfig = await getSiteConfig(octokit, site.dataRepo);
+  const source = String(siteConfig?.theme.source ?? "builtin");
 
   // Driven entirely by the theme's own configSchema (theme.json) so any
   // theme's declared options are saved correctly without a platform code
   // change — see lib/themes.ts for why this replaced a hand-maintained list.
+  const properties =
+    source === "builtin"
+      ? (getBuiltinTheme(site.themeName)?.configSchema.properties ?? {})
+      : ((await fetchGithubThemeManifest(source))?.configSchema?.properties ?? {});
+  if (Object.keys(properties).length === 0) throw new Error("无法读取该主题的选项定义");
+
   const config: Record<string, unknown> = {};
-  for (const [key, property] of Object.entries(theme.configSchema.properties ?? {})) {
+  for (const [key, property] of Object.entries(properties)) {
     const raw = formData.get(`opt_${key}`);
     if (property.type === "boolean") {
       config[key] = raw === "on";
@@ -370,7 +384,6 @@ export async function saveThemeOptionsAction(formData: FormData): Promise<void> 
     }
   }
 
-  const octokit = await getInstallationOctokit(installation.installationId);
   await updateSiteConfig(
     octokit,
     site.dataRepo,
@@ -381,6 +394,146 @@ export async function saveThemeOptionsAction(formData: FormData): Promise<void> 
   );
   await db.update(sites).set({ themeConfig: config }).where(eq(sites.id, siteId));
   revalidateSiteData(site.dataRepo, [`/sites/${siteId}/appearance`]);
+}
+
+export interface ImportThemeState {
+  error?: string;
+  saved?: boolean;
+  name?: string;
+}
+
+export async function importThemeAction(
+  _prev: ImportThemeState,
+  formData: FormData,
+): Promise<ImportThemeState> {
+  const siteId = String(formData.get("siteId"));
+  const { site, installation } = await requireSite(siteId);
+
+  let parsed;
+  try {
+    parsed = parseGithubThemeInput(
+      String(formData.get("repo") ?? ""),
+      String(formData.get("subdir") ?? ""),
+      String(formData.get("ref") ?? ""),
+    );
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : String(error) };
+  }
+
+  const source = formatGithubThemeSource(parsed);
+  const manifest = await fetchGithubThemeManifest(source);
+  if (!manifest) {
+    return { error: "读不到 theme.json。请确认仓库公开,并且路径、分支或标签正确。" };
+  }
+  try {
+    assertUsableThemeManifest(manifest);
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : String(error) };
+  }
+
+  const octokit = await getInstallationOctokit(installation.installationId);
+  try {
+    await updateSiteConfig(
+      octokit,
+      site.dataRepo,
+      (config) => {
+        config.theme.name = manifest.name;
+        config.theme.source = source;
+        config.theme.ref = parsed.ref;
+        config.theme.config = {};
+      },
+      `Import theme ${manifest.name} from ${source}`,
+    );
+  } catch (error) {
+    return { error: `导入失败:${error instanceof Error ? error.message : String(error)}` };
+  }
+
+  await db.update(sites).set({ themeName: manifest.name, themeConfig: {} }).where(eq(sites.id, siteId));
+  revalidateSiteData(site.dataRepo, [`/sites/${siteId}/appearance`, `/sites/${siteId}`]);
+  return { saved: true, name: manifest.name };
+}
+
+export interface SaveBrandState {
+  error?: string;
+  saved?: boolean;
+}
+
+function parseImageDataUrl(raw: string): { mime: string; bytes: Buffer } | null {
+  const match = raw.trim().match(/^data:(image\/(?:png|jpeg|jpg|webp));base64,(.+)$/i);
+  if (!match) return null;
+  const mime = match[1].toLowerCase() === "image/jpg" ? "image/jpeg" : match[1].toLowerCase();
+  return { mime, bytes: Buffer.from(match[2], "base64") };
+}
+
+function extForImageMime(mime: string): string {
+  if (mime === "image/png") return "png";
+  if (mime === "image/webp") return "webp";
+  return "jpg";
+}
+
+export async function saveBrandAction(
+  _prev: SaveBrandState,
+  formData: FormData,
+): Promise<SaveBrandState> {
+  const siteId = String(formData.get("siteId"));
+  const { site, installation } = await requireSite(siteId);
+  const octokit = await getInstallationOctokit(installation.installationId);
+
+  async function uploadBrand(dataUrl: string, stem: string): Promise<string | { error: string }> {
+    const parsed = parseImageDataUrl(dataUrl);
+    if (!parsed) return { error: `${stem} 图片无效,请重新裁剪后保存。` };
+    if (parsed.bytes.length > MAX_IMAGE_BYTES) return { error: `${stem} 超过 8MB。` };
+    return uploadMedia(
+      octokit,
+      site.dataRepo,
+      `${stem}.${extForImageMime(parsed.mime)}`,
+      parsed.bytes.toString("base64"),
+    );
+  }
+
+  const logoData = String(formData.get("logoDataUrl") ?? "");
+  const avatarData = String(formData.get("avatarDataUrl") ?? "");
+  let logoPath: string | null | undefined;
+  let avatarPath: string | null | undefined;
+
+  if (logoData) {
+    const result = await uploadBrand(logoData, "site-logo");
+    if (typeof result !== "string") return result;
+    logoPath = result;
+  } else if (formData.get("removeLogo") === "on") {
+    logoPath = null;
+  }
+
+  if (avatarData) {
+    const result = await uploadBrand(avatarData, "site-avatar");
+    if (typeof result !== "string") return result;
+    avatarPath = result;
+  } else if (formData.get("removeAvatar") === "on") {
+    avatarPath = null;
+  }
+
+  if (logoPath === undefined && avatarPath === undefined) {
+    return { error: "请先选择图片,或勾选移除。" };
+  }
+
+  try {
+    await updateSiteConfig(
+      octokit,
+      site.dataRepo,
+      (config) => {
+        if (logoPath === null) delete config.site.logo;
+        else if (logoPath) config.site.logo = logoPath;
+        if (avatarPath === null) delete config.site.avatar;
+        else if (avatarPath) config.site.avatar = avatarPath;
+      },
+      "Update site logo and avatar",
+    );
+  } catch (error) {
+    return { error: `保存失败:${error instanceof Error ? error.message : String(error)}` };
+  }
+
+  revalidateSiteData(site.dataRepo, [`/sites/${siteId}/settings`, `/sites/${siteId}/media`]);
+  return { saved: true };
 }
 
 export interface SaveSettingsState {

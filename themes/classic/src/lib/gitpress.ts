@@ -24,6 +24,8 @@ interface SiteInfo {
   basePath?: string;
   author?: string;
   analyticsSnippet?: string;
+  logo?: string;
+  avatar?: string;
   categories?: SiteCategory[];
   postsPerPage?: number;
   nav?: NavItem[];
@@ -56,8 +58,19 @@ export const gitpress = loadConfig();
 export const themeConfig = {
   accentColor: "#a85a2a",
   showExcerpts: true,
+  showLogo: true,
+  showAvatar: false,
+  showTitle: true,
+  showTagline: true,
   ...(gitpress.theme?.config ?? {}),
-} as { accentColor: string; showExcerpts: boolean } & Record<string, unknown>;
+} as {
+  accentColor: string;
+  showExcerpts: boolean;
+  showLogo: boolean;
+  showAvatar: boolean;
+  showTitle: boolean;
+  showTagline: boolean;
+} & Record<string, unknown>;
 
 export type Post = CollectionEntry<"posts">;
 export type Page = CollectionEntry<"pages">;
@@ -109,6 +122,20 @@ export function withBase(path: string): string {
   return prefix + path;
 }
 
+export function homeLabel(override?: string): string {
+  if (override && override.trim()) return override.trim();
+  const lang = (gitpress.site.language ?? "en").toLowerCase();
+  if (lang.startsWith("zh")) return "首页";
+  if (lang.startsWith("ja")) return "ホーム";
+  return "Home";
+}
+
+export function mediaHref(path?: string): string | undefined {
+  if (!path) return undefined;
+  if (/^(https?:)?\/\//i.test(path) || path.startsWith("data:")) return path;
+  return withBase(path.startsWith("/") ? path : `/${path}`);
+}
+
 export interface NavLink {
   href: string;
   label: string;
@@ -122,26 +149,24 @@ const configuredNav: NavItem[] | undefined = gitpress.site.nav;
  * Resolves the top-nav links to render. When the site owner has configured
  * `site.nav`, that list is the only source of truth (order, visibility,
  * labels — including whether Home/RSS show up at all). When absent, this
- * falls back to the theme's original implicit nav (Home, then nav
- * categories, then every page, then RSS) so sites that predate the menu
- * editor keep their current header unchanged.
+ * falls back to Home, then nav categories, then every page. RSS lives in
+ * the footer unless the owner explicitly adds it to `site.nav`.
  */
 export function buildNav(pages: Page[]): NavLink[] {
   if (!configuredNav) {
     return [
-      { href: withBase("/"), label: "Home" },
+      { href: withBase("/"), label: homeLabel() },
       ...navCategories.map((c) => ({ href: withBase(`/categories/${c.slug}/`), label: c.label })),
       ...pages
         .slice()
         .sort((a, b) => a.data.title.localeCompare(b.data.title))
         .map((p) => ({ href: withBase(`/${postSlug(p)}/`), label: p.data.title })),
-      { href: withBase("/rss.xml"), label: "RSS" },
     ];
   }
   const links: NavLink[] = [];
   for (const item of configuredNav) {
     if (item.type === "home") {
-      links.push({ href: withBase("/"), label: item.label ?? "Home" });
+      links.push({ href: withBase("/"), label: homeLabel(item.label) });
     } else if (item.type === "rss") {
       links.push({ href: withBase("/rss.xml"), label: item.label ?? "RSS" });
     } else if (item.type === "category" && item.slug) {

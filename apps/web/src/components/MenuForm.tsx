@@ -6,6 +6,7 @@ import { saveMenuAction, type SaveMenuState } from "@/lib/actions";
 import type { NavItem } from "@/lib/nav";
 import type { SiteCategory } from "@/lib/categories";
 import type { SitePage } from "@/lib/content";
+import { defaultHomeLabel } from "@/lib/locale";
 
 type Row = NavItem & {
   /** Client-only key so React can track rows across reorders/deletes. */
@@ -22,22 +23,25 @@ function toRow(item: NavItem): Row {
   return { ...item, key: nextKey() };
 }
 
-/** Legacy implicit nav (Home + inNav categories + every page + RSS), used to
- * seed the editor the first time a site owner opens it, so the list starts
- * out matching what their site already shows instead of an empty menu. */
+/** Implicit nav (Home + inNav categories + every page). RSS belongs in the
+ * footer by default, so it is not prefilled here — owners can still add it. */
 function legacyDefault(categories: SiteCategory[], pages: SitePage[]): NavItem[] {
   return [
     { type: "home" },
     ...categories.filter((c) => c.inNav !== false).map((c): NavItem => ({ type: "category", slug: c.slug })),
     ...pages.map((p): NavItem => ({ type: "page", slug: p.slug })),
-    { type: "rss" },
   ];
 }
 
-function defaultLabel(item: NavItem, categories: SiteCategory[], pages: SitePage[]): string {
+function defaultLabel(
+  item: NavItem,
+  categories: SiteCategory[],
+  pages: SitePage[],
+  language: string,
+): string {
   switch (item.type) {
     case "home":
-      return "Home";
+      return defaultHomeLabel(language);
     case "rss":
       return "RSS";
     case "category":
@@ -70,9 +74,10 @@ interface Props {
   initial: NavItem[] | null;
   categories: SiteCategory[];
   pages: SitePage[];
+  language: string;
 }
 
-export function MenuForm({ siteId, initial, categories, pages }: Props) {
+export function MenuForm({ siteId, initial, categories, pages, language }: Props) {
   const [rows, setRows] = useState<Row[]>(() =>
     (initial ?? legacyDefault(categories, pages)).map(toRow),
   );
@@ -240,7 +245,7 @@ export function MenuForm({ siteId, initial, categories, pages }: Props) {
               <input
                 value={row.label ?? ""}
                 onChange={(e) => updateLabel(row.key, e.target.value)}
-                placeholder={defaultLabel(row, categories, pages)}
+                placeholder={defaultLabel(row, categories, pages, language)}
                 className="min-w-0 flex-1 rounded border border-neutral-300 px-3 py-2 focus:border-wp-accent focus:outline-none"
               />
             )}

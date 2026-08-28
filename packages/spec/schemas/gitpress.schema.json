@@ -33,6 +33,14 @@
         },
         "author": { "type": "string" },
         "timezone": { "type": "string", "default": "UTC" },
+        "logo": {
+          "type": "string",
+          "description": "Public path to the site logo, typically /media/logo-….png. Lives on site so it survives theme switches. Themes decide visibility via theme.config.showLogo."
+        },
+        "avatar": {
+          "type": "string",
+          "description": "Public path to a circular author/site avatar, typically /media/avatar-….png. Themes decide visibility via theme.config.showAvatar."
+        },
         "categories": {
           "type": "array",
           "description": "Ordered, site-owner-maintained categories. Themes render /categories/<slug>/ archive pages for every entry, and top nav links for those with inNav !== false. Distinct from posts' free-form tags — each post picks at most one category from this list.",
@@ -63,7 +71,7 @@
         },
         "nav": {
           "type": "array",
-          "description": "Explicit, ordered top-nav menu maintained by the site owner. When present, this is the only source of truth for the generated site's navigation (including whether Home/RSS appear at all). When absent, themes fall back to their own legacy implicit nav so existing sites are unaffected.",
+          "description": "Explicit, ordered top-nav menu maintained by the site owner. When present, this is the only source of truth for the generated site's navigation (including whether Home/RSS appear at all). When absent, themes fall back to Home + inNav categories + pages; RSS belongs in the footer unless the owner adds it here. Item labels may be overridden; default Home/RSS copy should follow site.language.",
           "items": {
             "type": "object",
             "required": ["type"],

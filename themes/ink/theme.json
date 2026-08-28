@@ -23,6 +23,26 @@
         "type": "boolean",
         "default": true,
         "description": "Show cover images on post cards."
+      },
+      "showLogo": {
+        "type": "boolean",
+        "default": true,
+        "description": "Show the site logo in the header when one is uploaded."
+      },
+      "showAvatar": {
+        "type": "boolean",
+        "default": false,
+        "description": "Show the site avatar in the header when one is uploaded."
+      },
+      "showTitle": {
+        "type": "boolean",
+        "default": true,
+        "description": "Show the site name next to the logo."
+      },
+      "showTagline": {
+        "type": "boolean",
+        "default": true,
+        "description": "Show the site description under the title."
       }
     },
     "additionalProperties": true
