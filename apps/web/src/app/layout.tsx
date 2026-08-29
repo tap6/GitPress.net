@@ -7,7 +7,7 @@ export const metadata: Metadata = {
     template: "%s · GitPress",
   },
   description:
-    "GitPress 把博客内容放进你自己的 GitHub 仓库:私有数据仓库存文章,公开仓库存编译产物,GitHub Actions 自动构建,GitHub Pages / Vercel 托管。",
+    "GitPress.net 是云端写作工具,不是内容托管商。文章、图片、草稿都在你自己的 GitHub 仓库里;平台只保存账号与站点指针。",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

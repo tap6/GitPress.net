@@ -5,7 +5,7 @@ import { formatStatCount, getPublicPlatformStats } from "@/lib/publicStats";
 const FEATURES = [
   {
     title: "内容永远是你的",
-    body: "文章、图片、视频存在你自己的私有 GitHub 仓库里。草稿永不公开,随时可以带走全部数据。",
+    body: "文章、图片、草稿只在你的私有 GitHub 仓库。GitPress.net 不建内容库,卸掉 App 授权后我们就读不到你的正文。",
   },
   {
     title: "双仓库架构",
@@ -41,11 +41,14 @@ export default async function LandingPage() {
 
   return (
     <div className="min-h-screen bg-white text-neutral-900">
-      <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
+      <header className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-4 gap-y-2 px-6 py-5">
         <p className="text-xl font-bold tracking-tight">
           Git<span className="text-gp-brand">Press</span>
         </p>
         <nav className="flex items-center gap-4 text-sm">
+          <a href="#privacy" className="text-neutral-500 hover:text-neutral-900">
+            隐私
+          </a>
           <Link href="/make-theme" className="text-neutral-500 hover:text-neutral-900">
             做主题
           </Link>
@@ -78,16 +81,17 @@ export default async function LandingPage() {
       <main>
         <section className="mx-auto max-w-4xl px-6 pb-14 pt-16 text-center sm:pt-20">
           <p className="text-sm font-medium uppercase tracking-[0.2em] text-gp-brand">
-            Git 原生博客平台
+            云工具,不是内容站
           </p>
           <h1 className="mt-4 text-4xl font-extrabold leading-tight tracking-tight sm:text-5xl">
-            像用 WordPress 一样写作,
+            像用 WordPress 一样写作。
             <br />
-            像 Git 一样拥有一切。
+            文章不进我们的服务器。
           </h1>
           <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-neutral-500">
-            GitPress 在你自己的 GitHub 上创建博客:私有仓库存 Markdown 与媒体,公开仓库存编译后的站点,
-            Actions 自动构建,Pages 免费托管。平台只保存账号与站点元数据,不碰你的正文。
+            GitPress.net 只是帮你在 GitHub 上建仓、写稿、触发构建的云工具。
+            Markdown、图片、草稿都在你自己的仓库里;我们的数据库不保存正文。
+            读者访问的是你的 GitHub Pages,请求不会经过 gitpress.net。
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             <Link
@@ -97,11 +101,56 @@ export default async function LandingPage() {
               创建我的博客
             </Link>
             <a
-              href="#how-it-works"
+              href="#privacy"
               className="rounded-md border border-neutral-300 px-6 py-3 font-semibold text-neutral-700 hover:bg-neutral-50"
             >
-              看看怎么运作
+              我们留了什么、没留什么
             </a>
+          </div>
+        </section>
+
+        <section id="privacy" className="scroll-mt-8 border-y border-neutral-800 bg-neutral-950 py-16 text-neutral-100">
+          <div className="mx-auto max-w-6xl px-6">
+            <p className="text-sm font-medium uppercase tracking-[0.2em] text-gp-brand">隐私 · 重中之重</p>
+            <h2 className="mt-3 text-2xl font-semibold sm:text-3xl">GitPress.net 不托管你的博客内容</h2>
+            <p className="mt-4 max-w-3xl text-base leading-relaxed text-neutral-400">
+              打开后台时,平台用你授权的 GitHub App
+              <strong className="font-medium text-neutral-200">向你的仓库读取</strong>
+              ;点保存则<strong className="font-medium text-neutral-200">写回同一仓库</strong>
+              。这是云工具在替你操作 GitHub,不是把文章上传到 GitPress 再分发。
+              正文的唯一来源是你的 GitHub,不是我们的 Postgres。
+            </p>
+
+            <div className="mt-10 grid gap-6 lg:grid-cols-2">
+              <div className="rounded-xl border border-white/10 bg-white/5 p-6">
+                <h3 className="text-sm font-semibold tracking-wide text-emerald-400">我们只保留(控制面)</h3>
+                <ul className="mt-4 space-y-3 text-sm leading-relaxed text-neutral-300">
+                  <li>登录账号:邮箱、显示名、头像(Auth 登录用)。</li>
+                  <li>GitHub App 安装映射:好让后台代表你读写仓库。</li>
+                  <li>站点指针:站点名、主题名、两个仓库地址、公开 URL 等元数据。</li>
+                  <li>若你配置了 AI:密钥加密存放,数据库里看不到明文。</li>
+                </ul>
+              </div>
+              <div className="rounded-xl border border-white/10 bg-white/5 p-6">
+                <h3 className="text-sm font-semibold tracking-wide text-gp-brand">我们不保存(内容)</h3>
+                <ul className="mt-4 space-y-3 text-sm leading-relaxed text-neutral-300">
+                  <li>文章、页面的 Markdown 正文与草稿。</li>
+                  <li>图片、视频等媒体文件。</li>
+                  <li>公开站点的 HTML——那在你的网站仓库 / Pages 上,读者不经过 gitpress.net。</li>
+                  <li>卸载 GitHub App 或删掉仓库之后,我们再也读不到你的内容。</li>
+                </ul>
+              </div>
+            </div>
+
+            <div className="mt-8 rounded-xl border border-white/10 bg-black/40 p-6 font-mono text-xs leading-7 text-neutral-300 sm:text-sm">
+              <p className="text-neutral-500"># 数据走哪</p>
+              <p>你在后台写作 → GitPress.net 调用 GitHub API → 私有数据仓(正文、媒体、草稿)</p>
+              <p>保存触发 Actions → 公开网站仓(只有编译结果) → GitHub Pages / 你的域名</p>
+              <p className="mt-3 text-neutral-500">
+                后台为了打开更快,会把刚从 GitHub 读到的列表在边缘缓存几十秒,保存后立刻作废。
+                这不是内容库,也不能在你撤回授权后继续用。
+              </p>
+            </div>
           </div>
         </section>
 
@@ -239,8 +288,8 @@ export default async function LandingPage() {
           <div className="mx-auto max-w-2xl px-6 text-center">
             <h2 className="text-2xl font-semibold">准备好拥有自己的博客了吗?</h2>
             <p className="mt-3 text-neutral-500">
-              注册免费,内容存在你的 GitHub 里。已有 {formatStatCount(stats.users)} 位用户、
-              {formatStatCount(stats.sites)} 个站点在使用 GitPress。
+              注册免费。正文在你的 GitHub 里,不在 GitPress.net 的服务器上。已有 {formatStatCount(stats.users)} 位用户、
+              {formatStatCount(stats.sites)} 个站点在使用。
             </p>
             <Link
               href={session?.user ? "/new" : "/login"}
@@ -255,6 +304,10 @@ export default async function LandingPage() {
       <footer className="border-t border-neutral-100 py-10 text-center text-sm text-neutral-400">
         <p>© {new Date().getFullYear()} GitPress.net</p>
         <p className="mt-1">
+            <a href="#privacy" className="text-neutral-500 hover:text-neutral-800">
+              隐私
+            </a>
+            {" · "}
             <Link href="/make-theme" className="text-neutral-500 hover:text-neutral-800">
               做主题
             </Link>
