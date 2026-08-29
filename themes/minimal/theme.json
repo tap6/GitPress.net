@@ -44,6 +44,11 @@
         "type": "boolean",
         "default": false,
         "description": "Show the site description under the title."
+      },
+      "showSearch": {
+        "type": "boolean",
+        "default": true,
+        "description": "Show a Search link in the header."
       }
     },
     "additionalProperties": true

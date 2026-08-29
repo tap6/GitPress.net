@@ -112,6 +112,7 @@ const KNOWN_OPTION_LABELS: Record<string, string> = {
   showAvatar: "显示头像",
   showTitle: "显示站点名称",
   showTagline: "显示站点简介",
+  showSearch: "显示搜索",
 };
 
 export function themeOptionLabel(key: string, property: ThemeConfigProperty): string {

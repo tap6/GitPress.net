@@ -62,7 +62,7 @@
 
 隐式顶栏建议:`首页`(文案随 `site.language`) + `inNav` 分类 + 全部页面(按 title 字母序)。**不要**把 RSS 放进默认顶栏。页脚默认给 RSS 链接,但站长可以关掉;`<head>` 里始终保留 `<link rel="alternate" type="application/rss+xml">`,`/rss.xml` 始终生成。
 
-顶栏**末尾固定**加一项「搜索」,链到 `/search/`。不要把它做成 `site.nav` 的一种 type。缺省文案随语言:中文「搜索」、日文「検索」、其它 “Search”。
+顶栏末尾加一项「搜索」,链到 `/search/`,由 `theme.config.showSearch` 控制,缺省 true。不要把它做成 `site.nav` 的一种 type。缺省文案随语言:中文「搜索」、日文「検索」、其它 “Search”。`/search/` 页始终生成,关掉的只是顶栏入口。
 
 `site.nav` 里每一项都可以有 `label` 覆盖显示名。首页缺省文案:中文「首页」、日文「ホーム」、其它 “Home”。菜单里指向已改名/删除的页面时跳过该项。
 
@@ -86,7 +86,7 @@
 - `sitemap.xml`、`robots.txt`
 - Pagefind 索引(`npx pagefind`)
 
-构建 Action 会在 `astro build` 之后注入这些产物,用来刷新缓存、给搜索引擎站点地图、以及生成 `/pagefind/` 索引。主题只需提供 `/search/` 页去加载 `/pagefind/pagefind-ui.js` 与 `pagefind-ui.css`(用 `withBase` 拼路径,并设置 `bundlePath`)。正文容器加 `data-pagefind-body`;页眉页脚加 `data-pagefind-ignore`。不要把 `pagefind` 写进主题的 `package.json`。
+构建 Action 会在 `astro build` 之后注入这些产物,用来刷新缓存、给搜索引擎站点地图、以及生成 `/pagefind/` 索引。主题只需提供 `/search/` 页去加载 `/pagefind/pagefind-ui.js` 与 `pagefind-ui.css`(用 `withBase` 拼路径,并设置 `bundlePath`)。`pagefind-ui.js` 是全局脚本(`window.PagefindUI`),用 `<script is:inline src>` 加载,不要 `import()`。正文容器加 `data-pagefind-body`;页眉页脚加 `data-pagefind-ignore`。不要把 `pagefind` 写进主题的 `package.json`。
 
 ## 主题自己的选项:`configSchema`
 
@@ -96,6 +96,7 @@
 - `showAvatar`(boolean,默认 false)
 - `showTitle`(boolean,默认 true)
 - `showTagline`(boolean,默认 true)
+- `showSearch`(boolean,默认 true)
 - 以及主题自己真正在用的东西(`accentColor`、`showExcerpts`、暗色模式等)
 
 boolean 渲染为开关,`format: "color"` 渲染为取色器,带 `enum` 的字符串渲染为下拉框。

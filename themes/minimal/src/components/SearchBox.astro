@@ -8,26 +8,38 @@ const bundlePath = withBase("/pagefind/");
 
 <div class="site-search" data-pagefind-ignore>
   <div id="gitpress-search"></div>
-  <p class="search-fallback" id="gitpress-search-fallback">
-    搜索索引会在正式构建后生成。本地预览时可能还不可用。
+  <p class="search-fallback" id="gitpress-search-fallback" hidden>
+    搜索暂时不可用。站点完成构建后即可使用。
   </p>
 </div>
 <link rel="stylesheet" href={cssHref} />
-<script is:inline define:vars={{ jsHref, bundlePath }}>
+<script is:inline src={jsHref}></script>
+<script is:inline define:vars={{ bundlePath }}>
   (function () {
     var fallback = document.getElementById("gitpress-search-fallback");
-    import(jsHref)
-      .then(function (mod) {
-        if (!mod.PagefindUI) throw new Error("no PagefindUI");
-        new mod.PagefindUI({
+    function fail() {
+      if (fallback) fallback.hidden = false;
+    }
+    function init() {
+      var UI = window.PagefindUI;
+      if (typeof UI !== "function") {
+        fail();
+        return;
+      }
+      try {
+        new UI({
           element: "#gitpress-search",
           bundlePath: bundlePath,
           showSubResults: true,
         });
-        if (fallback) fallback.hidden = true;
-      })
-      .catch(function () {
-        if (fallback) fallback.hidden = false;
-      });
+      } catch (error) {
+        fail();
+      }
+    }
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", init);
+    } else {
+      init();
+    }
   })();
 </script>

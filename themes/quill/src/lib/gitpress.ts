@@ -92,6 +92,7 @@ export const themeConfig = {
   showAvatar: false,
   showTitle: true,
   showTagline: true,
+  showSearch: true,
   ...(gitpress.theme?.config ?? {}),
 } as {
   accentColor: string;
@@ -101,6 +102,7 @@ export const themeConfig = {
   showAvatar: boolean;
   showTitle: boolean;
   showTagline: boolean;
+  showSearch: boolean;
 } & Record<string, unknown>;
 
 export type Post = CollectionEntry<"posts">;
@@ -245,10 +247,17 @@ const configuredNav: NavItem[] | undefined = gitpress.site.nav;
  * "Archive" is always appended: it is a fixed feature of this theme (see
  * pages/archive), not a site-owner-configurable menu entry.
  */
+function withOptionalSearch(links: NavLink[]): NavLink[] {
+  if (themeConfig.showSearch !== false) {
+    links.push({ href: withBase("/search/"), label: searchLabel() });
+  }
+  return links;
+}
+
 export function buildNav(pages: Page[]): NavLink[] {
   const archive = { href: withBase("/archive/"), label: "Archive" };
   if (!configuredNav) {
-    return [
+    return withOptionalSearch([
       { href: withBase("/"), label: homeLabel() },
       ...navCategories.map((c) => ({ href: withBase(`/categories/${c.slug}/`), label: c.label })),
       ...pages
@@ -256,8 +265,7 @@ export function buildNav(pages: Page[]): NavLink[] {
         .sort((a, b) => a.data.title.localeCompare(b.data.title))
         .map((p) => ({ href: withBase(`/${postSlug(p)}/`), label: p.data.title })),
       archive,
-      { href: withBase("/search/"), label: searchLabel() },
-    ];
+    ]);
   }
   const links: NavLink[] = [];
   for (const item of configuredNav) {
@@ -279,8 +287,7 @@ export function buildNav(pages: Page[]): NavLink[] {
     }
   }
   links.push(archive);
-  links.push({ href: withBase("/search/"), label: searchLabel() });
-  return links;
+  return withOptionalSearch(links);
 }
 
 export interface FooterEntry {

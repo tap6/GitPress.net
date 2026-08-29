@@ -270,7 +270,8 @@ function posixPrefix(basePath) {
 
 function indexSiteSearch(distDir) {
   try {
-    run("npx", ["-y", "pagefind", "--site", distDir]);
+    // Pin 1.4: 1.5+ replaced pagefind-ui.js with a different component bundle.
+    run("npx", ["-y", "pagefind@1.4.0", "--site", distDir]);
     log("Pagefind search index written to pagefind/.");
   } catch (error) {
     log(`Pagefind indexing skipped: ${error instanceof Error ? error.message : String(error)}`);

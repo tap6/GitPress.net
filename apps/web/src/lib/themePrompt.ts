@@ -46,7 +46,7 @@ slug 缺省由文件名推导。未知 frontmatter 键用 .passthrough() 原样�
 
 - 若存在 site.nav,顶栏必须严格按该数组渲染(type: home | rss | category | page | link),用每项可选的 label 覆盖显示名;不要再额外拼接分类或页面。
 - 若没有 site.nav,隐式顶栏 = 首页 + inNav 不为 false 的分类 + 全部独立页面(按 title 字母序)。首页缺省文案随 site.language:中文「首页」、日文「ホーム」、其它 "Home"。
-- 顶栏末尾固定加一项「搜索」,链到 /search/;不要把它做成 site.nav 的一种 type。缺省文案:中文「搜索」、日文「検索」、其它 "Search"。
+- 顶栏末尾加一项「搜索」,链到 /search/;由 theme.config.showSearch 控制,缺省 true。不要把它做成 site.nav 的一种 type。缺省文案:中文「搜索」、日文「検索」、其它 "Search"。/search/ 页始终生成,关掉的只是顶栏入口。
 - 不要把 RSS 放进默认顶栏。<head> 始终保留 <link rel="alternate" type="application/rss+xml" href="…/rss.xml">,/rss.xml 始终生成。
 - 若存在 site.footer,页脚必须严格按该数组渲染(type: copyright | gitpress | theme | rss | page | link | text)。copyright 默认「© {year} 站点名」,不要用 GitHub 用户名;{year} 构建时替换。gitpress 链到 https://gitpress.net(rel=generator)。theme 链到本主题 theme.json 的 homepage(没有 homepage 则跳过该槽)。rss 链到 /rss.xml。自定义只有 page / link / text。不认识的 type:有 url+label 当外链,只有 label 当纯文本,否则跳过。
 - 若没有 site.footer,默认页脚 = 版权 + GitPress + 主题署名(有 homepage 时) + RSS。每一项站长都可以关掉。
@@ -68,7 +68,7 @@ slug 缺省由文件名推导。未知 frontmatter 键用 .passthrough() 原样�
 
 ## 搜索
 
-提供 /search/ 页,用 Pagefind UI(不要把 pagefind 写进 package.json)。构建 Action 会在 dist/ 上跑 pagefind,产物在 /pagefind/pagefind-ui.js 与 pagefind-ui.css。用 withBase 拼路径,并设置 bundlePath。正文容器加 data-pagefind-body;页眉页脚加 data-pagefind-ignore。本地预览没有索引时给一句降级说明即可。
+提供 /search/ 页,用 Pagefind Default UI(不要把 pagefind 写进 package.json)。构建 Action 会在 dist/ 上跑 pagefind,产物在 /pagefind/pagefind-ui.js 与 pagefind-ui.css。pagefind-ui.js 是全局脚本(window.PagefindUI),用 <script is:inline src> 加载,不要 import()。用 withBase 拼路径,并设置 bundlePath。正文容器加 data-pagefind-body;页眉页脚加 data-pagefind-ignore。索引缺失时给一句访客可读的降级说明,不要写「本地预览」。
 
 ## 主题选项(configSchema)
 
@@ -78,6 +78,7 @@ JSON Schema 会出现在 GitPress 后台「外观」页。请提供并在布局�
 - showAvatar (boolean, 默认 false)
 - showTitle (boolean, 默认 true)
 - showTagline (boolean, 默认 true)
+- showSearch (boolean, 默认 true)
 - 再加上这个主题真正需要的选项(如 accentColor format:color、showExcerpts、暗色模式等)
 
 有 logo 且 showLogo 时显示图片;showTitle 为 true(或没有 logo)时显示站点名。没有对应文件就不要渲染空 img。

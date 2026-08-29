@@ -91,6 +91,7 @@ export const themeConfig = {
   showAvatar: false,
   showTitle: true,
   showTagline: false,
+  showSearch: true,
   ...(gitpress.theme?.config ?? {}),
 } as {
   accentColor: string;
@@ -99,6 +100,7 @@ export const themeConfig = {
   showAvatar: boolean;
   showTitle: boolean;
   showTagline: boolean;
+  showSearch: boolean;
 } & Record<string, unknown>;
 
 export type Post = CollectionEntry<"posts">;
@@ -231,17 +233,22 @@ const configuredNav: NavItem[] | undefined = gitpress.site.nav;
  * "Home" link, since the site title already links home). RSS lives in the
  * footer unless the owner explicitly adds it to `site.nav`.
  */
+function withOptionalSearch(links: NavLink[]): NavLink[] {
+  if (themeConfig.showSearch !== false) {
+    links.push({ href: withBase("/search/"), label: searchLabel() });
+  }
+  return links;
+}
+
 export function buildNav(pages: Page[]): NavLink[] {
-  const search = { href: withBase("/search/"), label: searchLabel() };
   if (!configuredNav) {
-    return [
+    return withOptionalSearch([
       ...navCategories.map((c) => ({ href: withBase(`/categories/${c.slug}/`), label: c.label })),
       ...pages
         .slice()
         .sort((a, b) => a.data.title.localeCompare(b.data.title))
         .map((p) => ({ href: withBase(`/${postSlug(p)}/`), label: p.data.title })),
-      search,
-    ];
+    ]);
   }
   const links: NavLink[] = [];
   for (const item of configuredNav) {
@@ -262,8 +269,7 @@ export function buildNav(pages: Page[]): NavLink[] {
       links.push({ href: item.url, label: item.label, external: true });
     }
   }
-  links.push(search);
-  return links;
+  return withOptionalSearch(links);
 }
 
 export interface FooterEntry {
