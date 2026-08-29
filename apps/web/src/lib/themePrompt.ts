@@ -9,27 +9,66 @@ GitPress 是 Git 原生博客平台:内容在用户的 GitHub 数据仓库,主�
 
 ## 你必须遵守的约定
 
-1. 主题根目录有 theme.json: specVersion 为 1, engine 为 "astro", name 为小写短标识(如 "aurora"), 并包含 configSchema。
+1. 主题根目录有 theme.json: specVersion 为 1, engine 为 "astro", name 为小写短标识(如 "aurora"), version 为主题自身的 semver。推荐提供 configSchema(JSON Schema),后台「外观」页会按它生成表单;不是硬性必填,但没有就无法在后台调选项。
 2. 普通 Astro 项目,可通过 \`npx astro build\` 构建。astro.config 的 site / base 必须读取 gitpress.config.json 里的 site.url 与 site.basePath(GitHub Pages 项目站 base 是 "/仓库名/")。
 3. 构建时这些挂载点不可改、也不要在文档里让我手动复制:
    - 数据仓库 gitpress.json → 主题内 gitpress.config.json
-   - 数据仓库 content/ → 主题内 user-content/
+   - 数据仓库 content/ → 主题内 user-content/(其中 content/posts/ → user-content/posts/, content/pages/ → user-content/pages/)
    - 数据仓库 media/ → 主题内 public/media/
-4. 用 Astro content collections 读 user-content/ 下的 posts 与 pages。draft: true 或没有 date 的文章不得出现在公开构建;仅当环境变量 GITPRESS_INCLUDE_DRAFTS=true 时才包含草稿。
+4. 用 Astro content collections 读 user-content/ 下的 posts 与 pages。
 5. 从 gitpress.config.json 读取 site 与 theme.config。theme.config 缺省键必须有默认值。
-6. 不要实现 gitpress-build.json、Service Worker、vercel.json 缓存头——构建 Action 会注入,用来让访客换主题后不必强制刷新。
+6. 不要实现 gitpress-build.json、Service Worker、vercel.json 缓存头、sitemap.xml、robots.txt、pagefind 索引——构建 Action 会注入。
 7. 不要把 Logo / 头像写进 theme.config。它们是站点级字段 site.logo、site.avatar(路径通常为 /media/...),换主题不能丢。主题用 configSchema 开关控制是否显示。
+
+## 文章(posts)与页面(pages)
+
+文章在 user-content/posts/*.md,公开地址是 /posts/{slug}/。frontmatter:
+- title(必填)
+- date:ISO 8601 本地时间,如 2026-08-30T14:05:00;仅日期 2026-08-30 也兼容。没有 date、draft: true、或 date 晚于构建时刻,都不得出现在公开构建。仅当环境变量 GITPRESS_INCLUDE_DRAFTS=true 时才包含这些文章。
+- updated、draft、tags、categories、description、cover、slug、redirectFrom 可选。
+- slug 覆盖由文件名推导的标识;redirectFrom 是旧 slug 列表,主题必须为每个旧 slug 再生成一条静态跳转(Astro.redirect 301)到当前地址。
+
+独立页面在 user-content/pages/*.md,公开地址是 /{slug}/(不是 /posts/)。frontmatter 只有 title(必填)、description?、slug?、redirectFrom?。页面没有草稿、没有日期,始终进入公开构建。不要用文章的 draft/date 规则过滤页面。
+
+slug 缺省由文件名推导。未知 frontmatter 键用 .passthrough() 原样保留。
+
+## 路由(必须实现)
+
+- 首页分页:/ 与 /{n}/,每页条数 site.postsPerPage(缺省 10)
+- 文章:/posts/{slug}/
+- 独立页面:/{slug}/
+- 分类归档:/categories/{slug}/(分页)
+- 标签归档:/tags/{tag}/
+- RSS:/rss.xml(建议取最新 20 篇)
+- 搜索页:/search/(见下方)。不要占用 posts、categories、tags、rss、archive、media、search 这些根路径当页面 slug。
 
 ## 导航与页脚
 
 - 若存在 site.nav,顶栏必须严格按该数组渲染(type: home | rss | category | page | link),用每项可选的 label 覆盖显示名;不要再额外拼接分类或页面。
-- 若没有 site.nav,隐式顶栏 = 首页 + inNav 不为 false 的分类 + 全部独立页面。首页缺省文案随 site.language:中文「首页」、日文「ホーム」、其它 "Home"。
+- 若没有 site.nav,隐式顶栏 = 首页 + inNav 不为 false 的分类 + 全部独立页面(按 title 字母序)。首页缺省文案随 site.language:中文「首页」、日文「ホーム」、其它 "Home"。
+- 顶栏末尾固定加一项「搜索」,链到 /search/;不要把它做成 site.nav 的一种 type。缺省文案:中文「搜索」、日文「検索」、其它 "Search"。
 - 不要把 RSS 放进默认顶栏。<head> 始终保留 <link rel="alternate" type="application/rss+xml" href="…/rss.xml">,/rss.xml 始终生成。
 - 若存在 site.footer,页脚必须严格按该数组渲染(type: copyright | gitpress | theme | rss | page | link | text)。copyright 默认「© {year} 站点名」,不要用 GitHub 用户名;{year} 构建时替换。gitpress 链到 https://gitpress.net(rel=generator)。theme 链到本主题 theme.json 的 homepage(没有 homepage 则跳过该槽)。rss 链到 /rss.xml。自定义只有 page / link / text。不认识的 type:有 url+label 当外链,只有 label 当纯文本,否则跳过。
 - 若没有 site.footer,默认页脚 = 版权 + GitPress + 主题署名(有 homepage 时) + RSS。每一项站长都可以关掉。
-- 若存在 site.beian.icp / site.beian.gongan,追加在页脚末尾。ICP 链 https://beian.miit.gov.cn/;公安备案显示盾牌,链 https://beian.mps.gov.cn/#/query/webSearch?recordcode={号}。不要把备案写进 theme.config。
+- 若存在 site.beian.icp / site.beian.gongan,追加在页脚末尾。ICP 链 https://beian.miit.gov.cn/;公安备案显示盾牌,文案「公网安备 {号}号」,链 https://beian.mps.gov.cn/#/query/webSearch?recordcode={号}。不要把备案写进 theme.config。
 - theme.json 请提供 homepage(开源仓库或介绍页)。
 - 原样插入 site.analyticsSnippet 到 </head> 前。
+- 若存在 site.commentsSnippet,在每篇**文章**正文下方原样渲染(独立页面默认不渲染)。
+
+## SEO(主题必须输出,sitemap/robots 由 Action 注入)
+
+每页 <head> 提供:
+- <link rel="canonical">
+- Open Graph: og:type(文章 article,其它 website)、og:title、og:description、og:url、有封面或 logo 时 og:image
+- Twitter Card: summary_large_image 或 summary
+- 文章页 article:published_time
+- JSON-LD:文章 BlogPosting,其它页 WebSite
+
+封面、canonical、og:image 尽量用 site.url 拼成绝对地址。文章页把 cover / type="article" / publishedTime 传给布局。
+
+## 搜索
+
+提供 /search/ 页,用 Pagefind UI(不要把 pagefind 写进 package.json)。构建 Action 会在 dist/ 上跑 pagefind,产物在 /pagefind/pagefind-ui.js 与 pagefind-ui.css。用 withBase 拼路径,并设置 bundlePath。正文容器加 data-pagefind-body;页眉页脚加 data-pagefind-ignore。本地预览没有索引时给一句降级说明即可。
 
 ## 主题选项(configSchema)
 
@@ -45,9 +84,7 @@ JSON Schema 会出现在 GitPress 后台「外观」页。请提供并在布局�
 
 ## 建议的仓库布局
 
-theme.json、package.json、astro.config.mjs、src/layouts、src/pages(首页分页、文章、页面、分类归档、rss.xml)、src/lib/gitpress.ts(读配置、withBase、buildNav、buildFooter)、src/styles。
-
-RSS、sitemap、分页大小用 site.postsPerPage(缺省 10)。
+theme.json、package.json、astro.config.mjs、src/layouts/Base.astro、src/pages(首页分页、文章、页面、分类归档、标签归档、rss.xml、search)、src/lib/gitpress.ts(读配置、withBase、buildNav、buildFooter、getPublishedPosts)、src/components/SearchBox.astro、src/styles。
 
 ## 先问我
 

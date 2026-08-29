@@ -1,33 +1,58 @@
 ---
 import { render } from "astro:content";
 import Base from "../../layouts/Base.astro";
-import { getPublishedPosts, postSlug, formatDate, withBase, type Post } from "../../lib/gitpress";
+import { getPublishedPosts, postSlug, formatDate, withBase, gitpress, type Post } from "../../lib/gitpress";
 
 export async function getStaticPaths() {
   const posts = await getPublishedPosts();
-  return posts.map((post) => ({ params: { slug: postSlug(post) }, props: { post } }));
+  const real = posts.map((post) => ({
+    params: { slug: postSlug(post) },
+    props: { post, redirectTo: null as string | null },
+  }));
+  const redirects = posts.flatMap((post) => {
+    const current = postSlug(post);
+    return (post.data.redirectFrom ?? [])
+      .map(String)
+      .filter((oldSlug) => oldSlug && oldSlug !== current)
+      .map((oldSlug) => ({
+        params: { slug: oldSlug },
+        props: { post: null as Post | null, redirectTo: withBase(`/posts/${current}/`) },
+      }));
+  });
+  return [...real, ...redirects];
 }
 
 interface Props {
-  post: Post;
+  post: Post | null;
+  redirectTo: string | null;
 }
 
-const { post } = Astro.props;
+const { post, redirectTo } = Astro.props;
+if (redirectTo) return Astro.redirect(redirectTo, 301);
+if (!post) return Astro.redirect(withBase("/"), 302);
 const { Content } = await render(post);
 ---
 
-<Base title={post.data.title} description={post.data.description}>
+<Base
+  title={post.data.title}
+  description={post.data.description}
+  cover={post.data.cover}
+  type="article"
+  publishedTime={post.data.date?.toISOString()}
+>
   <article>
-    <header class="article-header">
-      <p class="post-meta">
-        {formatDate(post.data.date)}
-        {post.data.draft && " · DRAFT"}
-      </p>
-      <h1>{post.data.title}</h1>
-    </header>
-    {post.data.cover && <img class="article-cover" src={withBase(post.data.cover)} alt="" />}
-    <div class="prose">
-      <Content />
+    <div data-pagefind-body>
+      <header class="article-header">
+        <p class="post-meta">
+          {formatDate(post.data.date)}
+          {post.data.draft && " · DRAFT"}
+        </p>
+        <h1>{post.data.title}</h1>
+      </header>
+      {post.data.cover && <img class="article-cover" src={withBase(post.data.cover)} alt="" />}
+      <div class="prose">
+        <Content />
+      </div>
     </div>
     {
       post.data.tags?.length ? (
@@ -37,6 +62,13 @@ const { Content } = await render(post);
           ))}
         </nav>
       ) : null
+    }
+    {
+      gitpress.site.commentsSnippet && (
+        <div id="gitpress-comments" class="comments">
+          <Fragment set:html={gitpress.site.commentsSnippet} />
+        </div>
+      )
     }
   </article>
 </Base>

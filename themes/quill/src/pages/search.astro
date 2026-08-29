@@ -1,0 +1,14 @@
+---
+import Base from "../layouts/Base.astro";
+import SearchBox from "../components/SearchBox.astro";
+import { searchLabel } from "../lib/gitpress";
+
+const heading = searchLabel();
+---
+
+<Base title={heading} description={heading}>
+  <article>
+    <h1 class="page-heading">{heading}</h1>
+    <SearchBox />
+  </article>
+</Base>

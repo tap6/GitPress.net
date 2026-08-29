@@ -5,6 +5,7 @@ import { FooterForm } from "@/components/FooterForm";
 import { rotateDeployKeyAction } from "@/lib/actions";
 import { AiSettingsForm } from "@/components/AiSettingsForm";
 import { ProgressButton } from "@/components/ProgressButton";
+import { CommentsForm } from "@/components/CommentsForm";
 import { SettingsForm } from "@/components/SettingsForm";
 import { SettingsPanel, SettingsWorkspace } from "@/components/SettingsWorkspace";
 import { getAiConfig } from "@/lib/ai";
@@ -38,6 +39,8 @@ export default async function SettingsPage({
   const pagesSite = await getPagesSite(octokit, splitRepo(site.siteRepo));
   const analyticsSnippet =
     typeof config?.site.analyticsSnippet === "string" ? config.site.analyticsSnippet : "";
+  const commentsSnippet =
+    typeof config?.site.commentsSnippet === "string" ? config.site.commentsSnippet : "";
   const author = typeof config?.site.author === "string" ? config.site.author : "";
   const logo = typeof config?.site.logo === "string" ? config.site.logo : "";
   const avatar = typeof config?.site.avatar === "string" ? config.site.avatar : "";
@@ -68,6 +71,13 @@ export default async function SettingsPage({
               analyticsSnippet,
             }}
           />
+        </section>
+      </SettingsPanel>
+
+      <SettingsPanel id="comments">
+        <section className="w-full max-w-3xl rounded border border-neutral-200 bg-white shadow-sm">
+          <h2 className="border-b border-neutral-100 px-5 py-3 text-sm font-semibold">评论区</h2>
+          <CommentsForm siteId={site.id} siteRepo={site.siteRepo} initial={commentsSnippet} />
         </section>
       </SettingsPanel>
 

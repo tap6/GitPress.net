@@ -40,6 +40,7 @@ export default async function EditPagePage({
           title: page.title,
           description: page.description,
           body: page.body,
+          slug: page.slug,
         }}
       />
     </div>

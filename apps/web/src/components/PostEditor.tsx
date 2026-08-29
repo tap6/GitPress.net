@@ -64,12 +64,13 @@ interface Props {
     category?: string | null;
     description: string;
     body: string;
+    slug?: string;
   };
 }
 
 export function PostEditor({ siteId, path = "", categories = [], initial }: Props) {
   const [title, setTitle] = useState(initial?.title ?? "");
-  const [slug, setSlug] = useState("");
+  const [slug, setSlug] = useState(initial?.slug ?? "");
   const [date, setDate] = useState(() => datetimeLocalValue(initial?.date, nowLocalDateTime()));
   const [draft, setDraft] = useState(initial?.draft ?? false);
   const [tags, setTags] = useState(initial?.tags.join(", ") ?? "");
@@ -231,14 +232,17 @@ export function PostEditor({ siteId, path = "", categories = [], initial }: Prop
           placeholder="在此输入标题"
           className="w-full shrink-0 rounded border border-neutral-300 bg-white px-4 py-3 text-lg shadow-sm focus:border-wp-accent focus:outline-none"
         />
-        {!path && (
-          <input
-            name="slug"
-            value={slug}
-            onChange={(e) => setSlug(e.target.value)}
-            placeholder="URL 标识(留空由标题自动生成,建议英文)"
-            className="w-full shrink-0 rounded border border-neutral-300 bg-white px-4 py-2 text-sm shadow-sm focus:border-wp-accent focus:outline-none"
-          />
+        <input
+          name="slug"
+          value={slug}
+          onChange={(e) => setSlug(e.target.value)}
+          placeholder="URL 标识(留空由标题自动生成,建议英文)"
+          className="w-full shrink-0 rounded border border-neutral-300 bg-white px-4 py-2 text-sm shadow-sm focus:border-wp-accent focus:outline-none"
+        />
+        {path && (
+          <p className="shrink-0 text-[11px] text-neutral-400">
+            修改后旧链接会自动生成跳转页。文件名不变,公开地址变成 /posts/新标识/。
+          </p>
         )}
         {showLocalDraftHint && (
           <p className="shrink-0 text-[11px] text-neutral-400">

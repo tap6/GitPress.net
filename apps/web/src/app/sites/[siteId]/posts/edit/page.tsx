@@ -42,6 +42,7 @@ export default async function EditPostPage({
           category: post.category,
           description: post.description,
           body: post.body,
+          slug: post.slug,
         }}
       />
     </div>

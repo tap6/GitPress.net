@@ -16,7 +16,9 @@ out/
 
 # injected into themes at build time (by build-action / prepare-local)
 themes/*/gitpress.config.json
+themes/*/user-content/
 themes/*/public/media/
+themes/*/pnpm-lock.yaml
 
 # misc
 .DS_Store

@@ -200,6 +200,8 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+  schedule:
+    - cron: "7 * * * *"
 
 permissions:
   contents: read

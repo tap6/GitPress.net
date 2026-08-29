@@ -1,23 +1,40 @@
 ---
 import { getCollection, render } from "astro:content";
 import Base from "../layouts/Base.astro";
-import { postSlug, type Page } from "../lib/gitpress";
+import { postSlug, withBase, type Page } from "../lib/gitpress";
 
 export async function getStaticPaths() {
   const pages = await getCollection("pages");
-  return pages.map((page) => ({ params: { slug: postSlug(page) }, props: { page } }));
+  const real = pages.map((page) => ({
+    params: { slug: postSlug(page) },
+    props: { page, redirectTo: null as string | null },
+  }));
+  const redirects = pages.flatMap((page) => {
+    const current = postSlug(page);
+    return (page.data.redirectFrom ?? [])
+      .map(String)
+      .filter((oldSlug) => oldSlug && oldSlug !== current)
+      .map((oldSlug) => ({
+        params: { slug: oldSlug },
+        props: { page: null as Page | null, redirectTo: withBase(`/${current}/`) },
+      }));
+  });
+  return [...real, ...redirects];
 }
 
 interface Props {
-  page: Page;
+  page: Page | null;
+  redirectTo: string | null;
 }
 
-const { page } = Astro.props;
+const { page, redirectTo } = Astro.props;
+if (redirectTo) return Astro.redirect(redirectTo, 301);
+if (!page) return Astro.redirect(withBase("/"), 302);
 const { Content } = await render(page);
 ---
 
 <Base title={page.data.title} description={page.data.description}>
-  <article>
+  <article data-pagefind-body>
     <h1 class="page-heading">{page.data.title}</h1>
     <div class="prose">
       <Content />

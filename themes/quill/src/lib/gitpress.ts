@@ -34,6 +34,7 @@ interface SiteInfo {
   basePath?: string;
   author?: string;
   analyticsSnippet?: string;
+  commentsSnippet?: string;
   logo?: string;
   avatar?: string;
   categories?: SiteCategory[];
@@ -117,9 +118,14 @@ export function categoryLabel(slug: string): string {
 
 export async function getPublishedPosts(): Promise<Post[]> {
   const includeDrafts = process.env.GITPRESS_INCLUDE_DRAFTS === "true";
+  const now = Date.now();
   const posts = await getCollection("posts");
   return posts
-    .filter((p) => includeDrafts || (p.data.draft !== true && p.data.date != null))
+    .filter((p) => {
+      if (includeDrafts) return true;
+      if (p.data.draft === true || p.data.date == null) return false;
+      return p.data.date.getTime() <= now;
+    })
     .sort(
       (a, b) =>
         (b.data.date ? b.data.date.getTime() : 0) - (a.data.date ? a.data.date.getTime() : 0),
@@ -181,6 +187,46 @@ export function mediaHref(path?: string): string | undefined {
   return withBase(path.startsWith("/") ? path : `/${path}`);
 }
 
+export function searchLabel(override?: string): string {
+  if (override && override.trim()) return override.trim();
+  const lang = (gitpress.site.language ?? "en").toLowerCase();
+  if (lang.startsWith("zh")) return "搜索";
+  if (lang.startsWith("ja")) return "検索";
+  return "Search";
+}
+
+function siteOrigin(): string | undefined {
+  const raw = gitpress.site.url?.trim();
+  if (!raw) return undefined;
+  return raw.endsWith("/") ? raw : `${raw}/`;
+}
+
+/** Absolute canonical URL for the current page path (already includes base). */
+export function pageCanonicalUrl(pathname: string): string | undefined {
+  const origin = siteOrigin();
+  if (!origin) return undefined;
+  try {
+    return new URL(pathname, origin).href;
+  } catch {
+    return undefined;
+  }
+}
+
+/** Turn a site-relative or /media path into an absolute URL when site.url is set. */
+export function pageAbsoluteUrl(path?: string): string | undefined {
+  if (!path) return undefined;
+  const href = mediaHref(path);
+  if (!href) return undefined;
+  if (/^https?:\/\//i.test(href) || href.startsWith("data:")) return href;
+  const origin = siteOrigin();
+  if (!origin) return href;
+  try {
+    return new URL(href, origin).href;
+  } catch {
+    return href;
+  }
+}
+
 export interface NavLink {
   href: string;
   label: string;
@@ -210,6 +256,7 @@ export function buildNav(pages: Page[]): NavLink[] {
         .sort((a, b) => a.data.title.localeCompare(b.data.title))
         .map((p) => ({ href: withBase(`/${postSlug(p)}/`), label: p.data.title })),
       archive,
+      { href: withBase("/search/"), label: searchLabel() },
     ];
   }
   const links: NavLink[] = [];
@@ -232,6 +279,7 @@ export function buildNav(pages: Page[]): NavLink[] {
     }
   }
   links.push(archive);
+  links.push({ href: withBase("/search/"), label: searchLabel() });
   return links;
 }
 

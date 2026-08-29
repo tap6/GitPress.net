@@ -12,9 +12,9 @@ import {
   deleteMedia,
   deletePage,
   deletePost,
+  findSlugConflict,
   getSiteConfig,
   isPagePath,
-  isReservedPageSlug,
   parseTagList,
   savePage,
   saveSiteBeian,
@@ -159,9 +159,12 @@ export async function savePostAction(
 
   const existingPath = String(formData.get("path") ?? "");
   const isNew = !existingPath;
-  const path = existingPath || `content/posts/${slugify(String(formData.get("slug") ?? "") || title)}.md`;
+  const requestedSlug = slugify(String(formData.get("slug") ?? "") || title);
+  const path = existingPath || `content/posts/${requestedSlug}.md`;
 
   const octokit = await getInstallationOctokit(installation.installationId);
+  const slugConflict = await findSlugConflict(octokit, site.dataRepo, "post", requestedSlug, existingPath || undefined);
+  if (slugConflict) return { error: slugConflict };
   const mediaFiles = formData.getAll("media");
   const media: Array<{ name: string; base64: string }> = [];
   let batchBytes = 0;
@@ -185,7 +188,7 @@ export async function savePostAction(
       octokit,
       site.dataRepo,
       path,
-      { title, date, draft, tags, category, description, body },
+      { title, date, draft, tags, category, description, body, slug: requestedSlug },
       isNew,
       media,
     );
@@ -234,13 +237,12 @@ export async function savePageAction(
   const existingPath = String(formData.get("path") ?? "");
   const isNew = !existingPath;
   const slug = slugify(String(formData.get("slug") ?? "") || title, "page");
-  if (isNew && isReservedPageSlug(slug)) {
-    return { error: "这个标识和站点已有路径冲突,请换一个。" };
-  }
   const path = existingPath || `content/pages/${slug}.md`;
   if (!isPagePath(path)) return { error: "无效的页面路径。" };
 
   const octokit = await getInstallationOctokit(installation.installationId);
+  const slugConflict = await findSlugConflict(octokit, site.dataRepo, "page", slug, existingPath || undefined);
+  if (slugConflict) return { error: slugConflict };
   const mediaFiles = formData.getAll("media");
   const media: Array<{ name: string; base64: string }> = [];
   let batchBytes = 0;
@@ -260,7 +262,7 @@ export async function savePageAction(
   }
 
   try {
-    await savePage(octokit, site.dataRepo, path, { title, description, body }, isNew, media);
+    await savePage(octokit, site.dataRepo, path, { title, description, body, slug }, isNew, media);
     if (isNew && formData.get("addToNav") === "on") {
       await addPageToNav(octokit, site.dataRepo, slug);
     }
@@ -708,6 +710,38 @@ export async function saveSettingsAction(
   }
 
   await db.update(sites).set({ name, description, language }).where(eq(sites.id, siteId));
+  revalidateSiteData(site.dataRepo, [`/sites/${siteId}/settings`, `/sites/${siteId}`]);
+  return { saved: true };
+}
+
+export interface SaveCommentsState {
+  error?: string;
+  saved?: boolean;
+}
+
+export async function saveCommentsAction(
+  _prev: SaveCommentsState,
+  formData: FormData,
+): Promise<SaveCommentsState> {
+  const siteId = String(formData.get("siteId"));
+  const { site, installation } = await requireSite(siteId);
+  const commentsSnippet = String(formData.get("commentsSnippet") ?? "").trim();
+
+  const octokit = await getInstallationOctokit(installation.installationId);
+  try {
+    await updateSiteConfig(
+      octokit,
+      site.dataRepo,
+      (config) => {
+        if (commentsSnippet) config.site.commentsSnippet = commentsSnippet;
+        else delete config.site.commentsSnippet;
+      },
+      "Update comments",
+    );
+  } catch (error) {
+    return { error: `保存失败:${error instanceof Error ? error.message : String(error)}` };
+  }
+
   revalidateSiteData(site.dataRepo, [`/sites/${siteId}/settings`, `/sites/${siteId}`]);
   return { saved: true };
 }

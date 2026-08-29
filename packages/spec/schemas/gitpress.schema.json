@@ -69,6 +69,10 @@
           "type": "string",
           "description": "Raw HTML/script snippet (GA4, Umami, Plausible, Clarity, ...) inserted verbatim before </head> on every page. Empty/absent means no analytics are injected."
         },
+        "commentsSnippet": {
+          "type": "string",
+          "description": "Raw embed snippet (e.g. from giscus.app) rendered under each post's body. Empty/absent means no comments."
+        },
         "nav": {
           "type": "array",
           "description": "Explicit, ordered top-nav menu maintained by the site owner. When present, this is the only source of truth for the generated site's navigation (including whether Home/RSS appear at all). When absent, themes fall back to Home + inNav categories + pages; RSS belongs in the footer unless the owner adds it here. Item labels may be overridden; default Home/RSS copy should follow site.language.",

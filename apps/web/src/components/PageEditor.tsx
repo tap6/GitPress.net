@@ -58,12 +58,13 @@ interface Props {
     title: string;
     description: string;
     body: string;
+    slug?: string;
   };
 }
 
 export function PageEditor({ siteId, path = "", hasCustomNav = false, initial }: Props) {
   const [title, setTitle] = useState(initial?.title ?? "");
-  const [slug, setSlug] = useState("");
+  const [slug, setSlug] = useState(initial?.slug ?? "");
   const [description, setDescription] = useState(initial?.description ?? "");
   const [body, setBody] = useState(initial?.body ?? "");
   const [addToNav, setAddToNav] = useState(true);
@@ -203,14 +204,17 @@ export function PageEditor({ siteId, path = "", hasCustomNav = false, initial }:
           placeholder="在此输入标题"
           className="w-full shrink-0 rounded border border-neutral-300 bg-white px-4 py-3 text-lg shadow-sm focus:border-wp-accent focus:outline-none"
         />
-        {!path && (
-          <input
-            name="slug"
-            value={slug}
-            onChange={(e) => setSlug(e.target.value)}
-            placeholder="URL 标识,如 about(留空由标题生成)。公开地址是 /标识/"
-            className="w-full shrink-0 rounded border border-neutral-300 bg-white px-4 py-2 text-sm shadow-sm focus:border-wp-accent focus:outline-none"
-          />
+        <input
+          name="slug"
+          value={slug}
+          onChange={(e) => setSlug(e.target.value)}
+          placeholder="URL 标识,如 about(留空由标题生成)。公开地址是 /标识/"
+          className="w-full shrink-0 rounded border border-neutral-300 bg-white px-4 py-2 text-sm shadow-sm focus:border-wp-accent focus:outline-none"
+        />
+        {path && (
+          <p className="shrink-0 text-[11px] text-neutral-400">
+            修改后旧链接会自动生成跳转页,顶栏/页脚里指向本页的项也会跟着改。
+          </p>
         )}
         {showLocalDraftHint && (
           <p className="shrink-0 text-[11px] text-neutral-400">

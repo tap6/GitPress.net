@@ -130,6 +130,11 @@ export interface SiteInfo {
    */
   analyticsSnippet?: string;
   /**
+   * Raw embed snippet (e.g. from giscus.app) that themes render under each
+   * post's body. Empty/absent means no comments.
+   */
+  commentsSnippet?: string;
+  /**
    * Explicit, ordered top-nav menu maintained by the site owner: which items
    * appear (including whether "Home" or "RSS" show up at all), in what
    * order, and under what label. This is the *only* source of truth for the
@@ -231,6 +236,8 @@ export interface PostFrontmatter {
   cover?: string;
   /** Overrides the filename-derived slug. */
   slug?: string;
+  /** Previous slugs this post/page used to live at; themes emit static redirect stubs for each. */
+  redirectFrom?: string[];
   [key: string]: unknown;
 }
 

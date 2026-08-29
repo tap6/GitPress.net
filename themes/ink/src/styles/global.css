@@ -342,6 +342,16 @@ a:hover {
   margin: 2.5em 0;
 }
 
+.comments {
+  margin-top: 2.5rem;
+}
+
+.search-fallback {
+  margin-top: 0.75rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
 .tag-list {
   margin-top: 2rem;
   display: flex;

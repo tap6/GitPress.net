@@ -164,6 +164,8 @@ log("Astro build succeeded.");
 
 const buildId = (process.env.GITHUB_SHA ?? `local-${Date.now()}`).slice(0, 12);
 injectVisitorCacheBust(distDir, buildId, config.site?.basePath);
+indexSiteSearch(distDir);
+generateSitemapAndRobots(distDir, config.site?.url, config.site?.basePath);
 
 // ---------------------------------------------------------------------------
 // 5. Publish dist/ to the site repository
@@ -264,6 +266,62 @@ function posixPrefix(basePath) {
   if (!basePath || basePath === "/") return "";
   const value = String(basePath);
   return value.endsWith("/") ? value.slice(0, -1) : value;
+}
+
+function indexSiteSearch(distDir) {
+  try {
+    run("npx", ["-y", "pagefind", "--site", distDir]);
+    log("Pagefind search index written to pagefind/.");
+  } catch (error) {
+    log(`Pagefind indexing skipped: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
+function htmlFileToPath(distDir, file, basePath) {
+  const relative = file.slice(distDir.length).replace(/\\/g, "/").replace(/^\//, "");
+  let pathname = relative.endsWith("index.html")
+    ? relative.slice(0, -"index.html".length)
+    : relative.replace(/\.html$/, "");
+  if (!pathname.startsWith("/")) pathname = `/${pathname}`;
+  if (pathname !== "/" && !pathname.endsWith("/")) pathname += "/";
+  const prefix = posixPrefix(basePath);
+  if (prefix && pathname.startsWith(`${prefix}/`)) {
+    // Already includes the site base (Astro wrote it into the folder layout).
+    return pathname;
+  }
+  return pathname;
+}
+
+function generateSitemapAndRobots(distDir, siteUrl, basePath) {
+  const origin = typeof siteUrl === "string" ? siteUrl.trim().replace(/\/$/, "") : "";
+  const files = walkHtmlFiles(distDir).filter((file) => {
+    const relative = file.slice(distDir.length).replace(/\\/g, "/");
+    return !relative.includes("/pagefind/");
+  });
+  const paths = [...new Set(files.map((file) => htmlFileToPath(distDir, file, basePath)))].sort();
+  const locs = paths.map((pathname) => (origin ? `${origin}${pathname}` : pathname));
+  const body = [
+    `<?xml version="1.0" encoding="UTF-8"?>`,
+    `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">`,
+    ...locs.map((loc) => `  <url><loc>${escapeXml(loc)}</loc></url>`),
+    `</urlset>`,
+    ``,
+  ].join("\n");
+  writeFileSync(join(distDir, "sitemap.xml"), body);
+  const robots = ["User-agent: *", "Allow: /"];
+  if (origin) robots.push(`Sitemap: ${origin}/sitemap.xml`);
+  robots.push("");
+  writeFileSync(join(distDir, "robots.txt"), robots.join("\n"));
+  log(`Wrote sitemap.xml (${locs.length} URL${locs.length === 1 ? "" : "s"}) and robots.txt.`);
+}
+
+function escapeXml(value) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&apos;");
 }
 
 function walkHtmlFiles(dir) {

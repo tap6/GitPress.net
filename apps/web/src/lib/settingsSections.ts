@@ -2,6 +2,7 @@ export const SETTINGS_SECTION_EVENT = "gitpress:settings-section";
 
 export const SETTINGS_SECTIONS = [
   { id: "general", label: "常规" },
+  { id: "comments", label: "评论区" },
   { id: "brand", label: "品牌" },
   { id: "footer", label: "页脚" },
   { id: "beian", label: "备案" },

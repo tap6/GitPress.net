@@ -14,6 +14,7 @@ const posts = defineCollection({
       description: z.string().optional(),
       cover: z.string().optional(),
       slug: z.string().optional(),
+      redirectFrom: z.array(z.string()).optional(),
     })
     .passthrough(),
 });
@@ -25,6 +26,7 @@ const pages = defineCollection({
       title: z.string(),
       description: z.string().optional(),
       slug: z.string().optional(),
+      redirectFrom: z.array(z.string()).optional(),
     })
     .passthrough(),
 });

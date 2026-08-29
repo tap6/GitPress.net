@@ -1,16 +1,41 @@
 ---
 import { getCollection } from "astro:content";
-import { gitpress, themeConfig, withBase, buildNav, buildFooter, mediaHref } from "../lib/gitpress";
+import { gitpress, themeConfig, withBase, buildNav, buildFooter, mediaHref, pageCanonicalUrl, pageAbsoluteUrl } from "../lib/gitpress";
 import "../styles/global.css";
 
 interface Props {
   title?: string;
   description?: string;
+  cover?: string;
+  type?: "website" | "article";
+  publishedTime?: string;
 }
 
-const { title, description } = Astro.props;
+const { title, description, cover, type = "website", publishedTime } = Astro.props;
 const site = gitpress.site;
 const pageTitle = title ? `${title} · ${site.title}` : site.title;
+const desc = description ?? site.description ?? "";
+const canonicalUrl = pageCanonicalUrl(Astro.url.pathname);
+const ogImageHref = pageAbsoluteUrl(cover) ?? pageAbsoluteUrl(site.logo) ?? pageAbsoluteUrl(site.avatar);
+const jsonLd =
+  type === "article"
+    ? {
+        "@context": "https://schema.org",
+        "@type": "BlogPosting",
+        headline: title ?? site.title,
+        description: desc || undefined,
+        datePublished: publishedTime,
+        image: ogImageHref,
+        url: canonicalUrl,
+        author: site.author ? { "@type": "Person", name: site.author } : undefined,
+      }
+    : {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        name: site.title,
+        description: desc || undefined,
+        url: site.url || canonicalUrl,
+      };
 const navPages = await getCollection("pages");
 const navLinks = buildNav(navPages);
 const footerEntries = buildFooter(navPages);
@@ -29,8 +54,19 @@ const faviconHref = logoHref ?? avatarHref;
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{pageTitle}</title>
-    <meta name="description" content={description ?? site.description ?? ""} />
+    <meta name="description" content={desc} />
     <meta name="generator" content="GitPress" />
+    {canonicalUrl && <link rel="canonical" href={canonicalUrl} />}
+    <meta property="og:type" content={type} />
+    <meta property="og:title" content={pageTitle} />
+    <meta property="og:description" content={desc} />
+    {canonicalUrl && <meta property="og:url" content={canonicalUrl} />}
+    {ogImageHref && <meta property="og:image" content={ogImageHref} />}
+    <meta name="twitter:card" content={ogImageHref ? "summary_large_image" : "summary"} />
+    <meta name="twitter:title" content={pageTitle} />
+    <meta name="twitter:description" content={desc} />
+    {publishedTime && <meta property="article:published_time" content={publishedTime} />}
+    <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
     <link
       rel="alternate"
       type="application/rss+xml"
@@ -54,7 +90,7 @@ const faviconHref = logoHref ?? avatarHref;
     </script>
   </head>
   <body>
-    <header class="site-header">
+    <header class="site-header" data-pagefind-ignore>
       <div class="site-brand">
         {showAvatar && avatarHref && <img class="site-avatar" src={avatarHref} alt="" width="48" height="48" />}
         <div class="site-brand-copy">
@@ -94,7 +130,7 @@ const faviconHref = logoHref ?? avatarHref;
     <main class="site-main">
       <slot />
     </main>
-    <footer class="site-footer">
+    <footer class="site-footer" data-pagefind-ignore>
       {
         footerEntries.length > 0 && (
           <ul class="site-footer-list">

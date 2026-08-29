@@ -25,6 +25,8 @@ export interface PostSummary {
   /** Single-select category slug (stored as the first element of the `categories` array). */
   category: string | null;
   description: string;
+  /** Public URL slug (frontmatter.slug or filename). */
+  slug: string;
 }
 
 export interface PostDetail extends PostSummary {
@@ -62,6 +64,7 @@ function summarize(path: string, file: string, text: string): PostSummary {
     tags: Array.isArray(data.tags) ? data.tags.map(String) : [],
     category: categories[0] ?? null,
     description: typeof data.description === "string" ? data.description : "",
+    slug: effectiveSlugFromMatter(data, file.replace(/\.md$/, "")),
   };
 }
 
@@ -87,6 +90,8 @@ export interface SavePostInput {
   category?: string;
   description: string;
   body: string;
+  /** Public URL slug. Written to frontmatter only when it differs from the filename. */
+  slug?: string;
 }
 
 export function slugify(input: string, emptyPrefix = "post"): string {
@@ -96,6 +101,70 @@ export function slugify(input: string, emptyPrefix = "post"): string {
     .replace(/[^\p{Letter}\p{Number}]+/gu, "-")
     .replace(/^-+|-+$/g, "");
   return slug || `${emptyPrefix}-${Date.now()}`;
+}
+
+function fileSlugFromPath(path: string): string {
+  return (path.split("/").pop() ?? path).replace(/\.md$/, "");
+}
+
+function effectiveSlugFromMatter(data: Record<string, unknown>, fallback: string): string {
+  return typeof data.slug === "string" && data.slug.trim() ? data.slug.trim() : fallback;
+}
+
+function redirectFromList(data: Record<string, unknown>): string[] {
+  if (!Array.isArray(data.redirectFrom)) return [];
+  return [...new Set(data.redirectFrom.map(String).map((item) => item.trim()).filter(Boolean))];
+}
+
+function applySlugChange(
+  frontmatter: Record<string, unknown>,
+  path: string,
+  nextSlug: string | undefined,
+): void {
+  const fileSlug = fileSlugFromPath(path);
+  const current = effectiveSlugFromMatter(frontmatter, fileSlug);
+  const requested = nextSlug?.trim() ? slugify(nextSlug) : fileSlug;
+
+  if (requested !== current) {
+    const previous = redirectFromList(frontmatter);
+    if (current && !previous.includes(current)) previous.push(current);
+    const next = previous.filter((item) => item !== requested);
+    if (next.length > 0) frontmatter.redirectFrom = next;
+    else delete frontmatter.redirectFrom;
+  }
+
+  if (requested !== fileSlug) frontmatter.slug = requested;
+  else delete frontmatter.slug;
+}
+
+export async function findSlugConflict(
+  octokit: Octokit,
+  dataRepo: string,
+  kind: "post" | "page",
+  slug: string,
+  currentPath?: string,
+): Promise<string | null> {
+  const normalized = slug.trim();
+  if (!normalized) return "请填写有效的 URL 标识。";
+  if (kind === "page" && isReservedPageSlug(normalized)) {
+    return "这个标识和站点已有路径冲突,请换一个。";
+  }
+  const ref = splitRepo(dataRepo);
+  const dir = kind === "post" ? "content/posts" : "content/pages";
+  const files = await listDirectory(octokit, ref, dir);
+  for (const file of files.filter((item) => item.name.endsWith(".md"))) {
+    if (currentPath && file.path === currentPath) continue;
+    const raw = await getFileText(octokit, ref, file.path);
+    if (!raw) continue;
+    const { data } = matter(raw.text);
+    const fileSlug = file.name.replace(/\.md$/, "");
+    const effective = effectiveSlugFromMatter(data as Record<string, unknown>, fileSlug);
+    const aliases = redirectFromList(data as Record<string, unknown>);
+    if (effective === normalized || aliases.includes(normalized)) {
+      return kind === "post" ? `标识「${normalized}」已被其它文章占用。` : `标识「${normalized}」已被其它页面占用。`;
+    }
+  }
+  return null;
 }
 
 export async function savePost(
@@ -123,6 +192,7 @@ export async function savePost(
   else delete frontmatter.categories;
   if (input.description) frontmatter.description = input.description;
   else delete frontmatter.description;
+  applySlugChange(frontmatter, path, input.slug);
 
   const text = matter.stringify(`\n${input.body.trim()}\n`, frontmatter);
   const files = [
@@ -351,6 +421,7 @@ export const RESERVED_PAGE_SLUGS = new Set([
   "rss.xml",
   "archive",
   "media",
+  "search",
 ]);
 
 export function isReservedPageSlug(slug: string): boolean {
@@ -427,6 +498,8 @@ export interface SavePageInput {
   title: string;
   description: string;
   body: string;
+  /** Public URL slug. Written to frontmatter only when it differs from the filename. */
+  slug?: string;
 }
 
 export async function savePage(
@@ -445,10 +518,15 @@ export async function savePage(
   }
   const existing = isNew ? null : await getFileText(octokit, ref, path);
   const frontmatter: Record<string, unknown> = existing ? matter(existing.text).data : {};
+  const previousSlug = existing
+    ? effectiveSlugFromMatter(frontmatter, fileSlugFromPath(path))
+    : fileSlugFromPath(path);
 
   frontmatter.title = input.title;
   if (input.description) frontmatter.description = input.description;
   else delete frontmatter.description;
+  applySlugChange(frontmatter, path, input.slug);
+  const nextSlug = effectiveSlugFromMatter(frontmatter, fileSlugFromPath(path));
 
   const text = matter.stringify(`\n${input.body.trim()}\n`, frontmatter);
   const files = [
@@ -463,6 +541,9 @@ export async function savePage(
       ? `${isNew ? "Add" : "Update"} page: ${input.title} (+${media.length} image${media.length === 1 ? "" : "s"})`
       : `${isNew ? "Add" : "Update"} page: ${input.title}`;
   await commitFiles(octokit, ref, files, message);
+  if (!isNew && previousSlug !== nextSlug) {
+    await renamePageInChrome(octokit, dataRepo, previousSlug, nextSlug);
+  }
 }
 
 /** Append a page to an already-saved top nav. No-op when nav is still implicit. */
@@ -494,6 +575,33 @@ function chromeHasPage(items: unknown, slug: string): boolean {
         (item as { type?: string }).type === "page" &&
         (item as { slug?: string }).slug === slug,
     )
+  );
+}
+
+async function renamePageInChrome(
+  octokit: Octokit,
+  dataRepo: string,
+  from: string,
+  to: string,
+): Promise<void> {
+  const config = await getSiteConfig(octokit, dataRepo);
+  if (!chromeHasPage(config?.site.nav, from) && !chromeHasPage(config?.site.footer, from)) return;
+  await updateSiteConfig(
+    octokit,
+    dataRepo,
+    (next) => {
+      if (Array.isArray(next.site.nav)) {
+        next.site.nav = (next.site.nav as NavItem[])
+          .map((item) => (item.type === "page" && item.slug === from ? { ...item, slug: to } : item))
+          .map(persistNavItem);
+      }
+      if (Array.isArray(next.site.footer)) {
+        next.site.footer = (next.site.footer as FooterItem[])
+          .map((item) => (item.type === "page" && item.slug === from ? { ...item, slug: to } : item))
+          .map(persistFooterItem);
+      }
+    },
+    "Update menu",
   );
 }
 
