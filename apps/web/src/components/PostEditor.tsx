@@ -13,6 +13,33 @@ import {
 } from "@/lib/localDraft";
 import { clearPendingMedia, writePendingMedia } from "@/lib/pendingMedia";
 
+function isDesktopEditorViewport(): boolean {
+  return window.matchMedia("(min-width: 1024px)").matches;
+}
+
+function editorFillStorageKey(): string {
+  return isDesktopEditorViewport() ? "gitpress.editor.fill.desktop" : "gitpress.editor.fill.mobile";
+}
+
+function readEditorFill(): boolean {
+  try {
+    const stored = localStorage.getItem(editorFillStorageKey());
+    if (stored === "1") return true;
+    if (stored === "0") return false;
+  } catch {
+    /* private mode */
+  }
+  return isDesktopEditorViewport();
+}
+
+function writeEditorFill(next: boolean): void {
+  try {
+    localStorage.setItem(editorFillStorageKey(), next ? "1" : "0");
+  } catch {
+    /* private mode */
+  }
+}
+
 function isNextRedirectError(error: unknown): boolean {
   return (
     typeof error === "object" &&
@@ -54,24 +81,22 @@ export function PostEditor({ siteId, path = "", categories = [], initial }: Prop
   const [summaryError, setSummaryError] = useState<string | null>(null);
   const [pendingCount, setPendingCount] = useState(0);
   const pendingFilesRef = useRef<File[]>([]);
-  const [fillEditor, setFillEditor] = useState(true);
+  const [fillEditor, setFillEditor] = useState(false);
 
   useLayoutEffect(() => {
-    try {
-      if (localStorage.getItem("gitpress.editor.fill") === "0") setFillEditor(false);
-    } catch {
-      /* private mode */
+    setFillEditor(readEditorFill());
+    const media = window.matchMedia("(min-width: 1024px)");
+    function onViewportChange() {
+      setFillEditor(readEditorFill());
     }
+    media.addEventListener("change", onViewportChange);
+    return () => media.removeEventListener("change", onViewportChange);
   }, []);
 
   function toggleFillEditor() {
     setFillEditor((prev) => {
       const next = !prev;
-      try {
-        localStorage.setItem("gitpress.editor.fill", next ? "1" : "0");
-      } catch {
-        /* private mode */
-      }
+      writeEditorFill(next);
       return next;
     });
   }

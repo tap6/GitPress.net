@@ -95,7 +95,12 @@ body {
   height: auto;
   border-radius: 4px;
 }
-/* Fill-mode host: ProseMirror grows with the remaining admin canvas. */
+.gp-editor {
+  min-height: 420px;
+}
+
+/* Fill-mode: a viewport-capped pane. Long posts scroll inside, they must not
+   grow the page (that used to look like "infinite height"). */
 .gp-editor-fill {
   display: flex;
   min-height: 0;
@@ -104,7 +109,6 @@ body {
   overflow: auto;
 }
 .gp-editor-fill .gp-editor {
-  flex: 1 0 auto;
   min-height: 100%;
 }
 

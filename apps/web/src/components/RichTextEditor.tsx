@@ -147,7 +147,7 @@ export function RichTextEditor({
     editorProps: {
       attributes: {
         class:
-          "gp-editor min-h-[420px] w-full max-w-none rounded-b border border-t-0 border-neutral-300 bg-white px-4 py-3 text-sm leading-relaxed focus:outline-none",
+          "gp-editor w-full max-w-none rounded-b border border-t-0 border-neutral-300 bg-white px-4 py-3 text-sm leading-relaxed focus:outline-none",
       },
       handlePaste(_view, event) {
         const files = imageFilesFromList(event.clipboardData?.files);
@@ -347,23 +347,28 @@ export function RichTextEditor({
     function measure() {
       const node = paneRef.current;
       if (!node) return;
-      const main = node.closest("main");
-      const bottom = main ? main.getBoundingClientRect().bottom : window.innerHeight;
+      const viewport = window.visualViewport?.height ?? window.innerHeight;
       const top = node.getBoundingClientRect().top;
-      const next = Math.max(420, Math.floor(bottom - top));
+      const main = node.closest("main");
+      const pad = main ? Number.parseFloat(getComputedStyle(main).paddingBottom) || 16 : 16;
+      const next = Math.max(160, Math.floor(viewport - top - pad));
       setPaneHeight((prev) => (prev === next ? prev : next));
     }
 
     measure();
     const frame = window.requestAnimationFrame(measure);
     window.addEventListener("resize", measure);
-    const observer = new ResizeObserver(measure);
-    const main = pane.closest("main");
-    if (main) observer.observe(main);
+    window.visualViewport?.addEventListener("resize", measure);
+    window.visualViewport?.addEventListener("scroll", measure);
+    const parent = pane.parentElement;
+    const observer = parent ? new ResizeObserver(measure) : null;
+    if (parent && observer) observer.observe(parent);
     return () => {
       window.cancelAnimationFrame(frame);
       window.removeEventListener("resize", measure);
-      observer.disconnect();
+      window.visualViewport?.removeEventListener("resize", measure);
+      window.visualViewport?.removeEventListener("scroll", measure);
+      observer?.disconnect();
     };
   }, [fill, mode, aiError]);
 
@@ -372,8 +377,12 @@ export function RichTextEditor({
       <input type="hidden" name={name} value={markdown} />
       <div
         ref={paneRef}
-        className={fill ? "flex min-h-[70dvh] flex-col overflow-hidden lg:min-h-0" : ""}
-        style={fill && paneHeight != null ? { height: paneHeight } : undefined}
+        className={fill ? "flex min-h-0 flex-col overflow-hidden" : ""}
+        style={
+          fill && paneHeight != null
+            ? { height: paneHeight, maxHeight: paneHeight }
+            : undefined
+        }
       >
       <div className="flex shrink-0 flex-wrap items-center gap-1 rounded-t border border-neutral-300 bg-neutral-50 p-1.5">
         <ToolbarButton
