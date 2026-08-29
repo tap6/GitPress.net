@@ -71,7 +71,7 @@ export function SiteUrlForm({
       <Callout tone="amber" title="先填访客会打开的地址">
         链接和样式路径是编译时写进去的。换成自己的域名，必须在这里保存一次。
         <Link href="/help/custom-domain" className="ml-1 font-medium text-amber-800 underline hover:text-amber-950">
-          各家怎么挂
+          一级、二级怎么填
         </Link>
       </Callout>
 
@@ -102,7 +102,8 @@ export function SiteUrlForm({
             className="mt-1 w-full rounded border border-neutral-300 px-3 py-2 font-mono text-sm focus:border-wp-accent focus:outline-none"
           />
           <span className="mt-1 block text-xs text-neutral-400">
-            自己的域名填 <code className="font-mono">blog.example.com</code>；要回到默认 Pages 就填回{" "}
+            优先填一级域名，例如 <code className="font-mono">example.com</code>。二级、多级也可以，如{" "}
+            <code className="font-mono">blog.example.com</code>。要回到默认 Pages 就填回{" "}
             <code className="break-all font-mono">{defaultUrl}</code>。
           </span>
         </label>

@@ -1,7 +1,7 @@
 # 用户站点的部署方式
 
 GitPress 建站后默认走 GitHub Pages。编译产物在公开的**网站仓库**里,也可以接到 Vercel、Cloudflare Pages 或任意静态托管。
-用自己的域名访问时,先在后台「设置 → 访问地址」写上访客 URL(会改 `site.url` / `site.basePath` 并重建);
+用自己的域名访问时,多数人直接用一级域名(example.com);二级、多级也可以。先在后台「设置 → 访问地址」写上访客 URL(会改 `site.url` / `site.basePath` 并重建);
 域名挂在哪家,就在哪家控制台添加。设置页和帮助页可按托管切换步骤。说明见 [/help/custom-domain](https://gitpress.net/help/custom-domain)。
 
 ## 默认:GitHub Pages(自动)

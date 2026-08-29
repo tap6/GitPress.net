@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
+  DomainKindNotes,
   HostingOptionButtons,
   HostingPitfalls,
   HostingSteps,
@@ -31,13 +32,24 @@ export function CustomDomainHelp() {
       <p className="text-sm font-medium text-gp-brand">帮助</p>
       <h1 className="mt-2 text-3xl font-extrabold tracking-tight">用自己的域名访问博客</h1>
       <p className="mt-4 leading-relaxed text-neutral-600">
-        目标很简单：访客用 <strong className="font-medium text-neutral-800">你自己的域名</strong>{" "}
-        打开站点。实现方式不唯一，按你现在用的托管选下面一档即可。
+        多数人会把买来的 <strong className="font-medium text-neutral-800">一级域名</strong> 直接当网站地址，例如用{" "}
+        <code className="rounded bg-neutral-100 px-1 font-mono text-[0.9em]">example.com</code> 打开站点 A、用{" "}
+        <code className="rounded bg-neutral-100 px-1 font-mono text-[0.9em]">another.com</code> 打开站点 B。
+        二级（<code className="rounded bg-neutral-100 px-1 font-mono text-[0.9em]">blog.example.com</code>
+        ）和多级也可以，在设置里填访客实际打开的那个名字。
       </p>
 
       <div className="mt-6">
         <HostingWhyNotes />
       </div>
+
+      <section className="mt-10">
+        <h2 className="text-lg font-semibold">先想好用哪一级</h2>
+        <p className="mt-2 text-sm text-neutral-500">推荐一级；二级、多级只是多几个前缀，步骤相同。</p>
+        <div className="mt-4">
+          <DomainKindNotes />
+        </div>
+      </section>
 
       <section className="mt-10">
         <h2 className="text-lg font-semibold">选一种托管，看对应步骤</h2>

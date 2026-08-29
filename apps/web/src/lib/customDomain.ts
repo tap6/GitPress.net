@@ -40,7 +40,7 @@ export function parseHostname(raw: string): { host: string } | { error: string }
   host = host.replace(/\.$/, "");
   if (!host) return { error: "请填写域名或网址。" };
   if (host.includes(" ") || host.includes(":")) return { error: "请只填主机名，不要带端口或路径。" };
-  if (!HOST_RE.test(host)) return { error: "请填写有效域名，例如 blog.example.com。" };
+  if (!HOST_RE.test(host)) return { error: "请填写有效域名，例如 example.com。" };
   return { host };
 }
 
