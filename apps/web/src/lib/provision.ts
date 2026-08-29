@@ -88,7 +88,9 @@ export async function provisionSite(input: ProvisionInput): Promise<ProvisionRes
 
   // 4. Push the initial content. The workflow file goes last so the first
   //    triggered build already sees the complete repository.
-  const today = new Date().toISOString().slice(0, 10);
+  const today = new Date()
+    .toLocaleString("sv-SE", { timeZone: "Asia/Shanghai" })
+    .replace(" ", "T");
   const files: Array<{ path: string; content: string }> = [
     {
       path: "gitpress.json",

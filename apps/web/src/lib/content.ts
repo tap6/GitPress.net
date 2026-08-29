@@ -5,6 +5,7 @@ import { deleteFile, getFileText, listDirectory, putFile, commitFiles, splitRepo
 import { sanitizeMediaFileName, uniqueMediaFileName } from "./mediaName";
 import { persistNavItem, type NavItem } from "./nav";
 import { parseFooterItem, persistBeian, persistFooterItem, type FooterItem, type SiteBeian } from "./footer";
+import { parsePostDate } from "./postDate";
 
 export type { SiteCategory } from "./categories";
 export { isCategoryInNav, persistSiteCategory } from "./categories";
@@ -56,7 +57,7 @@ function summarize(path: string, file: string, text: string): PostSummary {
     path,
     file,
     title: typeof data.title === "string" ? data.title : file.replace(/\.md$/, ""),
-    date: data.date ? String(data.date).slice(0, 10) : null,
+    date: parsePostDate(data.date),
     draft: data.draft === true,
     tags: Array.isArray(data.tags) ? data.tags.map(String) : [],
     category: categories[0] ?? null,
@@ -369,6 +370,8 @@ export interface SitePage {
   slug: string;
   title: string;
   description: string;
+  /** Markdown body. Already read when listing, so the editor can skip a second GitHub fetch. */
+  body: string;
 }
 
 export interface PageDetail extends SitePage {
@@ -377,15 +380,16 @@ export interface PageDetail extends SitePage {
 }
 
 function summarizePage(path: string, file: string, text: string): SitePage {
-  const { data } = matter(text);
+  const parsed = matter(text);
   const fallbackSlug = file.replace(/\.md$/, "");
-  const slug = typeof data.slug === "string" && data.slug ? data.slug : fallbackSlug;
-  const title = typeof data.title === "string" && data.title ? data.title : slug;
+  const slug = typeof parsed.data.slug === "string" && parsed.data.slug ? parsed.data.slug : fallbackSlug;
+  const title = typeof parsed.data.title === "string" && parsed.data.title ? parsed.data.title : slug;
   return {
     path,
     slug,
     title,
-    description: typeof data.description === "string" ? data.description : "",
+    description: typeof parsed.data.description === "string" ? parsed.data.description : "",
+    body: parsed.content.replace(/^\n/, ""),
   };
 }
 

@@ -219,7 +219,7 @@ export interface ThemeManifest {
  */
 export interface PostFrontmatter {
   title: string;
-  /** ISO 8601. Missing date = treated as draft by builders. */
+  /** ISO 8601 local wall time, e.g. `2026-08-30T14:05:00`. Date-only is still accepted. Missing date = treated as draft by builders. */
   date?: string;
   updated?: string;
   /** Drafts are excluded from public builds and never leave the private data repo. */

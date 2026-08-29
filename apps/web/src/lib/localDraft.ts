@@ -33,8 +33,21 @@ function storageKey(siteId: string, path: string): string {
   return `${PREFIX}:${siteId}:${path || "new"}`;
 }
 
+function normalizeDraft(fields: LocalDraftFields): LocalDraftFields {
+  return {
+    title: fields.title.trim(),
+    slug: fields.slug.trim(),
+    date: fields.date.trim(),
+    draft: fields.draft,
+    tags: fields.tags.trim(),
+    category: fields.category.trim(),
+    description: fields.description.trim(),
+    body: fields.body.replace(/\r\n/g, "\n").replace(/^\n+|\n+$/g, ""),
+  };
+}
+
 function fingerprint(fields: LocalDraftFields): string {
-  return JSON.stringify(fields);
+  return JSON.stringify(normalizeDraft(fields));
 }
 
 function readDraft(key: string): StoredDraft | null {
@@ -74,6 +87,8 @@ function clearDraft(key: string) {
 export interface LocalDraftController {
   /** A leftover draft from a previous visit that differs from the server copy. */
   pending: StoredDraft | null;
+  /** True only after the user changed something vs the server snapshot. */
+  dirty: boolean;
   persistOk: boolean;
   lastSavedAt: number | null;
   restorePending: () => void;
@@ -142,7 +157,7 @@ export function useLocalPostDraft(
     if (!persistEnabled) return;
     const timer = window.setTimeout(() => {
       const current = fieldsRef.current;
-      if (isEmptyDraft(current)) {
+      if (isEmptyDraft(current) || fingerprint(current) === serverFingerprint) {
         clearDraft(key);
         setPersistOk(true);
         setLastSavedAt(null);
@@ -153,13 +168,13 @@ export function useLocalPostDraft(
       if (ok) setLastSavedAt(Date.now());
     }, 800);
     return () => window.clearTimeout(timer);
-  }, [fieldsFp, key, persistEnabled]);
+  }, [fieldsFp, key, persistEnabled, serverFingerprint]);
 
   useEffect(() => {
     function flush() {
       if (!persistEnabled) return;
       const current = fieldsRef.current;
-      if (isEmptyDraft(current)) {
+      if (isEmptyDraft(current) || fingerprint(current) === serverFingerprint) {
         clearDraft(key);
         setLastSavedAt(null);
         return;
@@ -177,10 +192,11 @@ export function useLocalPostDraft(
       window.removeEventListener("pagehide", flush);
       document.removeEventListener("visibilitychange", onVisibility);
     };
-  }, [key, persistEnabled]);
+  }, [key, persistEnabled, serverFingerprint]);
 
   return {
     pending,
+    dirty: persistEnabled && fieldsFp !== serverFingerprint,
     persistOk,
     lastSavedAt,
     restorePending() {
@@ -199,7 +215,7 @@ export function useLocalPostDraft(
     },
     persistNow() {
       const current = fieldsRef.current;
-      if (isEmptyDraft(current)) {
+      if (isEmptyDraft(current) || fingerprint(current) === serverFingerprint) {
         clearDraft(key);
         setPersistOk(true);
         setLastSavedAt(null);

@@ -109,6 +109,7 @@ export function RichTextEditor({
   const pendingFiles = useRef(new Map<string, File>());
   const onPendingRef = useRef(onPendingMediaChange);
   onPendingRef.current = onPendingMediaChange;
+  const skipInitialUpdate = useRef(true);
   const uploadFilesRef = useRef<(files: File[]) => void>(() => {});
 
   function emitPending() {
@@ -165,6 +166,11 @@ export function RichTextEditor({
       },
     },
     onUpdate: ({ editor: current }) => {
+      // Tiptap re-serializes Markdown on mount; that is not a user edit.
+      if (skipInitialUpdate.current) {
+        skipInitialUpdate.current = false;
+        return;
+      }
       setMarkdown(current.getMarkdown());
     },
   });

@@ -37,6 +37,7 @@ import {
 import { assertAllowedMediaUpload } from "./mediaTypes";
 import { persistNavItem, type NavItem } from "./nav";
 import { persistBeian, persistFooterItem, type FooterItem } from "./footer";
+import { nowLocalDateTime, parsePostDate } from "./postDate";
 import { resolvePublicOrigin } from "./customDomain";
 import { provisionSite, rotateDeployKey, triggerRebuild } from "./provision";
 import { revalidateSiteData } from "./siteDataCache";
@@ -150,7 +151,7 @@ export async function savePostAction(
   const title = String(formData.get("title") ?? "").trim();
   if (!title) return { error: "请填写标题。" };
   const body = String(formData.get("body") ?? "");
-  const date = String(formData.get("date") ?? "") || new Date().toISOString().slice(0, 10);
+  const date = parsePostDate(formData.get("date")) ?? nowLocalDateTime();
   const draft = formData.get("draft") === "on";
   const description = String(formData.get("description") ?? "").trim();
   const tags = parseTagList(String(formData.get("tags") ?? ""));
@@ -312,7 +313,7 @@ export async function updatePostMetaAction(
   const path = assertPostPath(String(formData.get("path") ?? ""));
   const title = String(formData.get("title") ?? "").trim();
   if (!title) return { error: "请填写标题。" };
-  const date = String(formData.get("date") ?? "") || new Date().toISOString().slice(0, 10);
+  const date = parsePostDate(formData.get("date")) ?? nowLocalDateTime();
   const draft = String(formData.get("status") ?? "") === "draft";
   const tags = parseTagList(String(formData.get("tags") ?? ""));
   const categoryRaw = String(formData.get("category") ?? "").trim();

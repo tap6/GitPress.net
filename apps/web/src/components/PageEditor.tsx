@@ -154,7 +154,7 @@ export function PageEditor({ siteId, path = "", hasCustomNav = false, initial }:
     local.lastSavedAt != null
       ? `本地底稿 ${new Date(local.lastSavedAt).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}`
       : null;
-  const showLocalDraftHint = !isEmptyDraft(fields);
+  const showLocalDraftHint = local.dirty && !isEmptyDraft(fields);
 
   return (
     <form

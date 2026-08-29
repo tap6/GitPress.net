@@ -11,6 +11,7 @@ import {
 } from "@/lib/actions";
 import { ProgressButton } from "@/components/ProgressButton";
 import type { PostSummary, SiteCategory } from "@/lib/content";
+import { datetimeLocalValue, formatPostDateTime, nowLocalDateTime } from "@/lib/postDate";
 
 interface Props {
   siteId: string;
@@ -19,11 +20,15 @@ interface Props {
 }
 
 type Filter = "all" | "published" | "draft";
+type SortKey = "title" | "category" | "tags" | "date" | "status";
 
 export function PostsTable({ siteId, posts, categories }: Props) {
   const [selected, setSelected] = useState<Set<string>>(() => new Set());
   const [editingPath, setEditingPath] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>("all");
+  const [query, setQuery] = useState("");
+  const [sortKey, setSortKey] = useState<SortKey>("date");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [bulkState, bulkAction] = useActionState<BulkPostsState, FormData>(bulkPostsAction, {});
 
   const categoryLabel = useMemo(
@@ -31,11 +36,48 @@ export function PostsTable({ siteId, posts, categories }: Props) {
     [categories],
   );
 
-  const visible = posts.filter((post) => {
-    if (filter === "published") return !post.draft;
-    if (filter === "draft") return post.draft;
-    return true;
-  });
+  const visible = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    const filtered = posts.filter((post) => {
+      if (filter === "published" && post.draft) return false;
+      if (filter === "draft" && !post.draft) return false;
+      if (!needle) return true;
+      const hay = [
+        post.title,
+        post.description,
+        post.tags.join(" "),
+        post.category ? (categoryLabel.get(post.category) ?? post.category) : "",
+        formatPostDateTime(post.date),
+      ]
+        .join(" ")
+        .toLowerCase();
+      return hay.includes(needle);
+    });
+
+    const dir = sortDir === "asc" ? 1 : -1;
+    return [...filtered].sort((a, b) => {
+      const cmp = (() => {
+        switch (sortKey) {
+          case "title":
+            return a.title.localeCompare(b.title, "zh");
+          case "category":
+            return (categoryLabel.get(a.category ?? "") ?? "").localeCompare(
+              categoryLabel.get(b.category ?? "") ?? "",
+              "zh",
+            );
+          case "tags":
+            return a.tags.join(",").localeCompare(b.tags.join(","), "zh");
+          case "status":
+            return Number(a.draft) - Number(b.draft);
+          case "date":
+          default:
+            return (a.date ?? "").localeCompare(b.date ?? "");
+        }
+      })();
+      return cmp * dir;
+    });
+  }, [categoryLabel, filter, posts, query, sortDir, sortKey]);
+
   const allVisibleSelected = visible.length > 0 && visible.every((post) => selected.has(post.path));
 
   function toggle(path: string) {
@@ -59,11 +101,19 @@ export function PostsTable({ siteId, posts, categories }: Props) {
     });
   }
 
+  function toggleSort(key: SortKey) {
+    if (sortKey === key) {
+      setSortDir((current) => (current === "asc" ? "desc" : "asc"));
+      return;
+    }
+    setSortKey(key);
+    setSortDir(key === "date" ? "desc" : "asc");
+  }
+
   const selectedCount = [...selected].filter((path) => visible.some((post) => post.path === path)).length;
 
   return (
     <div className="mt-4 overflow-hidden rounded border border-neutral-200 bg-white shadow-sm">
-      {/* Toolbar: filters + bulk actions share one row so the table reads as a single card */}
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-neutral-100 px-4 py-3">
         <div className="flex flex-wrap items-center gap-2 text-sm">
           <FilterChip active={filter === "all"} onClick={() => setFilter("all")}>
@@ -76,7 +126,19 @@ export function PostsTable({ siteId, posts, categories }: Props) {
             草稿 · 不公开 ({posts.filter((post) => post.draft).length})
           </FilterChip>
         </div>
+        <label className="relative ml-auto">
+          <span className="sr-only">搜索文章</span>
+          <input
+            type="search"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="搜索标题、标签、分类…"
+            className="w-52 rounded border border-neutral-300 bg-white py-1.5 pl-3 pr-3 text-sm focus:border-wp-accent focus:outline-none"
+          />
+        </label>
+      </div>
 
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-neutral-100 px-4 py-2.5">
         <form
           action={bulkAction}
           onSubmit={(event) => {
@@ -152,11 +214,35 @@ export function PostsTable({ siteId, posts, categories }: Props) {
                   className="accent-wp-accent"
                 />
               </th>
-              <th className="px-4 py-2.5">标题</th>
-              <th className="hidden w-28 px-4 py-2.5 md:table-cell">分类</th>
-              <th className="hidden w-40 px-4 py-2.5 md:table-cell">标签</th>
-              <th className="hidden w-28 px-4 py-2.5 md:table-cell">日期</th>
-              <th className="w-24 px-4 py-2.5">状态</th>
+              <SortHeader label="标题" active={sortKey === "title"} dir={sortDir} onClick={() => toggleSort("title")} />
+              <SortHeader
+                className="hidden w-28 md:table-cell"
+                label="分类"
+                active={sortKey === "category"}
+                dir={sortDir}
+                onClick={() => toggleSort("category")}
+              />
+              <SortHeader
+                className="hidden w-40 md:table-cell"
+                label="标签"
+                active={sortKey === "tags"}
+                dir={sortDir}
+                onClick={() => toggleSort("tags")}
+              />
+              <SortHeader
+                className="hidden w-44 md:table-cell"
+                label="日期"
+                active={sortKey === "date"}
+                dir={sortDir}
+                onClick={() => toggleSort("date")}
+              />
+              <SortHeader
+                className="w-24"
+                label="状态"
+                active={sortKey === "status"}
+                dir={sortDir}
+                onClick={() => toggleSort("status")}
+              />
               <th className="w-16 px-3 py-2.5">
                 <span className="sr-only">操作</span>
               </th>
@@ -166,7 +252,11 @@ export function PostsTable({ siteId, posts, categories }: Props) {
             {visible.length === 0 && (
               <tr>
                 <td colSpan={7} className="px-4 py-10 text-center text-neutral-400">
-                  {posts.length === 0 ? "还没有文章,点击「写文章」开始。" : "这一栏目前是空的。"}
+                  {posts.length === 0
+                    ? "还没有文章,点击「写文章」开始。"
+                    : query.trim()
+                      ? "没有符合搜索的文章。"
+                      : "这一栏目前是空的。"}
                 </td>
               </tr>
             )}
@@ -190,6 +280,37 @@ export function PostsTable({ siteId, posts, categories }: Props) {
         </table>
       </div>
     </div>
+  );
+}
+
+function SortHeader({
+  label,
+  active,
+  dir,
+  onClick,
+  className = "",
+}: {
+  label: string;
+  active: boolean;
+  dir: "asc" | "desc";
+  onClick: () => void;
+  className?: string;
+}) {
+  return (
+    <th className={`px-4 py-2.5 ${className}`}>
+      <button
+        type="button"
+        onClick={onClick}
+        className={`inline-flex items-center gap-1 uppercase tracking-wide hover:text-neutral-800 ${
+          active ? "text-neutral-800" : ""
+        }`}
+      >
+        {label}
+        <span className="text-[10px] text-neutral-400" aria-hidden>
+          {active ? (dir === "asc" ? "↑" : "↓") : "↕"}
+        </span>
+      </button>
+    </th>
   );
 }
 
@@ -237,6 +358,7 @@ function PostRow({
   onEditDone: () => void;
 }) {
   const editHref = `/sites/${siteId}/posts/edit?path=${encodeURIComponent(post.path)}`;
+  const when = formatPostDateTime(post.date);
 
   return (
     <>
@@ -265,7 +387,7 @@ function PostRow({
             <p className="mt-1 flex flex-wrap gap-x-2 gap-y-0.5 text-xs text-neutral-400 md:hidden">
               {post.category && <span>{categoryLabel.get(post.category) ?? post.category}</span>}
               {post.tags.length > 0 && <span>{post.tags.join(", ")}</span>}
-              {post.date && <span>{post.date}</span>}
+              {post.date && <span className="whitespace-nowrap">{when}</span>}
             </p>
           )}
           <div className="mt-1.5 flex flex-wrap gap-x-3 text-xs">
@@ -285,7 +407,7 @@ function PostRow({
           {post.category ? categoryLabel.get(post.category) ?? post.category : "—"}
         </td>
         <td className="hidden px-4 py-3 text-neutral-500 md:table-cell">{post.tags.join(", ")}</td>
-        <td className="hidden px-4 py-3 text-neutral-500 md:table-cell">{post.date ?? "—"}</td>
+        <td className="hidden whitespace-nowrap px-4 py-3 text-neutral-500 md:table-cell">{when}</td>
         <td className="px-4 py-3">
           {post.draft ? (
             <span
@@ -393,12 +515,13 @@ function QuickEditForm({
           className="mt-1 w-full rounded border border-neutral-300 bg-white px-2 py-1.5 text-sm"
         />
       </label>
-      <label className="block text-xs">
-        <span className="text-neutral-500">日期</span>
+      <label className="block text-xs sm:col-span-2 lg:col-span-1">
+        <span className="text-neutral-500">日期时间</span>
         <input
-          type="date"
+          type="datetime-local"
           name="date"
-          defaultValue={post.date ?? ""}
+          step={1}
+          defaultValue={datetimeLocalValue(post.date, nowLocalDateTime())}
           className="mt-1 w-full rounded border border-neutral-300 bg-white px-2 py-1.5 text-sm"
         />
       </label>

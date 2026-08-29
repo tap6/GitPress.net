@@ -11,6 +11,7 @@ import {
   useLocalPostDraft,
   type LocalDraftFields,
 } from "@/lib/localDraft";
+import { datetimeLocalValue, nowLocalDateTime } from "@/lib/postDate";
 import { clearPendingMedia, writePendingMedia } from "@/lib/pendingMedia";
 
 function isDesktopEditorViewport(): boolean {
@@ -67,10 +68,9 @@ interface Props {
 }
 
 export function PostEditor({ siteId, path = "", categories = [], initial }: Props) {
-  const today = new Date().toISOString().slice(0, 10);
   const [title, setTitle] = useState(initial?.title ?? "");
   const [slug, setSlug] = useState("");
-  const [date, setDate] = useState(initial?.date ?? today);
+  const [date, setDate] = useState(() => datetimeLocalValue(initial?.date, nowLocalDateTime()));
   const [draft, setDraft] = useState(initial?.draft ?? false);
   const [tags, setTags] = useState(initial?.tags.join(", ") ?? "");
   const [category, setCategory] = useState(initial?.category ?? "");
@@ -181,7 +181,7 @@ export function PostEditor({ siteId, path = "", categories = [], initial }: Prop
     local.lastSavedAt != null
       ? `本地底稿 ${new Date(local.lastSavedAt).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}`
       : null;
-  const showLocalDraftHint = !isEmptyDraft(fields);
+  const showLocalDraftHint = local.dirty && !isEmptyDraft(fields);
 
   return (
     <form
@@ -287,10 +287,11 @@ export function PostEditor({ siteId, path = "", categories = [], initial }: Prop
             </label>
             {draft && <input type="hidden" name="draft" value="on" />}
             <label className="block">
-              <span className="text-neutral-500">日期</span>
+              <span className="text-neutral-500">日期时间</span>
               <input
-                type="date"
+                type="datetime-local"
                 name="date"
+                step={1}
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
                 className="mt-1 w-full rounded border border-neutral-300 px-2 py-1.5"
