@@ -2,6 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
+import {
+  parseSettingsSection,
+  setSettingsSection,
+  SETTINGS_SECTION_EVENT,
+  SETTINGS_SECTIONS,
+  type SettingsSectionId,
+} from "@/lib/settingsSections";
 
 const ICONS: Record<string, React.ReactNode> = {
   dashboard: (
@@ -62,6 +70,25 @@ export function adminNavHrefs(siteId: string): string[] {
 export function AdminMenu({ siteId }: { siteId: string }) {
   const pathname = usePathname();
   const base = `/sites/${siteId}`;
+  const settingsHref = `${base}/settings`;
+  const onSettings = pathname === settingsHref;
+  const [settingsSection, setSection] = useState<SettingsSectionId>("general");
+
+  useEffect(() => {
+    const sync = () => setSection(parseSettingsSection(window.location.hash));
+    sync();
+    const onCustom = (event: Event) => {
+      const id = (event as CustomEvent<{ id: SettingsSectionId }>).detail?.id;
+      if (id) setSection(id);
+    };
+    window.addEventListener(SETTINGS_SECTION_EVENT, onCustom);
+    window.addEventListener("popstate", sync);
+    return () => {
+      window.removeEventListener(SETTINGS_SECTION_EVENT, onCustom);
+      window.removeEventListener("popstate", sync);
+    };
+  }, [pathname]);
+
   const items = [
     { href: base, key: "dashboard", label: "仪表盘", exact: true },
     { href: `${base}/posts`, key: "posts", label: "文章" },
@@ -69,28 +96,71 @@ export function AdminMenu({ siteId }: { siteId: string }) {
     { href: `${base}/menu`, key: "menu", label: "菜单" },
     { href: `${base}/media`, key: "media", label: "媒体" },
     { href: `${base}/appearance`, key: "appearance", label: "外观" },
-    { href: `${base}/settings`, key: "settings", label: "设置" },
+    { href: settingsHref, key: "settings", label: "设置" },
     { href: `${base}/history`, key: "history", label: "Git 记录" },
   ];
 
   return (
     <nav className="mt-2">
       {items.map((item) => {
-        const active = item.exact ? pathname === item.href : pathname.startsWith(item.href);
+        const isSettings = item.key === "settings";
+        const active = isSettings
+          ? onSettings
+          : item.exact
+            ? pathname === item.href
+            : pathname.startsWith(item.href);
         return (
-          <Link
-            key={item.key}
-            href={item.href}
-            prefetch
-            className={`flex items-center gap-2.5 px-4 py-2.5 text-[13px] transition ${
-              active
-                ? "bg-wp-accent text-white"
-                : "text-wp-sidebar-text hover:bg-wp-base-dark hover:text-[#72aee6]"
-            }`}
-          >
-            {ICONS[item.key]}
-            {item.label}
-          </Link>
+          <div key={item.key}>
+            <Link
+              href={item.href}
+              prefetch
+              scroll={!isSettings}
+              onClick={(event) => {
+                if (isSettings && onSettings) {
+                  event.preventDefault();
+                  setSettingsSection("general");
+                }
+              }}
+              className={`flex items-center gap-2.5 px-4 py-2.5 text-[13px] transition ${
+                active && !isSettings
+                  ? "bg-wp-accent text-white"
+                  : active && isSettings
+                    ? "bg-black/25 text-white"
+                    : "text-wp-sidebar-text hover:bg-wp-base-dark hover:text-[#72aee6]"
+              }`}
+            >
+              {ICONS[item.key]}
+              {item.label}
+            </Link>
+            {isSettings && (
+              <div className="mb-1 bg-black/20 py-1" role="group" aria-label="设置分组">
+                {SETTINGS_SECTIONS.map((section) => {
+                  const current = onSettings && settingsSection === section.id;
+                  return (
+                    <Link
+                      key={section.id}
+                      href={`${settingsHref}#${section.id}`}
+                      prefetch={false}
+                      scroll={false}
+                      onClick={(event) => {
+                        if (onSettings) {
+                          event.preventDefault();
+                          setSettingsSection(section.id);
+                        }
+                      }}
+                      className={`block py-1.5 pl-[2.35rem] pr-3 text-[12px] transition ${
+                        current
+                          ? "bg-wp-accent text-white"
+                          : "text-wp-sidebar-text hover:bg-wp-base-dark hover:text-[#72aee6]"
+                      }`}
+                    >
+                      {section.label}
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         );
       })}
     </nav>

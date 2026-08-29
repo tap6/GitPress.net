@@ -9,6 +9,7 @@ import { IdleRoutePrefetch } from "@/components/IdleRoutePrefetch";
 import { PermissionUpdateBanner } from "@/components/PermissionUpdateBanner";
 import { RouteLoadingBar } from "@/components/RouteLoadingBar";
 import type { PermissionGap } from "@/lib/github";
+import { SETTINGS_SECTION_EVENT } from "@/lib/settingsSections";
 
 interface Props {
   siteId: string;
@@ -43,6 +44,12 @@ export function SiteAdminShell({
   useEffect(() => {
     setMobileOpen(false);
   }, [pathname]);
+
+  useEffect(() => {
+    const close = () => setMobileOpen(false);
+    window.addEventListener(SETTINGS_SECTION_EVENT, close);
+    return () => window.removeEventListener(SETTINGS_SECTION_EVENT, close);
+  }, []);
 
   // Lock body scroll while the drawer overlay is open.
   useEffect(() => {
@@ -94,7 +101,7 @@ export function SiteAdminShell({
 
       {/* Sidebar: slide-in drawer below `lg`, static column at `lg` and up. */}
       <aside
-        className={`fixed inset-y-0 left-0 z-40 w-64 shrink-0 transform bg-wp-base transition-transform duration-200 ease-out lg:static lg:z-auto lg:w-40 lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-40 w-64 shrink-0 transform bg-wp-base transition-transform duration-200 ease-out lg:static lg:z-auto lg:w-44 lg:translate-x-0 ${
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >

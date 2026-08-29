@@ -6,6 +6,7 @@ import { rotateDeployKeyAction } from "@/lib/actions";
 import { AiSettingsForm } from "@/components/AiSettingsForm";
 import { ProgressButton } from "@/components/ProgressButton";
 import { SettingsForm } from "@/components/SettingsForm";
+import { SettingsPanel, SettingsWorkspace } from "@/components/SettingsWorkspace";
 import { getAiConfig } from "@/lib/ai";
 import { githubPagesDefaultUrl, isDefaultPagesOrigin } from "@/lib/customDomain";
 import { getInstallationOctokit, getInstallationPermissionGap, getPagesSite, splitRepo } from "@/lib/github";
@@ -53,62 +54,58 @@ export default async function SettingsPage({
       : null;
 
   return (
-    <div>
-      <h1 className="text-2xl font-normal text-neutral-800">设置</h1>
-
-      <div className="gp-settings-pack mt-5">
-        <section className="gp-settings-card gp-settings-card--general rounded border border-neutral-200 bg-white shadow-sm">
-          <h2 className="shrink-0 border-b border-neutral-100 px-5 py-3 text-sm font-semibold">常规</h2>
-          <div className="gp-settings-card__body">
-            <SettingsForm
-              siteId={site.id}
-              initial={{
-                name: site.name,
-                description: site.description ?? "",
-                language: site.language,
-                author,
-                analyticsSnippet,
-              }}
-            />
-          </div>
+    <SettingsWorkspace initialSection={notice ? "domain" : undefined}>
+      <SettingsPanel id="general">
+        <section className="w-full max-w-3xl rounded border border-neutral-200 bg-white shadow-sm">
+          <h2 className="border-b border-neutral-100 px-5 py-3 text-sm font-semibold">常规</h2>
+          <SettingsForm
+            siteId={site.id}
+            initial={{
+              name: site.name,
+              description: site.description ?? "",
+              language: site.language,
+              author,
+              analyticsSnippet,
+            }}
+          />
         </section>
+      </SettingsPanel>
 
-        <section className="gp-settings-card gp-settings-card--brand rounded border border-neutral-200 bg-white shadow-sm">
-          <h2 className="shrink-0 border-b border-neutral-100 px-5 py-3 text-sm font-semibold">Logo 与头像</h2>
-          <div className="gp-settings-card__body">
-            <BrandMediaForm siteId={site.id} logo={logo} avatar={avatar} />
-          </div>
+      <SettingsPanel id="brand">
+        <section className="w-full max-w-3xl rounded border border-neutral-200 bg-white shadow-sm">
+          <h2 className="border-b border-neutral-100 px-5 py-3 text-sm font-semibold">Logo 与头像</h2>
+          <BrandMediaForm siteId={site.id} logo={logo} avatar={avatar} />
         </section>
+      </SettingsPanel>
 
-        <section className="gp-settings-card gp-settings-card--footer rounded border border-neutral-200 bg-white shadow-sm">
-          <h2 className="shrink-0 border-b border-neutral-100 px-5 py-3 text-sm font-semibold">页脚</h2>
-          <div className="gp-settings-card__body">
-            <FooterForm
-              siteId={site.id}
-              siteTitle={site.name}
-              themeDisplayName={themeDisplayName}
-              initial={footer}
-              pages={pages}
-              language={site.language}
-            />
-          </div>
+      <SettingsPanel id="footer">
+        <section className="w-full max-w-3xl rounded border border-neutral-200 bg-white shadow-sm">
+          <h2 className="border-b border-neutral-100 px-5 py-3 text-sm font-semibold">页脚</h2>
+          <FooterForm
+            siteId={site.id}
+            siteTitle={site.name}
+            themeDisplayName={themeDisplayName}
+            initial={footer}
+            pages={pages}
+            language={site.language}
+          />
         </section>
+      </SettingsPanel>
 
-        <section className="gp-settings-card gp-settings-card--beian rounded border border-neutral-200 bg-white shadow-sm">
-          <h2 className="shrink-0 border-b border-neutral-100 px-5 py-3 text-sm font-semibold">备案</h2>
-          <div className="gp-settings-card__body">
-            <BeianForm siteId={site.id} initial={beian} />
-          </div>
+      <SettingsPanel id="beian">
+        <section className="w-full max-w-3xl rounded border border-neutral-200 bg-white shadow-sm">
+          <h2 className="border-b border-neutral-100 px-5 py-3 text-sm font-semibold">备案</h2>
+          <BeianForm siteId={site.id} initial={beian} />
         </section>
+      </SettingsPanel>
 
+      <SettingsPanel id="account">
         <section
           id="account-ai"
-          className="gp-settings-card gp-settings-card--ai scroll-mt-16 rounded border border-neutral-200 bg-white shadow-sm"
+          className="w-full max-w-3xl scroll-mt-16 rounded border border-neutral-200 bg-white shadow-sm"
         >
-          <h2 className="shrink-0 border-b border-neutral-100 px-5 py-3 text-sm font-semibold">
-            账号 · 全局设置
-          </h2>
-          <div className="gp-settings-card__body space-y-3 p-5">
+          <h2 className="border-b border-neutral-100 px-5 py-3 text-sm font-semibold">账号 · 全局设置</h2>
+          <div className="space-y-3 p-5">
             <p className="text-sm text-neutral-500">
               以下配置跟账号走,对你名下所有站点生效,不用再回到「我的站点」首页修改。
             </p>
@@ -123,29 +120,28 @@ export default async function SettingsPage({
             />
           </div>
         </section>
+      </SettingsPanel>
 
+      <SettingsPanel id="domain">
         <section
           id="domain"
-          className="gp-settings-card gp-settings-card--domain scroll-mt-16 rounded border border-neutral-200 bg-white shadow-sm"
+          className="w-full max-w-3xl scroll-mt-16 rounded border border-neutral-200 bg-white shadow-sm"
         >
-          <h2 className="shrink-0 border-b border-neutral-100 px-5 py-3 text-sm font-semibold">访问地址</h2>
-          <div className="gp-settings-card__body">
-            <SiteUrlForm
-              siteId={site.id}
-              siteRepo={site.siteRepo}
-              currentUrl={site.url}
-              defaultUrl={defaultUrl}
-              pagesCname={pagesSite?.cname ?? null}
-              certificateState={pagesSite?.certificateState ?? null}
-              defaultRegisterPages={Boolean(pagesSite?.cname) || onDefaultPages}
-              notice={notice}
-            />
-          </div>
+          <h2 className="border-b border-neutral-100 px-5 py-3 text-sm font-semibold">访问地址</h2>
+          <SiteUrlForm
+            siteId={site.id}
+            siteRepo={site.siteRepo}
+            currentUrl={site.url}
+            defaultUrl={defaultUrl}
+            pagesCname={pagesSite?.cname ?? null}
+            certificateState={pagesSite?.certificateState ?? null}
+            defaultRegisterPages={Boolean(pagesSite?.cname) || onDefaultPages}
+            notice={notice}
+          />
         </section>
-
-        <section className="gp-settings-card gp-settings-card--note rounded border border-neutral-200 bg-white shadow-sm">
-          <h2 className="shrink-0 border-b border-neutral-100 px-5 py-3 text-sm font-semibold">托管</h2>
-          <div className="gp-settings-card__body space-y-3 p-5 text-sm leading-relaxed text-neutral-600">
+        <section className="w-full max-w-3xl rounded border border-neutral-200 bg-white shadow-sm">
+          <h2 className="border-b border-neutral-100 px-5 py-3 text-sm font-semibold">托管</h2>
+          <div className="space-y-3 p-5 text-sm leading-relaxed text-neutral-600">
             <p>
               编译好的网页在公开仓库{" "}
               <a
@@ -160,10 +156,12 @@ export default async function SettingsPage({
             </p>
           </div>
         </section>
+      </SettingsPanel>
 
-        <section className="gp-settings-card gp-settings-card--note rounded border border-neutral-200 bg-white shadow-sm">
-          <h2 className="shrink-0 border-b border-neutral-100 px-5 py-3 text-sm font-semibold">故障排查</h2>
-          <div className="gp-settings-card__body space-y-3 p-5 text-sm leading-relaxed text-neutral-600">
+      <SettingsPanel id="maintain">
+        <section className="w-full max-w-3xl rounded border border-neutral-200 bg-white shadow-sm">
+          <h2 className="border-b border-neutral-100 px-5 py-3 text-sm font-semibold">故障排查</h2>
+          <div className="space-y-3 p-5 text-sm leading-relaxed text-neutral-600">
             <p>
               如果仪表盘的「最近构建」一直显示 <span className="text-red-600">✗ 失败</span>,
               或者网站仓库始终只有初始的 README(没有随文章更新),通常是发布用的部署密钥格式有问题。
@@ -195,10 +193,9 @@ export default async function SettingsPage({
             </p>
           </div>
         </section>
-
-        <section className="gp-settings-card gp-settings-card--note rounded border border-neutral-200 bg-white shadow-sm">
-          <h2 className="shrink-0 border-b border-neutral-100 px-5 py-3 text-sm font-semibold">GitHub App</h2>
-          <div className="gp-settings-card__body space-y-3 p-5 text-sm leading-relaxed text-neutral-600">
+        <section className="w-full max-w-3xl rounded border border-neutral-200 bg-white shadow-sm">
+          <h2 className="border-b border-neutral-100 px-5 py-3 text-sm font-semibold">GitHub App</h2>
+          <div className="space-y-3 p-5 text-sm leading-relaxed text-neutral-600">
             {permissionGap ? (
               <p>
                 检测到安装在 <strong>{permissionGap.accountLogin}</strong> 上的权限尚未与 App
@@ -230,7 +227,7 @@ export default async function SettingsPage({
             </p>
           </div>
         </section>
-      </div>
-    </div>
+      </SettingsPanel>
+    </SettingsWorkspace>
   );
 }
