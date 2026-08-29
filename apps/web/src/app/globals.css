@@ -113,79 +113,54 @@ body {
 }
 
 /*
- * Settings cards: packed like masonry, not a flex wrap row.
- * Flex wrap made the next row start below the tallest card and left a hole;
- * multi-column packing fills the shortest lane so gaps stay even.
+ * Settings cards: row pack. Items share a row when leftover width fits the
+ * next card's flex-basis, then grow so the row is flush. Stretch equalizes
+ * height on that row so a short card does not leave a hole beside a tall one.
+ * The domain card is full-width: it is much taller than the others and would
+ * otherwise stretch a whole mixed row.
  */
 .gp-settings-pack {
-  column-width: 24rem;
-  column-gap: 1.25rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  align-content: flex-start;
+  gap: 1.25rem;
 }
 
 .gp-settings-card {
-  display: inline-flex;
-  width: 100%;
-  max-width: none;
+  display: flex;
+  min-width: min(100%, 16rem);
   flex-direction: column;
-  margin: 0 0 1.25rem;
-  vertical-align: top;
-  break-inside: avoid;
-  page-break-inside: avoid;
-  -webkit-column-break-inside: avoid;
 }
 
 .gp-settings-card--general {
   min-height: 16rem;
+  flex: 1 1 22rem;
 }
 
 .gp-settings-card--brand {
   min-height: 22rem;
+  flex: 1 1 26rem;
 }
 
 .gp-settings-card--ai {
   min-height: 16rem;
-}
-
-.gp-settings-card--note {
-  min-height: 12rem;
+  flex: 1 1 22rem;
 }
 
 .gp-settings-card--domain {
   min-height: 20rem;
+  flex: 1 1 100%;
+}
+
+.gp-settings-card--note {
+  min-height: 12rem;
+  flex: 1 1 16rem;
 }
 
 .gp-settings-card__body {
   min-height: 0;
   flex: 1 1 auto;
-}
-
-@supports (grid-template-rows: masonry) {
-  .gp-settings-pack {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(min(100%, 24rem), 1fr));
-    grid-template-rows: masonry;
-    gap: 1.25rem;
-    column-width: auto;
-  }
-
-  .gp-settings-card {
-    display: flex;
-    margin: 0;
-  }
-}
-
-@supports (display: grid-lanes) {
-  .gp-settings-pack {
-    display: grid-lanes;
-    grid-template-columns: repeat(auto-fill, minmax(min(100%, 24rem), 1fr));
-    gap: 1.25rem;
-    column-width: auto;
-  }
-
-  .gp-settings-card {
-    display: flex;
-    margin: 0;
-  }
 }
 
 .gp-editor p.is-editor-empty:first-child::before {
