@@ -30,18 +30,17 @@ GitPress 建站后默认走 GitHub Pages,也可以随时切到 Vercel 或绑定�
 
 ## 可选:自定义域名
 
-### 用在 GitHub Pages 上
-
-1. 网站仓库 → Settings → Pages → Custom domain 填入域名(GitHub 会在仓库中生成
-   CNAME 文件);DNS 按 GitHub 文档做 CNAME/A 记录;
-2. 把 `gitpress.json` 的 `site.url` 改为 `https://你的域名`、`site.basePath` 改为 `"/"`。
+后台「设置 → 自定义域名」可把域名登记到 GitHub Pages(平台已有 Pages 写权限),并自动改写
+`gitpress.json` 的 `site.url` / `site.basePath`。**DNS 必须在域名注册商自行添加**,GitHub
+登录改不了阿里云或 Cloudflare。图文步骤见 [/help/custom-domain](https://gitpress.net/help/custom-domain)。
 
 build action 在每次发布时会保留网站仓库中已有的 CNAME 文件,自定义域名不会因重建而失效。
 
-### 用在 Vercel 上(推荐)
+### 用在 Vercel 上
 
 Vercel → Project → Settings → Domains 添加域名,DNS 指向 Vercel;
-同样更新 `gitpress.json` 的 `site.url` 与 `site.basePath`。
+不要和 GitHub Pages 自定义域名同时指向同一条记录。同样需要 `site.url` 与 `site.basePath: "/"`
+(若走 Vercel 而不走上面的绑定表单,请自行改 `gitpress.json`)。
 
 ## 端到端验证清单
 

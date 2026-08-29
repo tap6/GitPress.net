@@ -1,10 +1,12 @@
 import { BrandMediaForm } from "@/components/BrandMediaForm";
+import { CustomDomainForm } from "@/components/CustomDomainForm";
 import { rotateDeployKeyAction } from "@/lib/actions";
 import { AiSettingsForm } from "@/components/AiSettingsForm";
 import { ProgressButton } from "@/components/ProgressButton";
 import { SettingsForm } from "@/components/SettingsForm";
 import { getAiConfig } from "@/lib/ai";
-import { getInstallationPermissionGap } from "@/lib/github";
+import { githubPagesDefaultUrl } from "@/lib/customDomain";
+import { getInstallationOctokit, getInstallationPermissionGap, getPagesSite, splitRepo } from "@/lib/github";
 import { cachedSiteConfig } from "@/lib/siteDataCache";
 import { requireSite } from "@/lib/sites";
 
@@ -12,15 +14,19 @@ export const metadata = { title: "设置" };
 
 export default async function SettingsPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ siteId: string }>;
+  searchParams: Promise<{ domain?: string }>;
 }) {
   const { siteId } = await params;
+  const { domain: domainNotice } = await searchParams;
   const { site, installation, user } = await requireSite(siteId);
-  const [config, permissionGap, aiConfig] = await Promise.all([
+  const [config, permissionGap, aiConfig, pages] = await Promise.all([
     cachedSiteConfig(installation.installationId, site.dataRepo),
     getInstallationPermissionGap(installation.installationId),
     getAiConfig(user.id),
+    getPagesSite(await getInstallationOctokit(installation.installationId), splitRepo(site.siteRepo)),
   ]);
   const analyticsSnippet =
     typeof config?.site.analyticsSnippet === "string" ? config.site.analyticsSnippet : "";
@@ -77,6 +83,24 @@ export default async function SettingsPage({
           </div>
         </section>
 
+        <section
+          id="domain"
+          className="gp-settings-card gp-settings-card--domain scroll-mt-16 rounded border border-neutral-200 bg-white shadow-sm"
+        >
+          <h2 className="shrink-0 border-b border-neutral-100 px-5 py-3 text-sm font-semibold">自定义域名</h2>
+          <div className="gp-settings-card__body">
+            <CustomDomainForm
+              siteId={site.id}
+              siteRepo={site.siteRepo}
+              currentUrl={site.url}
+              defaultUrl={githubPagesDefaultUrl(site.siteRepo)}
+              pagesCname={pages?.cname ?? null}
+              certificateState={pages?.certificateState ?? null}
+              notice={domainNotice === "saved" || domainNotice === "removed" ? domainNotice : null}
+            />
+          </div>
+        </section>
+
         <section className="gp-settings-card gp-settings-card--note rounded border border-neutral-200 bg-white shadow-sm">
           <h2 className="shrink-0 border-b border-neutral-100 px-5 py-3 text-sm font-semibold">部署</h2>
           <div className="gp-settings-card__body space-y-3 p-5 text-sm leading-relaxed text-neutral-600">
@@ -91,12 +115,10 @@ export default async function SettingsPage({
               )}
             </p>
             <p>
-              想使用 <strong>Vercel</strong> 或自定义域名?把公开的网站仓库
+              默认走 GitHub Pages。想改用 <strong>Vercel</strong>？把公开网站仓库
               <code className="mx-1 break-all rounded bg-neutral-100 px-1.5 py-0.5">{site.siteRepo}</code>
-              导入 Vercel 即可(纯静态,无需任何构建配置);自定义域名解析到 Pages 或 Vercel
-              后,在数据仓库的 <code className="mx-1 rounded bg-neutral-100 px-1.5 py-0.5">gitpress.json</code>
-              中把 <code>site.url</code> 改为你的域名、<code>site.basePath</code> 改为 <code>/</code>。
-              详细步骤见文档。
+              导入即可（纯静态，无需构建配置）。Vercel 上的域名请在 Vercel 后台添加，不要和上面的
+              Pages 自定义域名指到同一条记录。
             </p>
           </div>
         </section>

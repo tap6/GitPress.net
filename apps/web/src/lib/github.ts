@@ -687,6 +687,50 @@ export async function putActionsSecret(
   });
 }
 
+export interface PagesSiteInfo {
+  htmlUrl: string | null;
+  cname: string | null;
+  httpsEnforced: boolean;
+  certificateState: string | null;
+  status: string | null;
+}
+
+export async function getPagesSite(octokit: Octokit, ref: RepoRef): Promise<PagesSiteInfo | null> {
+  try {
+    const { data } = await octokit.request("GET /repos/{owner}/{repo}/pages", { ...ref });
+    const cert = data.https_certificate as { state?: string } | undefined;
+    return {
+      htmlUrl: data.html_url ?? null,
+      cname: data.cname ?? null,
+      httpsEnforced: Boolean(data.https_enforced),
+      certificateState: cert?.state ?? null,
+      status: data.status ?? null,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Register or clear a GitHub Pages custom domain. Needs Pages: write
+ * (already requested). Does not touch the owner's DNS registrar.
+ */
+export async function setPagesCustomDomain(
+  octokit: Octokit,
+  ref: RepoRef,
+  cname: string | null,
+): Promise<void> {
+  const existing = await getPagesSite(octokit, ref);
+  if (!existing) {
+    const enabled = await enablePages(octokit, ref);
+    if (!enabled) throw new Error("无法启用 GitHub Pages。");
+  }
+  await octokit.request("PUT /repos/{owner}/{repo}/pages", {
+    ...ref,
+    cname: cname ?? (null as unknown as string),
+  });
+}
+
 /** Enable GitHub Pages serving from main branch root. Returns the Pages URL. */
 export async function enablePages(octokit: Octokit, ref: RepoRef): Promise<string | null> {
   try {

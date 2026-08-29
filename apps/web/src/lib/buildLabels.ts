@@ -82,6 +82,11 @@ export function describeGitChange(commitMessage: string | null): GitChangeDescri
   if (imported) return described("theme", `导入了主题「${imported[1]}」`);
 
   if (first === "Update site settings") return described("settings", "更新了站点设置");
+  const setDomain = first.match(/^Set custom domain: (.+)$/);
+  if (setDomain) return described("settings", `绑定了域名「${setDomain[1]}」`);
+  if (first === "Remove custom domain") return described("settings", "解除了自定义域名");
+  if (first.startsWith("Set custom domain")) return described("settings", "绑定了自定义域名");
+  if (first.startsWith("Remove custom domain")) return described("settings", "解除了自定义域名");
   if (first === "Update site logo and avatar") return described("settings", "更新了站点标志与头像");
   if (first === "Update categories") return described("settings", "更新了分类");
   if (first === "Update menu") return described("nav", "更新了导航菜单");

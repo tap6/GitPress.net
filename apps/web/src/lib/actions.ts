@@ -20,7 +20,7 @@ import {
   updateSiteConfig,
   uploadMedia,
 } from "./content";
-import { getInstallationOctokit, listBuildRuns, splitRepo } from "./github";
+import { getInstallationOctokit, listBuildRuns, splitRepo, setPagesCustomDomain, deleteFile, putFile } from "./github";
 import {
   MAX_BATCH_BYTES,
   MAX_BATCH_IMAGES,
@@ -29,6 +29,12 @@ import {
 } from "./mediaName";
 import { assertAllowedMediaUpload } from "./mediaTypes";
 import { persistNavItem, type NavItem } from "./nav";
+import {
+  customDomainUrl,
+  githubPagesDefaultBasePath,
+  githubPagesDefaultUrl,
+  parseCustomDomain,
+} from "./customDomain";
 import { provisionSite, rotateDeployKey, triggerRebuild } from "./provision";
 import { revalidateSiteData } from "./siteDataCache";
 import { requireSite, requireUser } from "./sites";
@@ -615,6 +621,102 @@ export async function saveSettingsAction(
   await db.update(sites).set({ name, description, language }).where(eq(sites.id, siteId));
   revalidateSiteData(site.dataRepo, [`/sites/${siteId}/settings`, `/sites/${siteId}`]);
   return { saved: true };
+}
+
+export interface SaveCustomDomainState {
+  error?: string;
+  saved?: boolean;
+  removed?: boolean;
+}
+
+function pagesApiError(error: unknown): string {
+  const err = error as {
+    status?: number;
+    message?: string;
+    response?: { data?: { message?: string } };
+  };
+  const detail = err.response?.data?.message ?? err.message ?? "";
+  if (err.status === 403) return "没有权限改这个仓库的 GitHub Pages 设置。";
+  if (err.status === 422 || err.status === 400) {
+    if (/taken|already in use/i.test(detail)) return "这个域名已被另一个 GitHub Pages 站点占用。";
+    return detail ? `GitHub 拒绝了这个域名：${detail}` : "GitHub 拒绝了这个域名。";
+  }
+  return error instanceof Error ? error.message : "绑定失败，请稍后再试。";
+}
+
+export async function saveCustomDomainAction(
+  _prev: SaveCustomDomainState,
+  formData: FormData,
+): Promise<SaveCustomDomainState> {
+  const siteId = String(formData.get("siteId"));
+  const { site, installation } = await requireSite(siteId);
+  const parsed = parseCustomDomain(String(formData.get("domain") ?? ""));
+  if ("error" in parsed) return { error: parsed.error };
+
+  const octokit = await getInstallationOctokit(installation.installationId);
+  const siteRef = splitRepo(site.siteRepo);
+  const url = customDomainUrl(parsed.host);
+  try {
+    await setPagesCustomDomain(octokit, siteRef, parsed.host);
+    await putFile(
+      octokit,
+      siteRef,
+      "CNAME",
+      { utf8: `${parsed.host}\n` },
+      `Set custom domain: ${parsed.host}`,
+    );
+    await updateSiteConfig(
+      octokit,
+      site.dataRepo,
+      (config) => {
+        config.site.url = url;
+        config.site.basePath = "/";
+      },
+      `Set custom domain: ${parsed.host}`,
+    );
+  } catch (error) {
+    return { error: pagesApiError(error) };
+  }
+
+  await db.update(sites).set({ url, basePath: "/" }).where(eq(sites.id, siteId));
+  revalidateSiteData(site.dataRepo, [`/sites/${siteId}/settings`, `/sites/${siteId}`]);
+  redirect(`/sites/${siteId}/settings?domain=saved`);
+}
+
+export async function removeCustomDomainAction(
+  _prev: SaveCustomDomainState,
+  formData: FormData,
+): Promise<SaveCustomDomainState> {
+  const siteId = String(formData.get("siteId"));
+  const { site, installation } = await requireSite(siteId);
+  const octokit = await getInstallationOctokit(installation.installationId);
+  const siteRef = splitRepo(site.siteRepo);
+  const url = githubPagesDefaultUrl(site.siteRepo);
+  const basePath = githubPagesDefaultBasePath(site.siteRepo);
+
+  try {
+    await setPagesCustomDomain(octokit, siteRef, null);
+    try {
+      await deleteFile(octokit, siteRef, "CNAME", "Remove custom domain");
+    } catch {
+      // CNAME may already be gone.
+    }
+    await updateSiteConfig(
+      octokit,
+      site.dataRepo,
+      (config) => {
+        config.site.url = url;
+        config.site.basePath = basePath;
+      },
+      "Remove custom domain",
+    );
+  } catch (error) {
+    return { error: pagesApiError(error) };
+  }
+
+  await db.update(sites).set({ url, basePath }).where(eq(sites.id, siteId));
+  revalidateSiteData(site.dataRepo, [`/sites/${siteId}/settings`, `/sites/${siteId}`]);
+  redirect(`/sites/${siteId}/settings?domain=removed`);
 }
 
 // ---------------------------------------------------------------------------
