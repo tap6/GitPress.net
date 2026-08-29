@@ -52,11 +52,9 @@ export function CustomDomainForm({
   return (
     <div className="space-y-4 p-5 text-sm leading-relaxed text-neutral-600">
       <p>
-        GitPress 可以用已有的 GitHub Pages 权限，把域名登记到你的公开网站仓库。
-        <strong className="font-medium text-neutral-800">解析记录必须你自己在域名注册商添加</strong>
-        ——GitHub 登录不了阿里云、Cloudflare 或 Namecheap。
+        填上域名并绑定，再到买域名的网站按下面的表加一条解析。商家只认你本人，我们进不去。
         <Link href="/help/custom-domain" className="ml-1 text-wp-accent hover:underline">
-          查看完整步骤
+          三步说明
         </Link>
       </p>
 
@@ -75,13 +73,11 @@ export function CustomDomainForm({
         {error && <p className="rounded bg-red-50 p-3 text-red-600">{error}</p>}
         {(notice === "saved" || saveState.saved) && (
           <p className="rounded bg-emerald-50 p-3 text-emerald-700">
-            已告诉 GitHub 使用这个域名，并改好了站点地址。接下来请按下面表格添加 DNS，等生效后再用 HTTPS 访问。
+            已绑定。请按下面的表去买域名的网站添加解析，等几分钟再用这个域名打开。
           </p>
         )}
         {(notice === "removed" || removeState.removed) && (
-          <p className="rounded bg-emerald-50 p-3 text-emerald-700">
-            已解除绑定，站点将回到 {defaultUrl}
-          </p>
+          <p className="rounded bg-emerald-50 p-3 text-emerald-700">已改回原来的地址 {defaultUrl}</p>
         )}
         <ProgressButton
           expectedSeconds={6}
@@ -89,17 +85,16 @@ export function CustomDomainForm({
           buildSiteId={siteId}
           className="rounded bg-wp-accent px-4 py-2 font-medium text-white hover:bg-wp-accent-dark"
         >
-          {boundHost ? "更新域名" : "绑定到 GitHub Pages"}
+          {boundHost ? "更换域名" : "绑定"}
         </ProgressButton>
       </form>
 
       {boundHost && (
         <>
           <div>
-            <p className="font-medium text-neutral-800">请在域名注册商添加这些记录</p>
+            <p className="font-medium text-neutral-800">去买域名的网站添加</p>
             <p className="mt-1 text-xs text-neutral-400">
-              主机/名称一栏按服务商习惯填写（有的要写完整域名，有的只写 {records[0]?.name}）。
-              通常几分钟生效，最长可能要等 24 小时。
+              「名称」有的商家叫主机记录。一般几分钟后就能打开。
             </p>
             <div className="mt-2 overflow-x-auto rounded border border-neutral-200">
               <table className="w-full text-left text-xs">
@@ -131,7 +126,7 @@ export function CustomDomainForm({
               buildSiteId={siteId}
               className="rounded border border-neutral-300 px-4 py-2 font-medium hover:bg-neutral-50"
             >
-              解除绑定，恢复 GitHub Pages 地址
+              改回原来的地址
             </ProgressButton>
           </form>
         </>

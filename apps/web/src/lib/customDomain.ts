@@ -78,10 +78,10 @@ export function dnsRecordsForDomain(host: string, pagesHost: string): DnsRecord[
 export function describePagesCertificate(state: string | null): string | null {
   if (!state) return null;
   if (state === "issued" || state === "uploaded" || state === "approved") {
-    return "HTTPS 证书已生效";
+    return "可以正常用 https 打开了";
   }
-  if (state === "errored") return "证书签发失败，多半是 DNS 还没指到 GitHub";
-  return "GitHub 正在签发 HTTPS 证书，通常要等 DNS 生效后几分钟到几小时";
+  if (state === "errored") return "还打不开：请先核对商家那边的解析是否已按表格添加";
+  return "证书还在办理，过几分钟再试";
 }
 
 function splitOwnerRepo(siteRepo: string): { owner: string; repo: string } {
