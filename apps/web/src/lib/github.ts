@@ -693,6 +693,19 @@ export interface PagesSiteInfo {
   httpsEnforced: boolean;
   certificateState: string | null;
   status: string | null;
+  source: { branch: string; path: "/" | "/docs" };
+}
+
+function pagesSource(
+  data: { source?: { branch?: string | null; path?: string | null } | null } | null,
+): { branch: string; path: "/" | "/docs" } {
+  const branch = data?.source?.branch?.trim() || "main";
+  const path = data?.source?.path === "/docs" ? "/docs" : "/";
+  return { branch, path };
+}
+
+function isNotFound(error: unknown): boolean {
+  return (error as { status?: number }).status === 404;
 }
 
 export async function getPagesSite(octokit: Octokit, ref: RepoRef): Promise<PagesSiteInfo | null> {
@@ -705,6 +718,7 @@ export async function getPagesSite(octokit: Octokit, ref: RepoRef): Promise<Page
       httpsEnforced: Boolean(data.https_enforced),
       certificateState: cert?.state ?? null,
       status: data.status ?? null,
+      source: pagesSource(data),
     };
   } catch {
     return null;
@@ -714,21 +728,42 @@ export async function getPagesSite(octokit: Octokit, ref: RepoRef): Promise<Page
 /**
  * Register or clear a GitHub Pages custom domain. Needs Pages: write
  * (already requested). Does not touch the owner's DNS registrar.
+ * Clearing does not enable Pages if it is currently off.
  */
 export async function setPagesCustomDomain(
   octokit: Octokit,
   ref: RepoRef,
   cname: string | null,
 ): Promise<void> {
-  const existing = await getPagesSite(octokit, ref);
-  if (!existing) {
-    const enabled = await enablePages(octokit, ref);
-    if (!enabled) throw new Error("无法启用 GitHub Pages。");
+  let existing = await getPagesSite(octokit, ref);
+
+  if (cname) {
+    if (!existing) {
+      const enabled = await enablePages(octokit, ref);
+      if (!enabled) throw new Error("无法启用 GitHub Pages。");
+      existing = await getPagesSite(octokit, ref);
+    }
+    await octokit.request("PUT /repos/{owner}/{repo}/pages", {
+      ...ref,
+      cname,
+      source: existing?.source ?? { branch: "main", path: "/" },
+    });
+    return;
   }
-  await octokit.request("PUT /repos/{owner}/{repo}/pages", {
-    ...ref,
-    cname: cname ?? (null as unknown as string),
-  });
+
+  if (existing?.cname) {
+    await octokit.request("PUT /repos/{owner}/{repo}/pages", {
+      ...ref,
+      cname: null as unknown as string,
+      source: existing.source,
+    });
+  }
+
+  try {
+    await deleteFile(octokit, ref, "CNAME", "Remove Pages custom domain");
+  } catch (error) {
+    if (!isNotFound(error)) throw error;
+  }
 }
 
 /** Enable GitHub Pages serving from main branch root. Returns the Pages URL. */

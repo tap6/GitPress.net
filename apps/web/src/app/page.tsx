@@ -50,7 +50,7 @@ export default async function LandingPage() {
             隐私
           </a>
           <Link href="/help/custom-domain" className="text-neutral-500 hover:text-neutral-900">
-            绑定域名
+            用自己的域名
           </Link>
           <Link href="/make-theme" className="text-neutral-500 hover:text-neutral-900">
             做主题
@@ -312,7 +312,7 @@ export default async function LandingPage() {
             </a>
             {" · "}
             <Link href="/help/custom-domain" className="text-neutral-500 hover:text-neutral-800">
-              绑定域名
+              用自己的域名
             </Link>
             {" · "}
             <Link href="/make-theme" className="text-neutral-500 hover:text-neutral-800">

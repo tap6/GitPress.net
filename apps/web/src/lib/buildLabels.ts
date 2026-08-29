@@ -83,10 +83,13 @@ export function describeGitChange(commitMessage: string | null): GitChangeDescri
 
   if (first === "Update site settings") return described("settings", "更新了站点设置");
   const setDomain = first.match(/^Set custom domain: (.+)$/);
-  if (setDomain) return described("settings", `绑定了域名「${setDomain[1]}」`);
-  if (first === "Remove custom domain") return described("settings", "解除了自定义域名");
-  if (first.startsWith("Set custom domain")) return described("settings", "绑定了自定义域名");
-  if (first.startsWith("Remove custom domain")) return described("settings", "解除了自定义域名");
+  if (setDomain) return described("settings", `在 GitHub Pages 登记了「${setDomain[1]}」`);
+  const siteUrl = first.match(/^Update site URL: (.+)$/);
+  if (siteUrl) return described("settings", `更新了站点地址「${siteUrl[1]}」`);
+  if (first === "Remove custom domain") return described("settings", "恢复了默认 Pages 地址");
+  if (first === "Remove Pages custom domain") return described("settings", "取消了 Pages 域名登记");
+  if (first.startsWith("Set custom domain")) return described("settings", "在 GitHub Pages 登记了域名");
+  if (first.startsWith("Update site URL")) return described("settings", "更新了站点地址");
   if (first === "Update site logo and avatar") return described("settings", "更新了站点标志与头像");
   if (first === "Update categories") return described("settings", "更新了分类");
   if (first === "Update menu") return described("nav", "更新了导航菜单");

@@ -20,7 +20,7 @@ import {
   updateSiteConfig,
   uploadMedia,
 } from "./content";
-import { getInstallationOctokit, listBuildRuns, splitRepo, setPagesCustomDomain, deleteFile, putFile } from "./github";
+import { getInstallationOctokit, listBuildRuns, splitRepo, setPagesCustomDomain, putFile } from "./github";
 import {
   MAX_BATCH_BYTES,
   MAX_BATCH_IMAGES,
@@ -29,12 +29,7 @@ import {
 } from "./mediaName";
 import { assertAllowedMediaUpload } from "./mediaTypes";
 import { persistNavItem, type NavItem } from "./nav";
-import {
-  customDomainUrl,
-  githubPagesDefaultBasePath,
-  githubPagesDefaultUrl,
-  parseCustomDomain,
-} from "./customDomain";
+import { resolvePublicOrigin } from "./customDomain";
 import { provisionSite, rotateDeployKey, triggerRebuild } from "./provision";
 import { revalidateSiteData } from "./siteDataCache";
 import { requireSite, requireUser } from "./sites";
@@ -623,10 +618,9 @@ export async function saveSettingsAction(
   return { saved: true };
 }
 
-export interface SaveCustomDomainState {
+export interface SaveSiteUrlState {
   error?: string;
   saved?: boolean;
-  removed?: boolean;
 }
 
 function pagesApiError(error: unknown): string {
@@ -641,82 +635,92 @@ function pagesApiError(error: unknown): string {
     if (/taken|already in use/i.test(detail)) return "这个域名已被另一个 GitHub Pages 站点占用。";
     return detail ? `GitHub 拒绝了这个域名：${detail}` : "GitHub 拒绝了这个域名。";
   }
-  return error instanceof Error ? error.message : "绑定失败，请稍后再试。";
+  return error instanceof Error ? error.message : "保存失败，请稍后再试。";
 }
 
-export async function saveCustomDomainAction(
-  _prev: SaveCustomDomainState,
-  formData: FormData,
-): Promise<SaveCustomDomainState> {
-  const siteId = String(formData.get("siteId"));
-  const { site, installation } = await requireSite(siteId);
-  const parsed = parseCustomDomain(String(formData.get("domain") ?? ""));
-  if ("error" in parsed) return { error: parsed.error };
-
-  const octokit = await getInstallationOctokit(installation.installationId);
-  const siteRef = splitRepo(site.siteRepo);
-  const url = customDomainUrl(parsed.host);
-  try {
-    await setPagesCustomDomain(octokit, siteRef, parsed.host);
-    await putFile(
-      octokit,
-      siteRef,
-      "CNAME",
-      { utf8: `${parsed.host}\n` },
-      `Set custom domain: ${parsed.host}`,
-    );
-    await updateSiteConfig(
-      octokit,
-      site.dataRepo,
-      (config) => {
-        config.site.url = url;
-        config.site.basePath = "/";
-      },
-      `Set custom domain: ${parsed.host}`,
-    );
-  } catch (error) {
-    return { error: pagesApiError(error) };
-  }
-
-  await db.update(sites).set({ url, basePath: "/" }).where(eq(sites.id, siteId));
-  revalidateSiteData(site.dataRepo, [`/sites/${siteId}/settings`, `/sites/${siteId}`]);
-  redirect(`/sites/${siteId}/settings?domain=saved`);
+async function clearPagesCustomDomain(
+  octokit: Awaited<ReturnType<typeof getInstallationOctokit>>,
+  siteRef: ReturnType<typeof splitRepo>,
+): Promise<void> {
+  await setPagesCustomDomain(octokit, siteRef, null);
 }
 
-export async function removeCustomDomainAction(
-  _prev: SaveCustomDomainState,
+export async function saveSiteUrlAction(
+  _prev: SaveSiteUrlState,
   formData: FormData,
-): Promise<SaveCustomDomainState> {
+): Promise<SaveSiteUrlState> {
   const siteId = String(formData.get("siteId"));
   const { site, installation } = await requireSite(siteId);
+  const resolved = resolvePublicOrigin(String(formData.get("origin") ?? ""), site.siteRepo);
+  if ("error" in resolved) return { error: resolved.error };
+
+  const registerPages = formData.get("registerPages") === "on" && !resolved.isDefaultPages;
   const octokit = await getInstallationOctokit(installation.installationId);
   const siteRef = splitRepo(site.siteRepo);
-  const url = githubPagesDefaultUrl(site.siteRepo);
-  const basePath = githubPagesDefaultBasePath(site.siteRepo);
+  const message = resolved.isDefaultPages
+    ? "Remove custom domain"
+    : registerPages
+      ? `Set custom domain: ${resolved.host}`
+      : `Update site URL: ${resolved.host}`;
 
   try {
-    await setPagesCustomDomain(octokit, siteRef, null);
-    try {
-      await deleteFile(octokit, siteRef, "CNAME", "Remove custom domain");
-    } catch {
-      // CNAME may already be gone.
+    if (registerPages) {
+      try {
+        await setPagesCustomDomain(octokit, siteRef, resolved.host);
+        await putFile(
+          octokit,
+          siteRef,
+          "CNAME",
+          { utf8: `${resolved.host}\n` },
+          `Set custom domain: ${resolved.host}`,
+        );
+      } catch (error) {
+        return { error: pagesApiError(error) };
+      }
+    } else {
+      try {
+        await clearPagesCustomDomain(octokit, siteRef);
+      } catch (error) {
+        return { error: pagesApiError(error) };
+      }
     }
+
     await updateSiteConfig(
       octokit,
       site.dataRepo,
       (config) => {
-        config.site.url = url;
-        config.site.basePath = basePath;
+        config.site.url = resolved.url;
+        config.site.basePath = resolved.basePath;
       },
-      "Remove custom domain",
+      message,
     );
   } catch (error) {
     return { error: pagesApiError(error) };
   }
 
-  await db.update(sites).set({ url, basePath }).where(eq(sites.id, siteId));
+  await db
+    .update(sites)
+    .set({ url: resolved.url, basePath: resolved.basePath })
+    .where(eq(sites.id, siteId));
   revalidateSiteData(site.dataRepo, [`/sites/${siteId}/settings`, `/sites/${siteId}`]);
-  redirect(`/sites/${siteId}/settings?domain=removed`);
+  const notice = resolved.isDefaultPages ? "reset" : registerPages ? "pages" : "url";
+  redirect(`/sites/${siteId}/settings?domain=${notice}`);
+}
+
+export async function unregisterPagesDomainAction(
+  _prev: SaveSiteUrlState,
+  formData: FormData,
+): Promise<SaveSiteUrlState> {
+  const siteId = String(formData.get("siteId"));
+  const { site, installation } = await requireSite(siteId);
+  const octokit = await getInstallationOctokit(installation.installationId);
+  try {
+    await clearPagesCustomDomain(octokit, splitRepo(site.siteRepo));
+  } catch (error) {
+    return { error: pagesApiError(error) };
+  }
+  revalidatePath(`/sites/${siteId}/settings`);
+  redirect(`/sites/${siteId}/settings?domain=unpages`);
 }
 
 // ---------------------------------------------------------------------------

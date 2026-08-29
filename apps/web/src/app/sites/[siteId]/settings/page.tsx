@@ -1,11 +1,11 @@
 import { BrandMediaForm } from "@/components/BrandMediaForm";
-import { CustomDomainForm } from "@/components/CustomDomainForm";
+import { SiteUrlForm } from "@/components/SiteUrlForm";
 import { rotateDeployKeyAction } from "@/lib/actions";
 import { AiSettingsForm } from "@/components/AiSettingsForm";
 import { ProgressButton } from "@/components/ProgressButton";
 import { SettingsForm } from "@/components/SettingsForm";
 import { getAiConfig } from "@/lib/ai";
-import { githubPagesDefaultUrl } from "@/lib/customDomain";
+import { githubPagesDefaultUrl, isDefaultPagesOrigin } from "@/lib/customDomain";
 import { getInstallationOctokit, getInstallationPermissionGap, getPagesSite, splitRepo } from "@/lib/github";
 import { cachedSiteConfig } from "@/lib/siteDataCache";
 import { requireSite } from "@/lib/sites";
@@ -32,6 +32,15 @@ export default async function SettingsPage({
     typeof config?.site.analyticsSnippet === "string" ? config.site.analyticsSnippet : "";
   const logo = typeof config?.site.logo === "string" ? config.site.logo : "";
   const avatar = typeof config?.site.avatar === "string" ? config.site.avatar : "";
+  const defaultUrl = githubPagesDefaultUrl(site.siteRepo);
+  const onDefaultPages = isDefaultPagesOrigin(site.url, site.siteRepo);
+  const notice =
+    domainNotice === "url" ||
+    domainNotice === "pages" ||
+    domainNotice === "unpages" ||
+    domainNotice === "reset"
+      ? domainNotice
+      : null;
 
   return (
     <div>
@@ -87,38 +96,35 @@ export default async function SettingsPage({
           id="domain"
           className="gp-settings-card gp-settings-card--domain scroll-mt-16 rounded border border-neutral-200 bg-white shadow-sm"
         >
-          <h2 className="shrink-0 border-b border-neutral-100 px-5 py-3 text-sm font-semibold">自定义域名</h2>
+          <h2 className="shrink-0 border-b border-neutral-100 px-5 py-3 text-sm font-semibold">访问地址</h2>
           <div className="gp-settings-card__body">
-            <CustomDomainForm
+            <SiteUrlForm
               siteId={site.id}
               siteRepo={site.siteRepo}
               currentUrl={site.url}
-              defaultUrl={githubPagesDefaultUrl(site.siteRepo)}
+              defaultUrl={defaultUrl}
               pagesCname={pages?.cname ?? null}
               certificateState={pages?.certificateState ?? null}
-              notice={domainNotice === "saved" || domainNotice === "removed" ? domainNotice : null}
+              defaultRegisterPages={Boolean(pages?.cname) || onDefaultPages}
+              notice={notice}
             />
           </div>
         </section>
 
         <section className="gp-settings-card gp-settings-card--note rounded border border-neutral-200 bg-white shadow-sm">
-          <h2 className="shrink-0 border-b border-neutral-100 px-5 py-3 text-sm font-semibold">部署</h2>
+          <h2 className="shrink-0 border-b border-neutral-100 px-5 py-3 text-sm font-semibold">托管</h2>
           <div className="gp-settings-card__body space-y-3 p-5 text-sm leading-relaxed text-neutral-600">
-            <p className="break-all">
-              当前地址:
-              {site.url ? (
-                <a href={site.url} target="_blank" rel="noreferrer" className="ml-1 text-wp-accent hover:underline">
-                  {site.url}
-                </a>
-              ) : (
-                <span className="ml-1 text-neutral-400">GitHub Pages 启用中…</span>
-              )}
-            </p>
             <p>
-              默认走 GitHub Pages。想改用 <strong>Vercel</strong>？把公开网站仓库
-              <code className="mx-1 break-all rounded bg-neutral-100 px-1.5 py-0.5">{site.siteRepo}</code>
-              导入即可（纯静态，无需构建配置）。Vercel 上的域名请在 Vercel 后台添加，不要和上面的
-              Pages 自定义域名指到同一条记录。
+              编译好的网页在公开仓库{" "}
+              <a
+                href={`https://github.com/${site.siteRepo}`}
+                target="_blank"
+                rel="noreferrer"
+                className="break-all text-wp-accent hover:underline"
+              >
+                {site.siteRepo}
+              </a>
+              。默认走 GitHub Pages；接到哪家、域名怎么挂，在上方「访问地址」里按托管切换查看。
             </p>
           </div>
         </section>

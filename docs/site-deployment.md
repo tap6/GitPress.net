@@ -1,7 +1,8 @@
 # 用户站点的部署方式
 
-GitPress 建站后默认走 GitHub Pages,也可以随时切到 Vercel 或绑定自定义域名。
-所有方案都基于同一个公开的**网站仓库**(编译产物),互不冲突。
+GitPress 建站后默认走 GitHub Pages。编译产物在公开的**网站仓库**里,也可以接到 Vercel、Cloudflare Pages 或任意静态托管。
+用自己的域名访问时,先在后台「设置 → 访问地址」写上访客 URL(会改 `site.url` / `site.basePath` 并重建);
+域名挂在哪家,就在哪家控制台添加。设置页和帮助页可按托管切换步骤。说明见 [/help/custom-domain](https://gitpress.net/help/custom-domain)。
 
 ## 默认:GitHub Pages(自动)
 
@@ -17,30 +18,18 @@ GitPress 建站后默认走 GitHub Pages,也可以随时切到 Vercel 或绑定�
 > 注意:GitHub 免费账号的 Pages 只支持公开仓库,这正是「数据私有 + 产物公开」
 > 双仓库设计的原因 —— 草稿和未发布内容只存在于私有数据仓库,永远不会进入公开产物。
 
-## 可选:Vercel
+若继续用 Pages 并换成自己的域名:在访问地址选「GitHub Pages」,按步骤里的表格写 DNS。
+build action 会保留网站仓库里已有的 `CNAME` 文件。
 
-网站仓库是纯静态文件,导入即用:
+## 可选:Vercel / Cloudflare Pages
 
-1. Vercel → New Project → 导入网站仓库(`<站点标识>`,不是 `-data` 仓库);
-2. Framework Preset 选 **Other**,Build Command 留空,Output Directory 填 `.`;
-3. 部署完成后,把数据仓库 `gitpress.json` 中的
-   `site.url` 改为 Vercel 域名、`site.basePath` 改为 `"/"`,提交后自动重建。
+网站仓库是纯静态文件:
 
-此后每次 GitPress 构建推送到网站仓库,Vercel 都会自动同步部署。
+1. 在 Vercel 或 Cloudflare Pages 导入网站仓库(`<站点标识>`,不是 `-data` 仓库);
+2. 不要再跑框架构建(Vercel: Framework Other, Build 留空, Output `.`);
+3. 在那家控制台添加域名,并在 GitPress 选对应托管、填同一访客地址(不要选 GitHub Pages)。选 Vercel / Cloudflare 保存时会取消 Pages 上已有的域名登记。
 
-## 可选:自定义域名
-
-后台「设置 → 自定义域名」可把域名登记到 GitHub Pages(平台已有 Pages 写权限),并自动改写
-`gitpress.json` 的 `site.url` / `site.basePath`。**DNS 必须在域名注册商自行添加**,GitHub
-登录改不了阿里云或 Cloudflare。图文步骤见 [/help/custom-domain](https://gitpress.net/help/custom-domain)。
-
-build action 在每次发布时会保留网站仓库中已有的 CNAME 文件,自定义域名不会因重建而失效。
-
-### 用在 Vercel 上
-
-Vercel → Project → Settings → Domains 添加域名,DNS 指向 Vercel;
-不要和 GitHub Pages 自定义域名同时指向同一条记录。同样需要 `site.url` 与 `site.basePath: "/"`
-(若走 Vercel 而不走上面的绑定表单,请自行改 `gitpress.json`)。
+不要把同一个 hostname 同时指到 Pages 和另一家。
 
 ## 端到端验证清单
 

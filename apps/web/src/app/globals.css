@@ -157,9 +157,9 @@ body {
 }
 
 .gp-settings-card--domain {
-  min-height: 18rem;
-  max-width: 42rem;
-  flex: 1 1 28rem;
+  min-height: 20rem;
+  max-width: 52rem;
+  flex: 1 1 36rem;
 }
 
 .gp-settings-card__body {
