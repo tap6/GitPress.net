@@ -10,9 +10,11 @@ export const SETTINGS_SECTIONS = [
   { id: "maintain", label: "维护" },
 ] as const;
 
-export type SettingsSectionId = (typeof SETTINGS_SECTIONS)[number]["id"];
+export type SettingsPanelId = (typeof SETTINGS_SECTIONS)[number]["id"];
+/** `all` = 点「设置」本身，每一块都显示。 */
+export type SettingsSectionId = SettingsPanelId | "all";
 
-const ALIASES: Record<string, SettingsSectionId> = {
+const ALIASES: Record<string, SettingsPanelId> = {
   "account-ai": "account",
 };
 
@@ -20,19 +22,21 @@ const IDS = new Set<string>(SETTINGS_SECTIONS.map((item) => item.id));
 
 export function parseSettingsSection(hash: string | null | undefined): SettingsSectionId {
   const raw = (hash ?? "").replace(/^#/, "").trim();
-  if (!raw) return "general";
+  if (!raw || raw === "all") return "all";
   if (ALIASES[raw]) return ALIASES[raw];
-  if (IDS.has(raw)) return raw as SettingsSectionId;
-  return "general";
+  if (IDS.has(raw)) return raw as SettingsPanelId;
+  return "all";
 }
 
 export function settingsSectionLabel(id: SettingsSectionId): string {
-  return SETTINGS_SECTIONS.find((item) => item.id === id)?.label ?? "常规";
+  if (id === "all") return "全部";
+  return SETTINGS_SECTIONS.find((item) => item.id === id)?.label ?? "全部";
 }
 
 /** Same-page switch: no App Router navigation, forms stay mounted. */
 export function setSettingsSection(id: SettingsSectionId): void {
-  const url = `${window.location.pathname}${window.location.search}#${id}`;
+  const hash = id === "all" ? "" : `#${id}`;
+  const url = `${window.location.pathname}${window.location.search}${hash}`;
   window.history.replaceState(null, "", url);
   window.dispatchEvent(new CustomEvent(SETTINGS_SECTION_EVENT, { detail: { id } }));
 }

@@ -72,7 +72,7 @@ export function AdminMenu({ siteId }: { siteId: string }) {
   const base = `/sites/${siteId}`;
   const settingsHref = `${base}/settings`;
   const onSettings = pathname === settingsHref;
-  const [settingsSection, setSection] = useState<SettingsSectionId>("general");
+  const [settingsSection, setSection] = useState<SettingsSectionId>("all");
 
   useEffect(() => {
     const sync = () => setSection(parseSettingsSection(window.location.hash));
@@ -118,21 +118,23 @@ export function AdminMenu({ siteId }: { siteId: string }) {
               onClick={(event) => {
                 if (isSettings && onSettings) {
                   event.preventDefault();
-                  setSettingsSection("general");
+                  setSettingsSection("all");
                 }
               }}
               className={`flex items-center gap-2.5 px-4 py-2.5 text-[13px] transition ${
                 active && !isSettings
                   ? "bg-wp-accent text-white"
-                  : active && isSettings
-                    ? "bg-black/25 text-white"
-                    : "text-wp-sidebar-text hover:bg-wp-base-dark hover:text-[#72aee6]"
+                  : active && isSettings && settingsSection === "all"
+                    ? "bg-wp-accent text-white"
+                    : active && isSettings
+                      ? "bg-black/25 text-white"
+                      : "text-wp-sidebar-text hover:bg-wp-base-dark hover:text-[#72aee6]"
               }`}
             >
               {ICONS[item.key]}
               {item.label}
             </Link>
-            {isSettings && (
+            {isSettings && onSettings && (
               <div className="mb-1 bg-black/20 py-1" role="group" aria-label="设置分组">
                 {SETTINGS_SECTIONS.map((section) => {
                   const current = onSettings && settingsSection === section.id;

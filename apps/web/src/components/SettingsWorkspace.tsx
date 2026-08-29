@@ -7,19 +7,20 @@ import {
   settingsSectionLabel,
   SETTINGS_SECTION_EVENT,
   SETTINGS_SECTIONS,
+  type SettingsPanelId,
   type SettingsSectionId,
 } from "@/lib/settingsSections";
 
-const SettingsSectionContext = createContext<SettingsSectionId>("general");
+const SettingsSectionContext = createContext<SettingsSectionId>("all");
 
 interface WorkspaceProps {
   /** e.g. domain save redirect should open 访问地址 even without a hash. */
-  initialSection?: SettingsSectionId;
+  initialSection?: SettingsPanelId;
   children: ReactNode;
 }
 
 export function SettingsWorkspace({ initialSection, children }: WorkspaceProps) {
-  const [section, setSection] = useState<SettingsSectionId>(initialSection ?? "general");
+  const [section, setSection] = useState<SettingsSectionId>(initialSection ?? "all");
 
   useLayoutEffect(() => {
     const fromHash = parseSettingsSection(window.location.hash);
@@ -52,9 +53,24 @@ export function SettingsWorkspace({ initialSection, children }: WorkspaceProps) 
     <div>
       <h1 className="text-2xl font-normal text-neutral-800">
         设置
-        <span className="ml-2 text-base text-neutral-400">/ {settingsSectionLabel(section)}</span>
+        {section !== "all" && (
+          <span className="ml-2 text-base text-neutral-400">/ {settingsSectionLabel(section)}</span>
+        )}
       </h1>
       <div className="mt-3 flex flex-wrap gap-1.5 lg:hidden" role="tablist" aria-label="设置分组">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={section === "all"}
+          onClick={() => setSettingsSection("all")}
+          className={`rounded-full px-3 py-1 text-xs font-medium ${
+            section === "all"
+              ? "bg-wp-accent text-white"
+              : "bg-white text-neutral-600 ring-1 ring-neutral-200 hover:bg-neutral-50"
+          }`}
+        >
+          全部
+        </button>
         {SETTINGS_SECTIONS.map((item) => {
           const active = item.id === section;
           return (
@@ -84,11 +100,11 @@ export function SettingsPanel({
   id,
   children,
 }: {
-  id: SettingsSectionId;
+  id: SettingsPanelId;
   children: ReactNode;
 }) {
   const section = useContext(SettingsSectionContext);
-  const active = section === id;
+  const active = section === "all" || section === id;
   return (
     <div
       hidden={!active}
