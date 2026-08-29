@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, type PointerEvent } from "react";
 import {
   parseSettingsSection,
   setSettingsSection,
@@ -10,6 +10,15 @@ import {
   SETTINGS_SECTIONS,
   type SettingsSectionId,
 } from "@/lib/settingsSections";
+
+/** Hover 设置本身超过此时长，视为要点子项，展开子菜单。 */
+const SETTINGS_HOVER_OPEN_MS = 1000;
+/** 离开设置+子菜单超过此时长，收起（仍在设置页时保持展开）。 */
+const SETTINGS_HOVER_CLOSE_MS = 400;
+
+function canHoverIntent(): boolean {
+  return window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+}
 
 const ICONS: Record<string, React.ReactNode> = {
   dashboard: (
@@ -73,6 +82,49 @@ export function AdminMenu({ siteId }: { siteId: string }) {
   const settingsHref = `${base}/settings`;
   const onSettings = pathname === settingsHref;
   const [settingsSection, setSection] = useState<SettingsSectionId>("all");
+  const [hoverOpen, setHoverOpen] = useState(false);
+  const openTimer = useRef<number>(0);
+  const closeTimer = useRef<number>(0);
+  const settingsExpanded = onSettings || hoverOpen;
+
+  const clearHoverTimers = () => {
+    window.clearTimeout(openTimer.current);
+    window.clearTimeout(closeTimer.current);
+    openTimer.current = 0;
+    closeTimer.current = 0;
+  };
+
+  useEffect(() => {
+    setHoverOpen(false);
+    clearHoverTimers();
+  }, [pathname]);
+
+  useEffect(() => () => clearHoverTimers(), []);
+
+  const onSettingsButtonEnter = (event: PointerEvent<HTMLElement>) => {
+    if (event.pointerType !== "mouse" && event.pointerType !== "pen") return;
+    if (!canHoverIntent()) return;
+    window.clearTimeout(closeTimer.current);
+    closeTimer.current = 0;
+    if (onSettings || hoverOpen) return;
+    window.clearTimeout(openTimer.current);
+    openTimer.current = window.setTimeout(() => setHoverOpen(true), SETTINGS_HOVER_OPEN_MS);
+  };
+
+  const onSettingsGroupEnter = (event: PointerEvent<HTMLElement>) => {
+    if (event.pointerType !== "mouse" && event.pointerType !== "pen") return;
+    window.clearTimeout(closeTimer.current);
+    closeTimer.current = 0;
+  };
+
+  const onSettingsGroupLeave = (event: PointerEvent<HTMLElement>) => {
+    if (event.pointerType !== "mouse" && event.pointerType !== "pen") return;
+    window.clearTimeout(openTimer.current);
+    openTimer.current = 0;
+    if (onSettings) return;
+    window.clearTimeout(closeTimer.current);
+    closeTimer.current = window.setTimeout(() => setHoverOpen(false), SETTINGS_HOVER_CLOSE_MS);
+  };
 
   useEffect(() => {
     const sync = () => setSection(parseSettingsSection(window.location.hash));
@@ -110,11 +162,18 @@ export function AdminMenu({ siteId }: { siteId: string }) {
             ? pathname === item.href
             : pathname.startsWith(item.href);
         return (
-          <div key={item.key}>
+          <div
+            key={item.key}
+            onPointerEnter={isSettings ? onSettingsGroupEnter : undefined}
+            onPointerLeave={isSettings ? onSettingsGroupLeave : undefined}
+          >
             <Link
               href={item.href}
               prefetch
               scroll={!isSettings}
+              aria-expanded={isSettings ? settingsExpanded : undefined}
+              aria-controls={isSettings ? "admin-settings-submenu" : undefined}
+              onPointerEnter={isSettings ? onSettingsButtonEnter : undefined}
               onClick={(event) => {
                 if (isSettings && onSettings) {
                   event.preventDefault();
@@ -134,32 +193,48 @@ export function AdminMenu({ siteId }: { siteId: string }) {
               {ICONS[item.key]}
               {item.label}
             </Link>
-            {isSettings && onSettings && (
-              <div className="mb-1 bg-black/20 py-1" role="group" aria-label="设置分组">
-                {SETTINGS_SECTIONS.map((section) => {
-                  const current = onSettings && settingsSection === section.id;
-                  return (
-                    <Link
-                      key={section.id}
-                      href={`${settingsHref}#${section.id}`}
-                      prefetch={false}
-                      scroll={false}
-                      onClick={(event) => {
-                        if (onSettings) {
-                          event.preventDefault();
-                          setSettingsSection(section.id);
-                        }
-                      }}
-                      className={`block py-1.5 pl-[2.35rem] pr-3 text-[12px] transition ${
-                        current
-                          ? "bg-wp-accent text-white"
-                          : "text-wp-sidebar-text hover:bg-wp-base-dark hover:text-[#72aee6]"
-                      }`}
-                    >
-                      {section.label}
-                    </Link>
-                  );
-                })}
+            {isSettings && (
+              <div
+                className={`grid transition-[grid-template-rows] duration-300 ease-out motion-reduce:transition-none ${
+                  settingsExpanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+                }`}
+              >
+                <div className="min-h-0 overflow-hidden">
+                  <div
+                    id="admin-settings-submenu"
+                    className="mb-1 bg-black/20 py-1"
+                    role="group"
+                    aria-label="设置分组"
+                    aria-hidden={!settingsExpanded}
+                    inert={!settingsExpanded || undefined}
+                  >
+                    {SETTINGS_SECTIONS.map((section) => {
+                      const current = onSettings && settingsSection === section.id;
+                      return (
+                        <Link
+                          key={section.id}
+                          href={`${settingsHref}#${section.id}`}
+                          prefetch={false}
+                          scroll={false}
+                          tabIndex={settingsExpanded ? undefined : -1}
+                          onClick={(event) => {
+                            if (onSettings) {
+                              event.preventDefault();
+                              setSettingsSection(section.id);
+                            }
+                          }}
+                          className={`block py-1.5 pl-[2.35rem] pr-3 text-[12px] transition ${
+                            current
+                              ? "bg-wp-accent text-white"
+                              : "text-wp-sidebar-text hover:bg-wp-base-dark hover:text-[#72aee6]"
+                          }`}
+                        >
+                          {section.label}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
             )}
           </div>
