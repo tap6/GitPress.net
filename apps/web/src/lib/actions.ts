@@ -27,6 +27,12 @@ import {
   updateSiteConfig,
   uploadMedia,
 } from "./content";
+import {
+  CommentsPermissionError,
+  connectGiscus,
+  parseSiteComments,
+  type SiteComments,
+} from "./comments";
 import { getInstallationOctokit, listBuildRuns, splitRepo, setPagesCustomDomain, putFile } from "./github";
 import {
   MAX_BATCH_BYTES,
@@ -717,8 +723,109 @@ export async function saveSettingsAction(
 export interface SaveCommentsState {
   error?: string;
   saved?: boolean;
+  reviewUrl?: string;
 }
 
+function commentsFromConfig(config: { site: Record<string, unknown> }): SiteComments {
+  return parseSiteComments(config.site.comments);
+}
+
+export async function connectGiscusAction(
+  _prev: SaveCommentsState,
+  formData: FormData,
+): Promise<SaveCommentsState> {
+  const siteId = String(formData.get("siteId"));
+  const { site, installation } = await requireSite(siteId);
+  const octokit = await getInstallationOctokit(installation.installationId);
+  const config = await getSiteConfig(octokit, site.dataRepo);
+  const language = typeof config?.site.language === "string" ? config.site.language : site.language;
+
+  try {
+    const giscus = await connectGiscus(octokit, {
+      siteRepo: site.siteRepo,
+      language,
+      installationId: installation.installationId,
+    });
+    await updateSiteConfig(
+      octokit,
+      site.dataRepo,
+      (next) => {
+        const current = commentsFromConfig(next);
+        next.site.comments = { ...current, enabled: true, giscus };
+      },
+      "Connect giscus comments",
+    );
+  } catch (error) {
+    if (error instanceof CommentsPermissionError) {
+      return { error: error.message, reviewUrl: error.permissionGap?.reviewUrl };
+    }
+    return { error: `连接失败:${error instanceof Error ? error.message : String(error)}` };
+  }
+
+  revalidateSiteData(site.dataRepo, [`/sites/${siteId}/settings`, `/sites/${siteId}`]);
+  return { saved: true };
+}
+
+export async function setCommentsEnabledAction(
+  _prev: SaveCommentsState,
+  formData: FormData,
+): Promise<SaveCommentsState> {
+  const siteId = String(formData.get("siteId"));
+  const enabled = String(formData.get("enabled")) === "true";
+  const { site, installation } = await requireSite(siteId);
+  const octokit = await getInstallationOctokit(installation.installationId);
+
+  try {
+    await updateSiteConfig(
+      octokit,
+      site.dataRepo,
+      (config) => {
+        const current = commentsFromConfig(config);
+        config.site.comments = { ...current, enabled };
+      },
+      enabled ? "Enable comments" : "Disable comments",
+    );
+  } catch (error) {
+    return { error: `保存失败:${error instanceof Error ? error.message : String(error)}` };
+  }
+
+  revalidateSiteData(site.dataRepo, [`/sites/${siteId}/settings`, `/sites/${siteId}`]);
+  return { saved: true };
+}
+
+export async function disconnectGiscusAction(
+  _prev: SaveCommentsState,
+  formData: FormData,
+): Promise<SaveCommentsState> {
+  const siteId = String(formData.get("siteId"));
+  const { site, installation } = await requireSite(siteId);
+  const octokit = await getInstallationOctokit(installation.installationId);
+
+  try {
+    await updateSiteConfig(
+      octokit,
+      site.dataRepo,
+      (config) => {
+        const current = commentsFromConfig(config);
+        const next: SiteComments = { ...current, enabled: false };
+        delete next.giscus;
+        if (next.enabled === false && !config.site.commentsSnippet) {
+          delete config.site.comments;
+        } else {
+          config.site.comments = next;
+        }
+      },
+      "Disconnect giscus comments",
+    );
+  } catch (error) {
+    return { error: `断开失败:${error instanceof Error ? error.message : String(error)}` };
+  }
+
+  revalidateSiteData(site.dataRepo, [`/sites/${siteId}/settings`, `/sites/${siteId}`]);
+  return { saved: true };
+}
+
+/** Advanced fallback: raw embed snippet when giscus is not connected. */
 export async function saveCommentsAction(
   _prev: SaveCommentsState,
   formData: FormData,
@@ -733,10 +840,22 @@ export async function saveCommentsAction(
       octokit,
       site.dataRepo,
       (config) => {
-        if (commentsSnippet) config.site.commentsSnippet = commentsSnippet;
-        else delete config.site.commentsSnippet;
+        if (commentsFromConfig(config).giscus) {
+          throw new Error("已连接 giscus,请先断开再改自定义嵌入代码。");
+        }
+        if (commentsSnippet) {
+          config.site.commentsSnippet = commentsSnippet;
+          const current = commentsFromConfig(config);
+          config.site.comments = { ...current, enabled: true };
+        } else {
+          delete config.site.commentsSnippet;
+          const current = commentsFromConfig(config);
+          if (current.enabled === undefined && !current.giscus) {
+            delete config.site.comments;
+          }
+        }
       },
-      "Update comments",
+      "Update comments snippet",
     );
   } catch (error) {
     return { error: `保存失败:${error instanceof Error ? error.message : String(error)}` };

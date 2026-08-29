@@ -69,9 +69,30 @@
           "type": "string",
           "description": "Raw HTML/script snippet (GA4, Umami, Plausible, Clarity, ...) inserted verbatim before </head> on every page. Empty/absent means no analytics are injected."
         },
+        "comments": {
+          "type": "object",
+          "description": "Site-level comments. enabled is independent of whether giscus is connected — turning it off hides the widget without dropping giscus. When enabled is absent, themes treat comments as on if giscus or commentsSnippet is present.",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "giscus": {
+              "type": "object",
+              "required": ["repo", "repoId", "category", "categoryId"],
+              "properties": {
+                "repo": { "type": "string", "description": "Public site repo, e.g. alice/my-blog." },
+                "repoId": { "type": "string", "description": "GitHub GraphQL node id of that repo." },
+                "category": { "type": "string" },
+                "categoryId": { "type": "string" },
+                "mapping": { "type": "string", "const": "pathname" },
+                "lang": { "type": "string", "description": "giscus data-lang, derived from site.language." }
+              },
+              "additionalProperties": true
+            }
+          },
+          "additionalProperties": true
+        },
         "commentsSnippet": {
           "type": "string",
-          "description": "Raw embed snippet (e.g. from giscus.app) rendered under each post's body. Empty/absent means no comments."
+          "description": "Legacy raw embed snippet used only when comments.giscus is absent. Empty/absent means no fallback."
         },
         "nav": {
           "type": "array",

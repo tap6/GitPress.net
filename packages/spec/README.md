@@ -36,7 +36,17 @@ GitPress 生态的共同契约:平台、构建 Action、所有主题(包括 AI �
     ],
     "postsPerPage": 10,
     "analyticsSnippet": "<script>/* GA4 / Umami / Plausible / Clarity 等平台给的完整代码,原样插入 </head> 前 */</script>",
-    "commentsSnippet": "<script src=\"https://giscus.app/client.js\" data-repo=\"owner/site-repo\" ...></script>",
+    "comments": {
+      "enabled": true,
+      "giscus": {
+        "repo": "alice/my-blog",
+        "repoId": "R_kgDOXXXX",
+        "category": "Announcements",
+        "categoryId": "DIC_kwDOXXXX",
+        "mapping": "pathname",
+        "lang": "zh-CN"
+      }
+    },
     "nav": [
       { "type": "home" },
       { "type": "category", "slug": "tech" },
@@ -61,7 +71,9 @@ GitPress 生态的共同契约:平台、构建 Action、所有主题(包括 AI �
 - `categories`:站长维护的有序分类列表。主题为每个分类生成 `/categories/<slug>/` 归档页。若尚未配置 `site.nav`,顶部导航只包含 `inNav` 不为 `false` 的项(缺省为 `true`);一旦存在 `site.nav`,顶栏完全由菜单决定,`inNav` 不再影响导航。每篇文章从这个列表选一个主分类(写入 frontmatter 的 `categories` 数组第 0 项),与自由的 `tags` 并存、互不影响。关掉顶栏不等于删除分类。
 - `postsPerPage`:首页与归档页的分页大小,缺省 10。
 - `analyticsSnippet`:原始 HTML/脚本片段,缺省不注入任何统计代码。
-- `commentsSnippet`:评论嵌入代码(如 giscus.app 生成的 `<script>`),主题原样插在每篇文章正文下方;缺省不显示评论区。
+- `comments.enabled`:站点级评论开关。关掉只是不渲染,不删除 `giscus` 配置。缺省时:已连接 giscus 或仍有 `commentsSnippet` 则视为开启。
+- `comments.giscus`:平台一键连接后写入的仓库 / 分类 ID。主题按字段拼 giscus 脚本,不要 `set:html` 任意 HTML。
+- `commentsSnippet`:旧的原样嵌入代码,仅在没有 `comments.giscus` 时作为兜底;独立页面默认不渲染评论区。
 - `logo` / `avatar`:站点级图片路径(通常是 `/media/...`),换主题不会丢。是否显示由各主题自己的 `configSchema` 选项决定(如 `showLogo`、`showAvatar`)。
 - `nav`:站长显式维护的顶部导航菜单——出现哪些项、顺序如何、叫什么名字,包括「首页」「RSS」是否显示,都由这个数组决定。存在时,它是导航的唯一依据;主题不得在此之外自行拼接分类或页面。**缺省时**,主题回退到隐式导航(首页 + `inNav` 分类 + 全部页面);RSS 默认放在页脚,只有菜单里显式加入才会出现在顶栏。每项的 `type` 为 `home` / `rss` / `category` / `page` / `link` 之一;`category`/`page` 需要对应的 `slug`,`link` 需要 `url` 与 `label`;其余类型的 `label` 均可选,缺省时由主题按 `site.language` 给出默认文案(如「首页」/ “Home”)。
 - `footer`:站长显式维护的页脚。**缺省时**主题显示版权(默认用站点名,不用 GitHub 登录名)、GitPress 署名、当前主题开源页(若 `theme.json` 有 `homepage`)、RSS。保存过之后,列表即真相:不在列表里的槽就是关了。系统槽 `copyright` / `gitpress` / `theme` / `rss` 只增不删(新槽必须 `defaultEnabled: false`);站长自定义永远只有 `page` / `link` / `text`。不认识的 `type`:有 `url`+`label` 当外链,只有 `label` 当纯文本,否则跳过。`{year}` 在构建时替换。`theme` 不存 URL,由当前主题的 `theme.json` 解析。关掉页脚 RSS **不影响** `/rss.xml` 与 `<head>` 里的 `rel="alternate"`。

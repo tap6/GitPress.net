@@ -53,7 +53,7 @@ slug 缺省由文件名推导。未知 frontmatter 键用 .passthrough() 原样�
 - 若存在 site.beian.icp / site.beian.gongan,追加在页脚末尾。ICP 链 https://beian.miit.gov.cn/;公安备案显示盾牌,文案「公网安备 {号}号」,链 https://beian.mps.gov.cn/#/query/webSearch?recordcode={号}。不要把备案写进 theme.config。
 - theme.json 请提供 homepage(开源仓库或介绍页)。
 - 原样插入 site.analyticsSnippet 到 </head> 前。
-- 若存在 site.commentsSnippet,在每篇**文章**正文下方原样渲染(独立页面默认不渲染)。
+- 评论区只出现在文章页(独立页面默认不渲染)。site.comments.enabled 为关则不渲染。enabled 缺省时:有 comments.giscus 或 commentsSnippet 则视为开。有 comments.giscus 时按字段拼 giscus 脚本(data-repo / data-repo-id / data-category / data-category-id,mapping 用 pathname);否则若存在 site.commentsSnippet 再原样渲染。
 
 ## SEO(主题必须输出,sitemap/robots 由 Action 注入)
 

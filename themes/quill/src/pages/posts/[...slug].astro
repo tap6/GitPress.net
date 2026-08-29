@@ -1,7 +1,18 @@
 ---
 import { render } from "astro:content";
 import Base from "../../layouts/Base.astro";
-import { getPublishedPosts, postSlug, formatDate, readingTime, themeConfig, withBase, gitpress, type Post } from "../../lib/gitpress";
+import {
+  commentsEnabled,
+  formatDate,
+  getPublishedPosts,
+  giscusEmbed,
+  gitpress,
+  postSlug,
+  readingTime,
+  themeConfig,
+  type Post,
+  withBase,
+} from "../../lib/gitpress";
 
 export async function getStaticPaths() {
   const posts = await getPublishedPosts();
@@ -32,6 +43,8 @@ if (redirectTo) return Astro.redirect(redirectTo, 301);
 if (!post) return Astro.redirect(withBase("/"), 302);
 const { Content } = await render(post);
 const minutes = readingTime(post.body ?? "");
+const giscus = giscusEmbed();
+const showComments = commentsEnabled();
 ---
 
 <Base
@@ -66,11 +79,32 @@ const minutes = readingTime(post.body ?? "");
       ) : null
     }
     {
-      gitpress.site.commentsSnippet && (
+      showComments && giscus ? (
+        <div id="gitpress-comments" class="comments">
+          <script
+            is:inline
+            src="https://giscus.app/client.js"
+            data-repo={giscus.repo}
+            data-repo-id={giscus.repoId}
+            data-category={giscus.category}
+            data-category-id={giscus.categoryId}
+            data-mapping="pathname"
+            data-strict="0"
+            data-reactions-enabled="1"
+            data-emit-metadata="0"
+            data-input-position="bottom"
+            data-theme="preferred_color_scheme"
+            data-lang={giscus.lang}
+            data-loading="lazy"
+            crossorigin="anonymous"
+            async
+          />
+        </div>
+      ) : showComments && gitpress.site.commentsSnippet ? (
         <div id="gitpress-comments" class="comments">
           <Fragment set:html={gitpress.site.commentsSnippet} />
         </div>
-      )
+      ) : null
     }
   </article>
 </Base>

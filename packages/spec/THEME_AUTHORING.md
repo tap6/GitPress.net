@@ -57,7 +57,9 @@
 - `site.footer`(有则严格按数组渲染页脚槽;没有则用默认:版权 + GitPress + 主题署名 + RSS)
 - `site.beian`(有 `icp` / `gongan` 则追加在页脚末尾,不要放进 `theme.config`)
 - `site.analyticsSnippet`(原样插入 `</head>` 前)
-- `site.commentsSnippet`(原样插入每篇**文章**正文下方;独立页面默认不渲染)
+- `site.comments.enabled`(独立开关。缺省时:有 `comments.giscus` 或 `commentsSnippet` 则视为开)
+- `site.comments.giscus`(有则按字段拼 giscus `<script>`,不要 `set:html`)
+- `site.commentsSnippet`(仅当没有 `giscus` 时原样插入每篇**文章**正文下方;独立页面默认不渲染)
 - `site.postsPerPage`
 
 隐式顶栏建议:`首页`(文案随 `site.language`) + `inNav` 分类 + 全部页面(按 title 字母序)。**不要**把 RSS 放进默认顶栏。页脚默认给 RSS 链接,但站长可以关掉;`<head>` 里始终保留 `<link rel="alternate" type="application/rss+xml">`,`/rss.xml` 始终生成。

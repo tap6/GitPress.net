@@ -34,6 +34,17 @@ interface SiteInfo {
   basePath?: string;
   author?: string;
   analyticsSnippet?: string;
+  comments?: {
+    enabled?: boolean;
+    giscus?: {
+      repo: string;
+      repoId: string;
+      category: string;
+      categoryId: string;
+      mapping?: string;
+      lang?: string;
+    };
+  };
   commentsSnippet?: string;
   logo?: string;
   avatar?: string;
@@ -187,6 +198,30 @@ export function mediaHref(path?: string): string | undefined {
   if (!path) return undefined;
   if (/^(https?:)?\/\//i.test(path) || path.startsWith("data:")) return path;
   return withBase(path.startsWith("/") ? path : `/${path}`);
+}
+
+export function commentsEnabled(): boolean {
+  const { comments, commentsSnippet } = gitpress.site;
+  if (comments?.enabled !== undefined) return comments.enabled;
+  return Boolean(comments?.giscus || commentsSnippet);
+}
+
+export function giscusEmbed(): {
+  repo: string;
+  repoId: string;
+  category: string;
+  categoryId: string;
+  lang: string;
+} | undefined {
+  const giscus = gitpress.site.comments?.giscus;
+  if (!giscus?.repo || !giscus.repoId || !giscus.category || !giscus.categoryId) return undefined;
+  return {
+    repo: giscus.repo,
+    repoId: giscus.repoId,
+    category: giscus.category,
+    categoryId: giscus.categoryId,
+    lang: giscus.lang || "en",
+  };
 }
 
 export function searchLabel(override?: string): string {

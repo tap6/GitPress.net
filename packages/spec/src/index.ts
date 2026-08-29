@@ -90,6 +90,43 @@ export interface SiteBeian {
   gongan?: string;
 }
 
+/** Values GitPress writes when it connects a site to giscus. */
+export interface GiscusConfig {
+  /** Public site repo, e.g. "alice/my-blog". */
+  repo: string;
+  /** GitHub GraphQL node id of that repo. */
+  repoId: string;
+  /** Discussion category display name. */
+  category: string;
+  /** Discussion category GraphQL node id. */
+  categoryId: string;
+  /** v1 always uses pathname so slug changes keep comments with the URL. */
+  mapping?: "pathname";
+  /** giscus `data-lang`, derived from site.language. */
+  lang?: string;
+}
+
+/**
+ * Site-level comments. `enabled` is independent of whether giscus is connected:
+ * turning it off hides the widget without dropping `giscus`.
+ */
+export interface SiteComments {
+  enabled?: boolean;
+  giscus?: GiscusConfig;
+}
+
+/**
+ * Whether themes should render a comment widget.
+ * Absent `enabled` follows "has giscus or a legacy snippet" so existing sites
+ * keep showing comments after this field is introduced.
+ */
+export function commentsEnabled(
+  site: Pick<SiteInfo, "comments" | "commentsSnippet">,
+): boolean {
+  if (site.comments?.enabled !== undefined) return site.comments.enabled;
+  return Boolean(site.comments?.giscus || site.commentsSnippet);
+}
+
 export interface SiteInfo {
   title: string;
   description?: string;
@@ -130,8 +167,14 @@ export interface SiteInfo {
    */
   analyticsSnippet?: string;
   /**
-   * Raw embed snippet (e.g. from giscus.app) that themes render under each
-   * post's body. Empty/absent means no comments.
+   * Preferred comments config. Themes render giscus from `comments.giscus`
+   * when `commentsEnabled(site)` is true.
+   */
+  comments?: SiteComments;
+  /**
+   * Legacy raw embed snippet (giscus.app / Disqus / utterances).
+   * Used only when `comments.giscus` is absent. Empty/absent means no fallback.
+   * @deprecated Prefer `comments.giscus`; kept so hand-pasted embeds still work.
    */
   commentsSnippet?: string;
   /**

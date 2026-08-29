@@ -39,6 +39,7 @@ const PERMISSION_LABELS: Record<string, string> = {
   contents: "仓库内容",
   metadata: "元数据",
   pages: "GitHub Pages",
+  discussions: "评论区(Discussions)",
   secrets: "Actions Secrets",
   workflows: "工作流文件",
 };
@@ -174,6 +175,57 @@ export interface RepoRef {
 export function splitRepo(fullName: string): RepoRef {
   const [owner, repo] = fullName.split("/");
   return { owner, repo };
+}
+
+/** Turn on Discussions for a public site repo (needs administration). */
+export async function enableRepoDiscussions(octokit: Octokit, ref: RepoRef): Promise<void> {
+  await octokit.request("PATCH /repos/{owner}/{repo}", {
+    ...ref,
+    has_discussions: true,
+  });
+}
+
+export interface DiscussionCategory {
+  id: string;
+  name: string;
+}
+
+export interface DiscussionRepoInfo {
+  repoId: string;
+  categories: DiscussionCategory[];
+}
+
+/**
+ * Public GraphQL ids giscus needs. Requires the App's Discussions:read scope
+ * (existing installs must re-approve after that permission is added).
+ */
+export async function fetchDiscussionCategories(
+  octokit: Octokit,
+  ref: RepoRef,
+): Promise<DiscussionRepoInfo> {
+  const data = await octokit.graphql<{
+    repository: {
+      id: string;
+      discussionCategories: { nodes: Array<{ id: string; name: string } | null> | null };
+    } | null;
+  }>(
+    `query ($owner: String!, $name: String!) {
+      repository(owner: $owner, name: $name) {
+        id
+        discussionCategories(first: 25) {
+          nodes { id name }
+        }
+      }
+    }`,
+    { owner: ref.owner, name: ref.repo },
+  );
+  if (!data.repository) throw new Error("找不到站点仓库");
+  return {
+    repoId: data.repository.id,
+    categories: (data.repository.discussionCategories.nodes ?? []).filter(
+      (node): node is DiscussionCategory => Boolean(node?.id && node.name),
+    ),
+  };
 }
 
 export interface RepoCommit {
