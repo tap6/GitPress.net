@@ -8,10 +8,15 @@ import { githubInstallations, sites, themeListings } from "@/db/schema";
 import { deleteAiConfig, generateDraft, generateSummary, getAiConfig, saveAiConfig } from "./ai";
 import { persistSiteCategory, type SiteCategory } from "./categories";
 import {
+  addPageToNav,
   deleteMedia,
+  deletePage,
   deletePost,
   getSiteConfig,
+  isPagePath,
+  isReservedPageSlug,
   parseTagList,
+  savePage,
   saveSiteBeian,
   saveSiteCategories,
   saveSiteFooter,
@@ -203,6 +208,88 @@ export async function deletePostAction(formData: FormData): Promise<void> {
   const octokit = await getInstallationOctokit(installation.installationId);
   await deletePost(octokit, site.dataRepo, path);
   revalidateSiteData(site.dataRepo, [`/sites/${siteId}/posts`, `/sites/${siteId}`]);
+}
+
+// ---------------------------------------------------------------------------
+// Pages
+// ---------------------------------------------------------------------------
+
+export interface SavePageState {
+  error?: string;
+}
+
+export async function savePageAction(
+  _prev: SavePageState,
+  formData: FormData,
+): Promise<SavePageState> {
+  const siteId = String(formData.get("siteId"));
+  const { site, installation } = await requireSite(siteId);
+
+  const title = String(formData.get("title") ?? "").trim();
+  if (!title) return { error: "请填写标题。" };
+  const body = String(formData.get("body") ?? "");
+  const description = String(formData.get("description") ?? "").trim();
+
+  const existingPath = String(formData.get("path") ?? "");
+  const isNew = !existingPath;
+  const slug = slugify(String(formData.get("slug") ?? "") || title, "page");
+  if (isNew && isReservedPageSlug(slug)) {
+    return { error: "这个标识和站点已有路径冲突,请换一个。" };
+  }
+  const path = existingPath || `content/pages/${slug}.md`;
+  if (!isPagePath(path)) return { error: "无效的页面路径。" };
+
+  const octokit = await getInstallationOctokit(installation.installationId);
+  const mediaFiles = formData.getAll("media");
+  const media: Array<{ name: string; base64: string }> = [];
+  let batchBytes = 0;
+  for (const file of mediaFiles) {
+    if (!(file instanceof File) || file.size === 0) continue;
+    if (!file.type.startsWith("image/")) {
+      return { error: "只能随页面提交图片文件。" };
+    }
+    if (file.size > MAX_IMAGE_BYTES) return { error: "单个文件最大 8MB" };
+    batchBytes += file.size;
+    if (media.length >= MAX_BATCH_IMAGES) {
+      return { error: `一次最多随页面提交 ${MAX_BATCH_IMAGES} 张图片。` };
+    }
+    if (batchBytes > MAX_BATCH_BYTES) return { error: "一次保存的图片合计不超过 20MB。" };
+    const buffer = Buffer.from(await file.arrayBuffer());
+    media.push({ name: sanitizeMediaFileName(file.name), base64: buffer.toString("base64") });
+  }
+
+  try {
+    await savePage(octokit, site.dataRepo, path, { title, description, body }, isNew, media);
+    if (isNew && formData.get("addToNav") === "on") {
+      await addPageToNav(octokit, site.dataRepo, slug);
+    }
+  } catch (error) {
+    return { error: `保存失败:${error instanceof Error ? error.message : String(error)}` };
+  }
+
+  revalidateSiteData(site.dataRepo, [
+    `/sites/${siteId}/pages`,
+    `/sites/${siteId}/menu`,
+    `/sites/${siteId}/settings`,
+    `/sites/${siteId}`,
+    `/sites/${siteId}/media`,
+  ]);
+  redirect(`/sites/${siteId}/pages?saved=1`);
+}
+
+export async function deletePageAction(formData: FormData): Promise<void> {
+  const siteId = String(formData.get("siteId"));
+  const path = String(formData.get("path"));
+  const { site, installation } = await requireSite(siteId);
+  if (!isPagePath(path)) throw new Error("Invalid path");
+  const octokit = await getInstallationOctokit(installation.installationId);
+  await deletePage(octokit, site.dataRepo, path);
+  revalidateSiteData(site.dataRepo, [
+    `/sites/${siteId}/pages`,
+    `/sites/${siteId}/menu`,
+    `/sites/${siteId}/settings`,
+    `/sites/${siteId}`,
+  ]);
 }
 
 export interface UpdatePostMetaState {

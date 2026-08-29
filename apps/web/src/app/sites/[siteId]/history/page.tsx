@@ -15,6 +15,7 @@ export const metadata = { title: "Git 记录" };
 
 const KIND_CLASS: Record<GitChangeKind, string> = {
   post: "bg-sky-50 text-sky-800",
+  page: "bg-indigo-50 text-indigo-800",
   media: "bg-amber-50 text-amber-800",
   theme: "bg-violet-50 text-violet-800",
   settings: "bg-slate-100 text-slate-700",

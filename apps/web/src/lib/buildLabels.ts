@@ -6,6 +6,7 @@
 
 export type GitChangeKind =
   | "post"
+  | "page"
   | "media"
   | "theme"
   | "settings"
@@ -22,6 +23,7 @@ export interface GitChangeDescription {
 
 const KIND_LABELS: Record<GitChangeKind, string> = {
   post: "文章",
+  page: "页面",
   media: "媒体",
   theme: "外观",
   settings: "设置",
@@ -47,6 +49,12 @@ function postLabel(verb: string, rest: string): string {
   return `${verb}文章「${title}」`;
 }
 
+function pageLabel(verb: string, rest: string): string {
+  const { title, images } = stripImageSuffix(rest);
+  if (images > 0) return `${verb}页面「${title}」（含 ${images} 张图）`;
+  return `${verb}页面「${title}」`;
+}
+
 function described(kind: GitChangeKind, label: string): GitChangeDescription {
   return { label, kind, kindLabel: KIND_LABELS[kind] };
 }
@@ -66,6 +74,15 @@ export function describeGitChange(commitMessage: string | null): GitChangeDescri
 
   const deletePost = first.match(/^Delete post: (.+)$/);
   if (deletePost) return described("post", `删除了文章「${baseName(deletePost[1])}」`);
+
+  const addPage = first.match(/^Add page: (.+)$/);
+  if (addPage) return described("page", pageLabel("发布了", addPage[1]));
+
+  const updatePage = first.match(/^Update page: (.+)$/);
+  if (updatePage) return described("page", pageLabel("保存了", updatePage[1]));
+
+  const deletePage = first.match(/^Delete page: (.+)$/);
+  if (deletePage) return described("page", `删除了页面「${baseName(deletePage[1])}」`);
 
   const upload = first.match(/^Upload media: (.+)$/);
   if (upload) return described("media", `上传了媒体「${upload[1]}」`);

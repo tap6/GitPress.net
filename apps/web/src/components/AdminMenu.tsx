@@ -12,7 +12,7 @@ import {
 } from "@/lib/settingsSections";
 
 /** Hover 设置本身超过此时长，视为要点子项，展开子菜单。 */
-const SETTINGS_HOVER_OPEN_MS = 1000;
+const SETTINGS_HOVER_OPEN_MS = 300;
 /** 离开设置+子菜单超过此时长，收起（仍在设置页时保持展开）。 */
 const SETTINGS_HOVER_CLOSE_MS = 400;
 
@@ -29,6 +29,11 @@ const ICONS: Record<string, React.ReactNode> = {
   posts: (
     <svg viewBox="0 0 20 20" fill="currentColor" className="h-4.5 w-4.5">
       <path d="M4 3h12a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zm2 3v2h8V6H6zm0 4v2h8v-2H6zm0 4v2h5v-2H6z" />
+    </svg>
+  ),
+  pages: (
+    <svg viewBox="0 0 20 20" fill="currentColor" className="h-4.5 w-4.5">
+      <path d="M5 2h7l4 4v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm6 1.5V7h3.5" />
     </svg>
   ),
   media: (
@@ -68,6 +73,7 @@ export function adminNavHrefs(siteId: string): string[] {
   return [
     base,
     `${base}/posts`,
+    `${base}/pages`,
     `${base}/categories`,
     `${base}/menu`,
     `${base}/media`,
@@ -144,6 +150,7 @@ export function AdminMenu({ siteId }: { siteId: string }) {
   const items = [
     { href: base, key: "dashboard", label: "仪表盘", exact: true },
     { href: `${base}/posts`, key: "posts", label: "文章" },
+    { href: `${base}/pages`, key: "pages", label: "页面" },
     { href: `${base}/categories`, key: "categories", label: "分类" },
     { href: `${base}/menu`, key: "menu", label: "菜单" },
     { href: `${base}/media`, key: "media", label: "媒体" },

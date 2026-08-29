@@ -88,13 +88,13 @@ export interface SavePostInput {
   body: string;
 }
 
-export function slugify(input: string): string {
+export function slugify(input: string, emptyPrefix = "post"): string {
   const slug = input
     .toLowerCase()
     .trim()
     .replace(/[^\p{Letter}\p{Number}]+/gu, "-")
     .replace(/^-+|-+$/g, "");
-  return slug || `post-${Date.now()}`;
+  return slug || `${emptyPrefix}-${Date.now()}`;
 }
 
 export async function savePost(
@@ -341,12 +341,54 @@ export async function saveSiteCategories(
 // Standalone pages (content/pages/*.md — about, contact, ...)
 // ---------------------------------------------------------------------------
 
-export interface SitePage {
-  slug: string;
-  title: string;
+/** First-path segments themes already use at the site root (`/{slug}/`). */
+export const RESERVED_PAGE_SLUGS = new Set([
+  "posts",
+  "categories",
+  "tags",
+  "rss",
+  "rss.xml",
+  "archive",
+  "media",
+]);
+
+export function isReservedPageSlug(slug: string): boolean {
+  const normalized = slug.trim().toLowerCase();
+  if (!normalized) return true;
+  if (RESERVED_PAGE_SLUGS.has(normalized)) return true;
+  return /^\d+$/.test(normalized);
 }
 
-/** Lightweight listing (slug + title only) so the menu editor can offer existing pages. */
+export function isPagePath(path: string): boolean {
+  return path.startsWith("content/pages/") && path.endsWith(".md") && !path.includes("..");
+}
+
+export interface SitePage {
+  /** Repo path, e.g. content/pages/about.md */
+  path: string;
+  slug: string;
+  title: string;
+  description: string;
+}
+
+export interface PageDetail extends SitePage {
+  body: string;
+  sha: string;
+}
+
+function summarizePage(path: string, file: string, text: string): SitePage {
+  const { data } = matter(text);
+  const fallbackSlug = file.replace(/\.md$/, "");
+  const slug = typeof data.slug === "string" && data.slug ? data.slug : fallbackSlug;
+  const title = typeof data.title === "string" && data.title ? data.title : slug;
+  return {
+    path,
+    slug,
+    title,
+    description: typeof data.description === "string" ? data.description : "",
+  };
+}
+
 export async function listPages(octokit: Octokit, dataRepo: string): Promise<SitePage[]> {
   const ref = splitRepo(dataRepo);
   const files = await listDirectory(octokit, ref, "content/pages");
@@ -355,14 +397,126 @@ export async function listPages(octokit: Octokit, dataRepo: string): Promise<Sit
     mdFiles.map(async (file) => {
       const raw = await getFileText(octokit, ref, file.path);
       if (!raw) return null;
-      const { data } = matter(raw.text);
-      const fallbackSlug = file.name.replace(/\.md$/, "");
-      const slug = typeof data.slug === "string" && data.slug ? data.slug : fallbackSlug;
-      const title = typeof data.title === "string" && data.title ? data.title : slug;
-      return { slug, title };
+      return summarizePage(file.path, file.name, raw.text);
     }),
   );
-  return results.filter((page): page is SitePage => page !== null);
+  return results
+    .filter((page): page is SitePage => page !== null)
+    .sort((a, b) => a.title.localeCompare(b.title, "zh"));
+}
+
+export async function getPage(
+  octokit: Octokit,
+  dataRepo: string,
+  path: string,
+): Promise<PageDetail | null> {
+  if (!isPagePath(path)) return null;
+  const ref = splitRepo(dataRepo);
+  const raw = await getFileText(octokit, ref, path);
+  if (!raw) return null;
+  const parsed = matter(raw.text);
+  const summary = summarizePage(path, path.split("/").pop() ?? path, raw.text);
+  return { ...summary, body: parsed.content.replace(/^\n/, ""), sha: raw.sha };
+}
+
+export interface SavePageInput {
+  title: string;
+  description: string;
+  body: string;
+}
+
+export async function savePage(
+  octokit: Octokit,
+  dataRepo: string,
+  path: string,
+  input: SavePageInput,
+  isNew: boolean,
+  media: Array<{ name: string; base64: string }> = [],
+): Promise<void> {
+  if (!isPagePath(path)) throw new Error("Invalid path");
+  const ref = splitRepo(dataRepo);
+  if (isNew) {
+    const clash = await getFileText(octokit, ref, path);
+    if (clash) throw new Error("这个标识已经有一页了,请换一个。");
+  }
+  const existing = isNew ? null : await getFileText(octokit, ref, path);
+  const frontmatter: Record<string, unknown> = existing ? matter(existing.text).data : {};
+
+  frontmatter.title = input.title;
+  if (input.description) frontmatter.description = input.description;
+  else delete frontmatter.description;
+
+  const text = matter.stringify(`\n${input.body.trim()}\n`, frontmatter);
+  const files = [
+    ...media.map((item) => ({
+      path: `media/${sanitizeMediaFileName(item.name)}`,
+      base64: item.base64,
+    })),
+    { path, utf8: text },
+  ];
+  const message =
+    media.length > 0
+      ? `${isNew ? "Add" : "Update"} page: ${input.title} (+${media.length} image${media.length === 1 ? "" : "s"})`
+      : `${isNew ? "Add" : "Update"} page: ${input.title}`;
+  await commitFiles(octokit, ref, files, message);
+}
+
+/** Append a page to an already-saved top nav. No-op when nav is still implicit. */
+export async function addPageToNav(
+  octokit: Octokit,
+  dataRepo: string,
+  slug: string,
+): Promise<void> {
+  const nav = await getSiteNav(octokit, dataRepo);
+  if (!nav) return;
+  if (nav.some((item) => item.type === "page" && item.slug === slug)) return;
+  await saveSiteNav(octokit, dataRepo, [...nav, { type: "page", slug }]);
+}
+
+export async function deletePage(octokit: Octokit, dataRepo: string, path: string): Promise<void> {
+  if (!isPagePath(path)) throw new Error("Invalid path");
+  const page = await getPage(octokit, dataRepo, path);
+  await deleteFile(octokit, splitRepo(dataRepo), path, `Delete page: ${page?.title ?? path}`);
+  if (page) await removePageFromChrome(octokit, dataRepo, page.slug);
+}
+
+function chromeHasPage(items: unknown, slug: string): boolean {
+  return (
+    Array.isArray(items) &&
+    items.some(
+      (item) =>
+        !!item &&
+        typeof item === "object" &&
+        (item as { type?: string }).type === "page" &&
+        (item as { slug?: string }).slug === slug,
+    )
+  );
+}
+
+async function removePageFromChrome(
+  octokit: Octokit,
+  dataRepo: string,
+  slug: string,
+): Promise<void> {
+  const config = await getSiteConfig(octokit, dataRepo);
+  if (!chromeHasPage(config?.site.nav, slug) && !chromeHasPage(config?.site.footer, slug)) return;
+  await updateSiteConfig(
+    octokit,
+    dataRepo,
+    (next) => {
+      if (Array.isArray(next.site.nav)) {
+        next.site.nav = (next.site.nav as NavItem[])
+          .filter((item) => !(item.type === "page" && item.slug === slug))
+          .map(persistNavItem);
+      }
+      if (Array.isArray(next.site.footer)) {
+        next.site.footer = (next.site.footer as FooterItem[])
+          .filter((item) => !(item.type === "page" && item.slug === slug))
+          .map(persistFooterItem);
+      }
+    },
+    "Update menu",
+  );
 }
 
 // ---------------------------------------------------------------------------

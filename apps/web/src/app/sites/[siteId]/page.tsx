@@ -151,6 +151,9 @@ export default async function SiteDashboard({
             <Link href={`/sites/${site.id}/posts/new`} className="block text-wp-accent hover:underline">
               ✎ 写新文章
             </Link>
+            <Link href={`/sites/${site.id}/pages/new`} className="block text-wp-accent hover:underline">
+              ▢ 写新页面
+            </Link>
             <Link href={`/sites/${site.id}/appearance`} className="block text-wp-accent hover:underline">
               ◧ 更换主题
             </Link>
