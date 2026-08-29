@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { auth } from "@/auth";
+import { QqGroupFloat } from "@/components/QqGroupFloat";
 import { formatStatCount, getPublicPlatformStats } from "@/lib/publicStats";
 
 const FEATURES = [
@@ -330,6 +331,7 @@ export default async function LandingPage() {
           </a>
         </p>
       </footer>
+      <QqGroupFloat />
     </div>
   );
 }
