@@ -191,6 +191,7 @@ export interface RepoCommitList {
   commits: RepoCommit[];
   page: number;
   perPage: number;
+  lastPage: number | null;
   hasNext: boolean;
   hasPrev: boolean;
   error: string | null;
@@ -199,6 +200,32 @@ export interface RepoCommitList {
 function linkHasRel(linkHeader: string | undefined, rel: string): boolean {
   if (!linkHeader) return false;
   return linkHeader.split(",").some((part) => part.includes(`rel="${rel}"`));
+}
+
+function linkPage(linkHeader: string | undefined, rel: string): number | null {
+  if (!linkHeader) return null;
+  for (const part of linkHeader.split(",")) {
+    if (!part.includes(`rel="${rel}"`)) continue;
+    const match = part.match(/[?&]page=(\d+)/);
+    if (match) return Number(match[1]);
+  }
+  return null;
+}
+
+function emptyCommitList(
+  page: number,
+  perPage: number,
+  extra: Partial<Pick<RepoCommitList, "hasPrev" | "error">> = {},
+): RepoCommitList {
+  return {
+    commits: [],
+    page,
+    perPage,
+    lastPage: page,
+    hasNext: false,
+    hasPrev: extra.hasPrev ?? page > 1,
+    error: extra.error ?? null,
+  };
 }
 
 /**
@@ -219,6 +246,7 @@ export async function listRepoCommits(
       per_page: perPage,
     });
     const link = typeof response.headers.link === "string" ? response.headers.link : "";
+    const hasNext = linkHasRel(link, "next");
     return {
       commits: response.data.map((item) => ({
         sha: item.sha,
@@ -233,16 +261,15 @@ export async function listRepoCommits(
       })),
       page,
       perPage,
-      hasNext: linkHasRel(link, "next"),
+      lastPage: linkPage(link, "last") ?? (hasNext ? null : page),
+      hasNext,
       hasPrev: page > 1,
       error: null,
     };
   } catch (error: unknown) {
     const status = (error as { status?: number }).status;
     // Empty repos return 409 Conflict.
-    if (status === 409) {
-      return { commits: [], page, perPage, hasNext: false, hasPrev: page > 1, error: null };
-    }
+    if (status === 409) return emptyCommitList(page, perPage);
     console.error("listRepoCommits failed:", error);
     const message =
       status === 403
@@ -250,7 +277,7 @@ export async function listRepoCommits(
         : status === 404
           ? "找不到数据仓库。"
           : "暂时无法读取 Git 记录，请稍后再试。";
-    return { commits: [], page, perPage, hasNext: false, hasPrev: page > 1, error: message };
+    return emptyCommitList(page, perPage, { error: message });
   }
 }
 

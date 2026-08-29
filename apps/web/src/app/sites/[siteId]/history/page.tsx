@@ -145,21 +145,36 @@ export default async function GitHistoryPage({
       )}
 
       {(history.hasPrev || history.hasNext) && (
-        <nav className="mt-6 flex items-center justify-between text-sm">
+        <nav
+          aria-label="分页导航"
+          className="mt-8 flex items-center justify-between gap-3 border-t border-neutral-200 pt-5"
+        >
           {history.hasPrev ? (
-            <Link href={hrefFor(page - 1)} className="text-wp-accent hover:underline">
-              上一页
+            <Link
+              href={hrefFor(page - 1)}
+              className="inline-flex rounded border border-wp-accent px-3 py-1.5 text-sm text-wp-accent hover:bg-wp-accent hover:text-white"
+            >
+              ← 上一页
             </Link>
           ) : (
-            <span />
+            <span className="inline-flex cursor-not-allowed rounded border border-neutral-200 px-3 py-1.5 text-sm text-neutral-300">
+              ← 上一页
+            </span>
           )}
-          <span className="text-xs text-neutral-400">第 {page} 页</span>
+          <span className="text-sm tabular-nums text-neutral-500">
+            {history.lastPage != null ? `${page} / ${history.lastPage}` : `第 ${page} 页`}
+          </span>
           {history.hasNext ? (
-            <Link href={hrefFor(page + 1)} className="text-wp-accent hover:underline">
-              下一页
+            <Link
+              href={hrefFor(page + 1)}
+              className="inline-flex rounded border border-wp-accent px-3 py-1.5 text-sm text-wp-accent hover:bg-wp-accent hover:text-white"
+            >
+              下一页 →
             </Link>
           ) : (
-            <span />
+            <span className="inline-flex cursor-not-allowed rounded border border-neutral-200 px-3 py-1.5 text-sm text-neutral-300">
+              下一页 →
+            </span>
           )}
         </nav>
       )}
