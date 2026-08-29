@@ -113,48 +113,79 @@ body {
 }
 
 /*
- * Settings: one column of cards, with a right-side jump rail.
+ * Settings cards: packed like masonry, not a flex wrap row.
+ * Flex wrap made the next row start below the tallest card and left a hole;
+ * multi-column packing fills the shortest lane so gaps stay even.
  */
-.gp-settings-layout {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.75rem;
-}
-
 .gp-settings-pack {
-  display: flex;
-  min-width: 0;
-  flex: 1 1 auto;
-  flex-direction: column;
-  gap: 1.25rem;
-}
-
-.gp-settings-jump {
-  position: sticky;
-  top: 5.5rem;
-  z-index: 10;
-  display: none;
-  height: calc(100vh - 7rem);
-  flex-shrink: 0;
-  align-self: flex-start;
-}
-
-@media (min-width: 1024px) {
-  .gp-settings-jump {
-    display: flex;
-    align-items: center;
-  }
+  column-width: 24rem;
+  column-gap: 1.25rem;
 }
 
 .gp-settings-card {
-  display: flex;
+  display: inline-flex;
   width: 100%;
-  max-width: 46rem;
+  max-width: none;
   flex-direction: column;
+  margin: 0 0 1.25rem;
+  vertical-align: top;
+  break-inside: avoid;
+  page-break-inside: avoid;
+  -webkit-column-break-inside: avoid;
+}
+
+.gp-settings-card--general {
+  min-height: 16rem;
+}
+
+.gp-settings-card--brand {
+  min-height: 22rem;
+}
+
+.gp-settings-card--ai {
+  min-height: 16rem;
+}
+
+.gp-settings-card--note {
+  min-height: 12rem;
+}
+
+.gp-settings-card--domain {
+  min-height: 20rem;
 }
 
 .gp-settings-card__body {
   min-height: 0;
+  flex: 1 1 auto;
+}
+
+@supports (grid-template-rows: masonry) {
+  .gp-settings-pack {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 24rem), 1fr));
+    grid-template-rows: masonry;
+    gap: 1.25rem;
+    column-width: auto;
+  }
+
+  .gp-settings-card {
+    display: flex;
+    margin: 0;
+  }
+}
+
+@supports (display: grid-lanes) {
+  .gp-settings-pack {
+    display: grid-lanes;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 24rem), 1fr));
+    gap: 1.25rem;
+    column-width: auto;
+  }
+
+  .gp-settings-card {
+    display: flex;
+    margin: 0;
+  }
 }
 
 .gp-editor p.is-editor-empty:first-child::before {

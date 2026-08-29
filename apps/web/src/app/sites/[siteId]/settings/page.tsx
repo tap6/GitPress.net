@@ -4,7 +4,6 @@ import { rotateDeployKeyAction } from "@/lib/actions";
 import { AiSettingsForm } from "@/components/AiSettingsForm";
 import { ProgressButton } from "@/components/ProgressButton";
 import { SettingsForm } from "@/components/SettingsForm";
-import { SettingsJumpNav } from "@/components/SettingsJumpNav";
 import { getAiConfig } from "@/lib/ai";
 import { githubPagesDefaultUrl, isDefaultPagesOrigin } from "@/lib/customDomain";
 import { getInstallationOctokit, getInstallationPermissionGap, getPagesSite, splitRepo } from "@/lib/github";
@@ -47,12 +46,8 @@ export default async function SettingsPage({
     <div>
       <h1 className="text-2xl font-normal text-neutral-800">设置</h1>
 
-      <div className="gp-settings-layout mt-5">
-        <div className="gp-settings-pack">
-        <section
-          id="settings-general"
-          className="gp-settings-card scroll-mt-16 rounded border border-neutral-200 bg-white shadow-sm"
-        >
+      <div className="gp-settings-pack mt-5">
+        <section className="gp-settings-card gp-settings-card--general rounded border border-neutral-200 bg-white shadow-sm">
           <h2 className="shrink-0 border-b border-neutral-100 px-5 py-3 text-sm font-semibold">常规</h2>
           <div className="gp-settings-card__body">
             <SettingsForm
@@ -67,10 +62,7 @@ export default async function SettingsPage({
           </div>
         </section>
 
-        <section
-          id="settings-brand"
-          className="gp-settings-card scroll-mt-16 rounded border border-neutral-200 bg-white shadow-sm"
-        >
+        <section className="gp-settings-card gp-settings-card--brand rounded border border-neutral-200 bg-white shadow-sm">
           <h2 className="shrink-0 border-b border-neutral-100 px-5 py-3 text-sm font-semibold">Logo 与头像</h2>
           <div className="gp-settings-card__body">
             <BrandMediaForm siteId={site.id} logo={logo} avatar={avatar} />
@@ -79,7 +71,7 @@ export default async function SettingsPage({
 
         <section
           id="account-ai"
-          className="gp-settings-card scroll-mt-16 rounded border border-neutral-200 bg-white shadow-sm"
+          className="gp-settings-card gp-settings-card--ai scroll-mt-16 rounded border border-neutral-200 bg-white shadow-sm"
         >
           <h2 className="shrink-0 border-b border-neutral-100 px-5 py-3 text-sm font-semibold">
             账号 · 全局设置
@@ -102,7 +94,7 @@ export default async function SettingsPage({
 
         <section
           id="domain"
-          className="gp-settings-card scroll-mt-16 rounded border border-neutral-200 bg-white shadow-sm"
+          className="gp-settings-card gp-settings-card--domain scroll-mt-16 rounded border border-neutral-200 bg-white shadow-sm"
         >
           <h2 className="shrink-0 border-b border-neutral-100 px-5 py-3 text-sm font-semibold">访问地址</h2>
           <div className="gp-settings-card__body">
@@ -119,10 +111,7 @@ export default async function SettingsPage({
           </div>
         </section>
 
-        <section
-          id="settings-hosting"
-          className="gp-settings-card scroll-mt-16 rounded border border-neutral-200 bg-white shadow-sm"
-        >
+        <section className="gp-settings-card gp-settings-card--note rounded border border-neutral-200 bg-white shadow-sm">
           <h2 className="shrink-0 border-b border-neutral-100 px-5 py-3 text-sm font-semibold">托管</h2>
           <div className="gp-settings-card__body space-y-3 p-5 text-sm leading-relaxed text-neutral-600">
             <p>
@@ -140,10 +129,7 @@ export default async function SettingsPage({
           </div>
         </section>
 
-        <section
-          id="settings-troubleshoot"
-          className="gp-settings-card scroll-mt-16 rounded border border-neutral-200 bg-white shadow-sm"
-        >
+        <section className="gp-settings-card gp-settings-card--note rounded border border-neutral-200 bg-white shadow-sm">
           <h2 className="shrink-0 border-b border-neutral-100 px-5 py-3 text-sm font-semibold">故障排查</h2>
           <div className="gp-settings-card__body space-y-3 p-5 text-sm leading-relaxed text-neutral-600">
             <p>
@@ -178,10 +164,7 @@ export default async function SettingsPage({
           </div>
         </section>
 
-        <section
-          id="settings-github"
-          className="gp-settings-card scroll-mt-16 rounded border border-neutral-200 bg-white shadow-sm"
-        >
+        <section className="gp-settings-card gp-settings-card--note rounded border border-neutral-200 bg-white shadow-sm">
           <h2 className="shrink-0 border-b border-neutral-100 px-5 py-3 text-sm font-semibold">GitHub App</h2>
           <div className="gp-settings-card__body space-y-3 p-5 text-sm leading-relaxed text-neutral-600">
             {permissionGap ? (
@@ -215,10 +198,6 @@ export default async function SettingsPage({
             </p>
           </div>
         </section>
-        </div>
-        <aside className="gp-settings-jump">
-          <SettingsJumpNav />
-        </aside>
       </div>
     </div>
   );
