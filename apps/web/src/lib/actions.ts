@@ -747,6 +747,15 @@ export async function rotateDeployKeyAction(formData: FormData): Promise<void> {
   revalidateSiteData(site.dataRepo, [`/sites/${siteId}`, `/sites/${siteId}/settings`]);
 }
 
+export async function refreshGitHistoryAction(formData: FormData): Promise<void> {
+  const siteId = String(formData.get("siteId"));
+  await requireSite(siteId);
+  const page = Number.parseInt(String(formData.get("page") ?? "1"), 10) || 1;
+  const path = page > 1 ? `/sites/${siteId}/history?page=${page}` : `/sites/${siteId}/history`;
+  revalidatePath(`/sites/${siteId}/history`);
+  redirect(path);
+}
+
 // ---------------------------------------------------------------------------
 // Build status (polled by the sticky BuildStatusBar in the admin layout)
 // ---------------------------------------------------------------------------

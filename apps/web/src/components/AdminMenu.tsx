@@ -39,6 +39,11 @@ const ICONS: Record<string, React.ReactNode> = {
       <path d="M11.5 2h-3l-.5 2.1a6 6 0 0 0-1.6.9L4.3 4.3 2.8 6.9l1.7 1.4a6 6 0 0 0 0 1.8L2.8 11.5l1.5 2.6 2.1-.7c.5.4 1 .7 1.6.9l.5 2.1h3l.5-2.1a6 6 0 0 0 1.6-.9l2.1.7 1.5-2.6-1.7-1.4a6 6 0 0 0 0-1.8l1.7-1.4-1.5-2.6-2.1.7a6 6 0 0 0-1.6-.9L11.5 2zM10 7.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5z" />
     </svg>
   ),
+  history: (
+    <svg viewBox="0 0 20 20" fill="currentColor" className="h-4.5 w-4.5">
+      <path d="M6.5 3.25a1.75 1.75 0 1 0-1.5 1.732v3.286A2.75 2.75 0 0 0 7.75 11h2.768a1.75 1.75 0 1 0 0-1.5H7.75A1.25 1.25 0 0 1 6.5 8.268V4.982A1.75 1.75 0 0 0 6.5 3.25zm7.25 7.5a.75.75 0 1 1 0 1.5.75.75 0 0 1 0-1.5zM4.75 3.25a.75.75 0 1 1 1.5 0 .75.75 0 0 1-1.5 0z" />
+    </svg>
+  ),
 };
 
 export function adminNavHrefs(siteId: string): string[] {
@@ -65,6 +70,7 @@ export function AdminMenu({ siteId }: { siteId: string }) {
     { href: `${base}/media`, key: "media", label: "媒体" },
     { href: `${base}/appearance`, key: "appearance", label: "外观" },
     { href: `${base}/settings`, key: "settings", label: "设置" },
+    { href: `${base}/history`, key: "history", label: "Git 记录" },
   ];
 
   return (

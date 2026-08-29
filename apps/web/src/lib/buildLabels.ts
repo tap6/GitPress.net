@@ -1,34 +1,153 @@
 /**
- * Turns the raw git commit message that triggered a build into a short,
- * human-readable label for the dashboard's "最近构建" list — e.g.
- * `Add post: Hello World` -> `发布文章:Hello World`. Falls back to the raw
- * message (or a generic label) for anything we don't recognize, so future
- * commit types never disappear from the list, just show up unlocalized.
+ * Turns GitPress-generated git commit messages into short Chinese labels
+ * the dashboard and Git-history page can share. Unknown messages fall back
+ * to the first line as-is, so a hand-written commit never disappears.
  */
-const PATTERNS: Array<[RegExp, (match: RegExpMatchArray) => string]> = [
-  [/^Add post: (.+)$/, (m) => `发布文章:${m[1]}`],
-  [/^Update post: (.+)$/, (m) => `更新文章:${m[1]}`],
-  [/^Delete post: (.+)$/, (m) => `删除文章:${baseName(m[1])}`],
-  [/^Upload media: (.+)$/, (m) => `上传媒体:${m[1]}`],
-  [/^Delete media: (.+)$/, (m) => `删除媒体:${baseName(m[1])}`],
-  [/^Switch theme to (.+)$/, (m) => `切换主题为「${m[1]}」`],
-  [/^Update theme options$/, () => "调整主题选项"],
-  [/^Update site settings$/, () => "更新站点设置"],
-  [/^Trigger rebuild$/, () => "手动触发重建"],
-  [/^Initialize /, () => "站点初始化"],
-];
+
+export type GitChangeKind =
+  | "post"
+  | "media"
+  | "theme"
+  | "settings"
+  | "nav"
+  | "build"
+  | "init"
+  | "other";
+
+export interface GitChangeDescription {
+  label: string;
+  kind: GitChangeKind;
+  kindLabel: string;
+}
+
+const KIND_LABELS: Record<GitChangeKind, string> = {
+  post: "文章",
+  media: "媒体",
+  theme: "外观",
+  settings: "设置",
+  nav: "菜单",
+  build: "构建",
+  init: "初始化",
+  other: "其他",
+};
 
 function baseName(path: string): string {
   return path.split("/").pop()?.replace(/\.md$/, "") ?? path;
 }
 
+function stripImageSuffix(rest: string): { title: string; images: number } {
+  const match = rest.match(/^(.*) \(\+(\d+) images?\)$/);
+  if (!match) return { title: rest, images: 0 };
+  return { title: match[1], images: Number(match[2]) };
+}
+
+function postLabel(verb: string, rest: string): string {
+  const { title, images } = stripImageSuffix(rest);
+  if (images > 0) return `${verb}文章「${title}」（含 ${images} 张图）`;
+  return `${verb}文章「${title}」`;
+}
+
+function described(kind: GitChangeKind, label: string): GitChangeDescription {
+  return { label, kind, kindLabel: KIND_LABELS[kind] };
+}
+
+export function describeGitChange(commitMessage: string | null): GitChangeDescription {
+  if (!commitMessage) return described("other", "一次改动");
+  const first = commitMessage.split("\n")[0]?.trim() || commitMessage;
+
+  const addPost = first.match(/^Add post: (.+)$/);
+  if (addPost) return described("post", postLabel("发布了", addPost[1]));
+
+  const updatePost = first.match(/^Update post: (.+)$/);
+  if (updatePost) return described("post", postLabel("保存了", updatePost[1]));
+
+  const meta = first.match(/^Update post meta: (.+)$/);
+  if (meta) return described("post", `更新了文章信息「${meta[1]}」`);
+
+  const deletePost = first.match(/^Delete post: (.+)$/);
+  if (deletePost) return described("post", `删除了文章「${baseName(deletePost[1])}」`);
+
+  const upload = first.match(/^Upload media: (.+)$/);
+  if (upload) return described("media", `上传了媒体「${upload[1]}」`);
+
+  const deleteMedia = first.match(/^Delete media: (.+)$/);
+  if (deleteMedia) return described("media", `删除了媒体「${baseName(deleteMedia[1])}」`);
+
+  const theme = first.match(/^Switch theme to (.+)$/);
+  if (theme) return described("theme", `把主题换成了「${theme[1]}」`);
+
+  if (first === "Update theme options") return described("theme", "调整了主题选项");
+
+  const imported = first.match(/^Import theme (.+) from (.+)$/);
+  if (imported) return described("theme", `导入了主题「${imported[1]}」`);
+
+  if (first === "Update site settings") return described("settings", "更新了站点设置");
+  if (first === "Update site logo and avatar") return described("settings", "更新了站点标志与头像");
+  if (first === "Update categories") return described("settings", "更新了分类");
+  if (first === "Update menu") return described("nav", "更新了导航菜单");
+  if (first === "Trigger rebuild") return described("build", "手动触发了重建");
+  if (first.startsWith("Initialize ")) {
+    const file = first.slice("Initialize ".length);
+    return described("init", `初始化了「${baseName(file)}」`);
+  }
+
+  return described("other", first);
+}
+
 export function describeBuildTrigger(commitMessage: string | null): string {
   if (!commitMessage) return "构建";
-  for (const [pattern, format] of PATTERNS) {
-    const match = commitMessage.match(pattern);
-    if (match) return format(match);
-  }
-  return commitMessage;
+  return describeGitChange(commitMessage).label;
+}
+
+export function describeCommitAuthor(login: string | null, name: string | null): string {
+  if (login?.endsWith("[bot]")) return "GitPress 代为提交";
+  if (login) return `@${login}`;
+  if (name) return name;
+  return "未知作者";
+}
+
+const SHANGHAI = "Asia/Shanghai";
+
+function shanghaiYmd(date: Date): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: SHANGHAI,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
+}
+
+function shiftYmd(ymd: string, days: number): string {
+  const [year, month, day] = ymd.split("-").map(Number);
+  const shifted = new Date(Date.UTC(year, month - 1, day + days));
+  return `${shifted.getUTCFullYear()}-${String(shifted.getUTCMonth() + 1).padStart(2, "0")}-${String(shifted.getUTCDate()).padStart(2, "0")}`;
+}
+
+export function shanghaiDayKey(iso: string): string {
+  return shanghaiYmd(new Date(iso));
+}
+
+export function shanghaiDayHeading(iso: string, now = new Date()): string {
+  const day = shanghaiYmd(new Date(iso));
+  const today = shanghaiYmd(now);
+  if (day === today) return "今天";
+  if (day === shiftYmd(today, -1)) return "昨天";
+  return new Intl.DateTimeFormat("zh-CN", {
+    timeZone: SHANGHAI,
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    weekday: "short",
+  }).format(new Date(iso));
+}
+
+export function formatShanghaiDateTime(iso: string): string {
+  return new Intl.DateTimeFormat("zh-CN", {
+    timeZone: SHANGHAI,
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(new Date(iso));
 }
 
 export function formatDuration(seconds: number | null): string | null {

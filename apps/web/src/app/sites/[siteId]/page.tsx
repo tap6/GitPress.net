@@ -270,6 +270,11 @@ export default async function SiteDashboard({
             >
               {site.dataRepo}
             </a>
+            <p className="mt-1">
+              <Link href={`/sites/${siteId}/history`} className="text-xs text-neutral-500 hover:text-wp-accent hover:underline">
+                查看 Git 记录
+              </Link>
+            </p>
           </div>
           <div>
             <p className="text-neutral-400">网站仓库(公开)</p>

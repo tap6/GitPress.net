@@ -176,6 +176,84 @@ export function splitRepo(fullName: string): RepoRef {
   return { owner, repo };
 }
 
+export interface RepoCommit {
+  sha: string;
+  shortSha: string;
+  message: string;
+  committedAt: string;
+  htmlUrl: string;
+  authorLogin: string | null;
+  authorName: string | null;
+  authorAvatarUrl: string | null;
+}
+
+export interface RepoCommitList {
+  commits: RepoCommit[];
+  page: number;
+  perPage: number;
+  hasNext: boolean;
+  hasPrev: boolean;
+  error: string | null;
+}
+
+function linkHasRel(linkHeader: string | undefined, rel: string): boolean {
+  if (!linkHeader) return false;
+  return linkHeader.split(",").some((part) => part.includes(`rel="${rel}"`));
+}
+
+/**
+ * Recent commits on the default branch. Uses Contents (already granted),
+ * not Actions — this is the actual git history, not workflow runs.
+ */
+export async function listRepoCommits(
+  octokit: Octokit,
+  ref: RepoRef,
+  options: { page?: number; perPage?: number } = {},
+): Promise<RepoCommitList> {
+  const page = Math.max(1, options.page ?? 1);
+  const perPage = options.perPage ?? 25;
+  try {
+    const response = await octokit.request("GET /repos/{owner}/{repo}/commits", {
+      ...ref,
+      page,
+      per_page: perPage,
+    });
+    const link = typeof response.headers.link === "string" ? response.headers.link : "";
+    return {
+      commits: response.data.map((item) => ({
+        sha: item.sha,
+        shortSha: item.sha.slice(0, 7),
+        message: item.commit.message,
+        committedAt:
+          item.commit.committer?.date ?? item.commit.author?.date ?? new Date().toISOString(),
+        htmlUrl: item.html_url,
+        authorLogin: item.author?.login ?? item.committer?.login ?? null,
+        authorName: item.commit.author?.name ?? item.commit.committer?.name ?? null,
+        authorAvatarUrl: item.author?.avatar_url ?? item.committer?.avatar_url ?? null,
+      })),
+      page,
+      perPage,
+      hasNext: linkHasRel(link, "next"),
+      hasPrev: page > 1,
+      error: null,
+    };
+  } catch (error: unknown) {
+    const status = (error as { status?: number }).status;
+    // Empty repos return 409 Conflict.
+    if (status === 409) {
+      return { commits: [], page, perPage, hasNext: false, hasPrev: page > 1, error: null };
+    }
+    console.error("listRepoCommits failed:", error);
+    const message =
+      status === 403
+        ? "没有权限读取这个仓库的提交记录。"
+        : status === 404
+          ? "找不到数据仓库。"
+          : "暂时无法读取 Git 记录，请稍后再试。";
+    return { commits: [], page, perPage, hasNext: false, hasPrev: page > 1, error: message };
+  }
+}
+
 /**
  * Create a repository on the installation account.
  * Personal accounts require the user-to-server token (POST /user/repos);
