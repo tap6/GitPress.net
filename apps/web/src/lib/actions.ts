@@ -1173,7 +1173,13 @@ export async function rebuildAction(formData: FormData): Promise<void> {
   const siteId = String(formData.get("siteId"));
   const { site, installation } = await requireSite(siteId);
   await triggerRebuild(installation.installationId, site.dataRepo);
-  revalidateSiteData(site.dataRepo, [`/sites/${siteId}`]);
+  revalidateSiteData(site.dataRepo, [`/sites/${siteId}`, `/sites/${siteId}/settings`]);
+}
+
+export async function recheckGiscusAction(formData: FormData): Promise<void> {
+  const siteId = String(formData.get("siteId"));
+  await requireSite(siteId);
+  revalidatePath(`/sites/${siteId}/settings`);
 }
 
 /**

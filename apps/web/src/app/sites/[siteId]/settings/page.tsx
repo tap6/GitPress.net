@@ -6,6 +6,7 @@ import { rotateDeployKeyAction } from "@/lib/actions";
 import { AiSettingsForm } from "@/components/AiSettingsForm";
 import { ProgressButton } from "@/components/ProgressButton";
 import { parseSiteComments } from "@/lib/comments";
+import { giscusInstallUrl, probeGiscusApp } from "@/lib/commentsConnect";
 import { CommentsForm } from "@/components/CommentsForm";
 import { SettingsForm } from "@/components/SettingsForm";
 import { SettingsPanel, SettingsWorkspace } from "@/components/SettingsWorkspace";
@@ -46,6 +47,10 @@ export default async function SettingsPage({
   const needsDiscussionsPermission = Boolean(
     permissionGap?.missing.some((item) => item.name === "discussions"),
   );
+  const [giscusAppInstalled, installUrl] = await Promise.all([
+    probeGiscusApp(site.siteRepo),
+    giscusInstallUrl(octokit, site.siteRepo),
+  ]);
   const author = typeof config?.site.author === "string" ? config.site.author : "";
   const logo = typeof config?.site.logo === "string" ? config.site.logo : "";
   const avatar = typeof config?.site.avatar === "string" ? config.site.avatar : "";
@@ -90,6 +95,8 @@ export default async function SettingsPage({
             snippet={commentsSnippet}
             reviewUrl={permissionGap?.reviewUrl}
             needsDiscussionsPermission={needsDiscussionsPermission}
+            giscusAppInstalled={giscusAppInstalled}
+            giscusInstallUrl={installUrl}
           />
         </section>
       </SettingsPanel>
