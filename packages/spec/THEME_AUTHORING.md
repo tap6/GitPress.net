@@ -24,12 +24,16 @@
 - `site.logo` / `site.avatar`(路径通常是 `/media/...`;没有就不要渲染空 `<img>`)
 - `site.nav`(有则严格按数组渲染顶栏,不要再拼分类或页面)
 - `site.categories` + `inNav`(仅当 **没有** `site.nav` 时用于隐式顶栏)
+- `site.footer`(有则严格按数组渲染页脚槽;没有则用默认:版权 + GitPress + 主题署名 + RSS)
+- `site.beian`(有 `icp` / `gongan` 则追加在页脚末尾,不要放进 `theme.config`)
 - `site.analyticsSnippet`(原样插入 `</head>` 前)
 - `site.postsPerPage`
 
-隐式顶栏建议:`首页`(文案随 `site.language`) + `inNav` 分类 + 全部页面。**不要**把 RSS 放进默认顶栏;页脚给 RSS 链接,`<head>` 里保留 `<link rel="alternate" type="application/rss+xml">`。
+隐式顶栏建议:`首页`(文案随 `site.language`) + `inNav` 分类 + 全部页面。**不要**把 RSS 放进默认顶栏。页脚默认给 RSS 链接,但站长可以关掉;`<head>` 里始终保留 `<link rel="alternate" type="application/rss+xml">`,`/rss.xml` 始终生成。
 
 `site.nav` 里每一项都可以有 `label` 覆盖显示名。首页缺省文案:中文「首页」、日文「ホーム」、其它 “Home”。
+
+页脚系统槽:`copyright`(默认 `© {year} {site.title}`,不要用 GitHub 用户名)、`gitpress`(链到 https://gitpress.net,`rel="generator"`)、`theme`(链到本主题 `theme.json` 的 `homepage`,没有 homepage 则跳过)、`rss`。自定义只有 `page` / `link` / `text`。不认识的 type:有 url+label 当外链,只有 label 当纯文本。`theme.json` 请提供 `homepage`(开源仓库或介绍页)。公安备案用盾牌图标,查询链 `https://beian.mps.gov.cn/#/query/webSearch?recordcode={号}`;ICP 链 `https://beian.miit.gov.cn/`。
 
 ## 主题自己的选项:`configSchema`
 

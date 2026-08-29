@@ -60,6 +60,36 @@ export type NavItem =
   | { type: "page"; slug: string; label?: string }
   | { type: "link"; url: string; label: string };
 
+/**
+ * One entry in the site owner's footer (`site.footer`).
+ *
+ * System slots (`copyright`, `gitpress`, `theme`, `rss`) are defined by the
+ * platform and default to visible when `site.footer` is absent. Owners may
+ * hide any of them (omit from the array) or override `label`. Custom chrome
+ * is only `page` / `link` / `text` — do not add more custom types; unknown
+ * types should render as a link (url+label) or plain text (label only).
+ *
+ * `theme` has no URL in gitpress.json: themes resolve it from their own
+ * theme.json (`homepage`, `displayName`) at build time so a theme switch
+ * does not leave a stale credit.
+ */
+export type FooterItem =
+  | { type: "copyright"; label?: string }
+  | { type: "gitpress"; label?: string }
+  | { type: "theme"; label?: string }
+  | { type: "rss"; label?: string }
+  | { type: "page"; slug: string; label?: string }
+  | { type: "link"; url: string; label: string }
+  | { type: "text"; label: string };
+
+/** Mainland China ICP / 公安备案. Shown at the end of the footer when set. */
+export interface SiteBeian {
+  /** 工信部备案号, e.g. 京ICP备12345678号. Linked to https://beian.miit.gov.cn/ */
+  icp?: string;
+  /** 公安备案号 (digits / recordcode). Linked to the MPS query page. */
+  gongan?: string;
+}
+
 export interface SiteInfo {
   title: string;
   description?: string;
@@ -114,6 +144,21 @@ export interface SiteInfo {
    * / "Home") so non-English owners are not stuck with English chrome.
    */
   nav?: NavItem[];
+  /**
+   * Explicit, ordered footer. When present, themes render exactly these
+   * items (plus `beian` at the end). When absent, themes use the default
+   * slots: copyright (site title, not GitHub login), GitPress credit,
+   * theme credit (if theme.json has homepage), and RSS. Every slot is
+   * optional once the owner has saved a footer. `{year}` in labels is
+   * replaced at build time.
+   */
+  footer?: FooterItem[];
+  /**
+   * Optional ICP / 公安备案. Not part of the reorderable footer list:
+   * if set, themes always append it after footer items. Empty/absent
+   * means nothing is shown (typical for sites outside mainland China).
+   */
+  beian?: SiteBeian;
 }
 
 export interface ThemeRef {
@@ -154,6 +199,11 @@ export interface ThemeManifest {
   description?: string;
   author?: string;
   license?: string;
+  /**
+   * Public page or git repository for this theme. Footer `theme` slot
+   * links here; omit it and themes skip the credit even if the slot is on.
+   */
+  homepage?: string;
   /** Spec v1 defines only "astro". */
   engine: "astro";
   /** Relative path to a preview image inside the theme package. */

@@ -153,6 +153,12 @@ body {
   flex: 1 1 100%;
 }
 
+.gp-settings-card--footer,
+.gp-settings-card--beian {
+  min-height: 12rem;
+  flex: 1 1 100%;
+}
+
 .gp-settings-card--note {
   min-height: 12rem;
   flex: 1 1 16rem;

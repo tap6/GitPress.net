@@ -6,6 +6,7 @@
   "description": "Warm, serif, timeless blog theme in the spirit of classic WordPress.",
   "author": "GitPress",
   "license": "MIT",
+  "homepage": "https://github.com/tap6/gitpress",
   "engine": "astro",
   "preview": "preview.svg",
   "tags": ["serif", "classic", "blog"],

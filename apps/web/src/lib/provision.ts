@@ -101,7 +101,7 @@ export async function provisionSite(input: ProvisionInput): Promise<ProvisionRes
             language: site.language,
             url: pagesUrl,
             basePath,
-            author: site.author,
+            ...(site.author ? { author: site.author } : {}),
           },
           theme: { name: site.themeName, source: "builtin", ref: "v1", config: {} },
           build: { includeDrafts: false, output: "dist" },

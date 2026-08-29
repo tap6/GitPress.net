@@ -4,10 +4,12 @@ import { persistSiteCategory, type SiteCategory } from "./categories";
 import { deleteFile, getFileText, listDirectory, putFile, commitFiles, splitRepo } from "./github";
 import { sanitizeMediaFileName, uniqueMediaFileName } from "./mediaName";
 import { persistNavItem, type NavItem } from "./nav";
+import { parseFooterItem, persistBeian, persistFooterItem, type FooterItem, type SiteBeian } from "./footer";
 
 export type { SiteCategory } from "./categories";
 export { isCategoryInNav, persistSiteCategory } from "./categories";
 export type { NavItem } from "./nav";
+export type { FooterItem, SiteBeian } from "./footer";
 
 /** Content operations = commits against the private data repository. */
 
@@ -388,5 +390,56 @@ export async function saveSiteNav(
       config.site.nav = nav.map(persistNavItem);
     },
     "Update menu",
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Footer (site-level chrome + optional mainland-China 备案)
+// ---------------------------------------------------------------------------
+
+export async function getSiteFooter(
+  octokit: Octokit,
+  dataRepo: string,
+): Promise<FooterItem[] | null> {
+  const config = await getSiteConfig(octokit, dataRepo);
+  const footer = config?.site.footer;
+  if (!Array.isArray(footer)) return null;
+  return footer.map(parseFooterItem).filter((item): item is FooterItem => item !== null);
+}
+
+export async function saveSiteFooter(
+  octokit: Octokit,
+  dataRepo: string,
+  footer: FooterItem[],
+): Promise<void> {
+  await updateSiteConfig(
+    octokit,
+    dataRepo,
+    (config) => {
+      config.site.footer = footer.map(persistFooterItem);
+    },
+    "Update footer",
+  );
+}
+
+export async function getSiteBeian(octokit: Octokit, dataRepo: string): Promise<SiteBeian> {
+  const config = await getSiteConfig(octokit, dataRepo);
+  return persistBeian(config?.site.beian) ?? {};
+}
+
+export async function saveSiteBeian(
+  octokit: Octokit,
+  dataRepo: string,
+  beian: SiteBeian,
+): Promise<void> {
+  await updateSiteConfig(
+    octokit,
+    dataRepo,
+    (config) => {
+      const next = persistBeian(beian);
+      if (next) config.site.beian = next;
+      else delete config.site.beian;
+    },
+    "Update beian",
   );
 }

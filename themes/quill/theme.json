@@ -6,6 +6,7 @@
   "description": "Card-based post list, tags, reading time, a year-by-year archive, and a one-click light/dark toggle — in the spirit of the minimalist card-list blog themes popular in the static-site world.",
   "author": "GitPress",
   "license": "MIT",
+  "homepage": "https://github.com/tap6/gitpress",
   "engine": "astro",
   "preview": "preview.svg",
   "tags": ["cards", "dark-mode", "modern"],

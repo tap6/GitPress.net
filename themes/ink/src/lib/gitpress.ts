@@ -16,6 +16,16 @@ export type NavItem =
   | { type: "page"; slug: string; label?: string }
   | { type: "link"; url: string; label: string };
 
+type FooterItem =
+  | { type: "copyright"; label?: string }
+  | { type: "gitpress"; label?: string }
+  | { type: "theme"; label?: string }
+  | { type: "rss"; label?: string }
+  | { type: "page"; slug: string; label?: string }
+  | { type: "link"; url: string; label: string }
+  | { type: "text"; label: string }
+  | { type: string; label?: string; url?: string; slug?: string };
+
 interface SiteInfo {
   title: string;
   description?: string;
@@ -29,6 +39,8 @@ interface SiteInfo {
   categories?: SiteCategory[];
   postsPerPage?: number;
   nav?: NavItem[];
+  footer?: FooterItem[];
+  beian?: { icp?: string; gongan?: string };
 }
 
 interface GitPressConfig {
@@ -53,6 +65,22 @@ function loadConfig(): GitPressConfig {
 }
 
 export const gitpress = loadConfig();
+
+function loadThemeManifest(): { displayName?: string; name?: string; homepage?: string } {
+  const path = new URL("../../theme.json", import.meta.url);
+  if (!existsSync(path)) return {};
+  try {
+    return JSON.parse(readFileSync(path, "utf8")) as {
+      displayName?: string;
+      name?: string;
+      homepage?: string;
+    };
+  } catch {
+    return {};
+  }
+}
+
+const themeManifest = loadThemeManifest();
 
 /** Theme option defaults — absent options always fall back so old sites keep building. */
 export const themeConfig = {
@@ -183,4 +211,116 @@ export function buildNav(pages: Page[]): NavLink[] {
     }
   }
   return links;
+}
+
+export interface FooterEntry {
+  label: string;
+  href?: string;
+  external?: boolean;
+  rel?: string;
+  icon?: "gongan";
+}
+
+function withYear(label: string): string {
+  return label.replace(/\{year\}/g, String(new Date().getFullYear()));
+}
+
+function gitpressCreditLabel(override?: string): string {
+  if (override?.trim()) return override.trim();
+  const lang = (gitpress.site.language ?? "en").toLowerCase();
+  if (lang.startsWith("zh")) return "由 GitPress 驱动";
+  if (lang.startsWith("ja")) return "GitPress で構築";
+  return "Powered by GitPress";
+}
+
+function themeCreditLabel(override?: string): string | null {
+  const homepage = themeManifest.homepage?.trim();
+  if (!homepage) return null;
+  if (override?.trim()) return override.trim();
+  const name = themeManifest.displayName || themeManifest.name || "theme";
+  const lang = (gitpress.site.language ?? "en").toLowerCase();
+  if (lang.startsWith("zh")) return `主题 ${name}`;
+  if (lang.startsWith("ja")) return `テーマ ${name}`;
+  return `Theme: ${name}`;
+}
+
+function resolveFooterItem(item: FooterItem, pages: Page[]): FooterEntry | null {
+  if (item.type === "copyright") {
+    const custom = item.label?.trim();
+    return { label: custom ? withYear(custom) : `© ${new Date().getFullYear()} ${gitpress.site.title}` };
+  }
+  if (item.type === "gitpress") {
+    return {
+      label: gitpressCreditLabel(item.label),
+      href: "https://gitpress.net",
+      external: true,
+      rel: "generator",
+    };
+  }
+  if (item.type === "theme") {
+    const label = themeCreditLabel(item.label);
+    const homepage = themeManifest.homepage?.trim();
+    if (!label || !homepage) return null;
+    return { label, href: homepage, external: true, rel: "noopener noreferrer" };
+  }
+  if (item.type === "rss") {
+    return { label: item.label?.trim() || "RSS", href: withBase("/rss.xml") };
+  }
+  if (item.type === "page" && item.slug) {
+    const page = pages.find((p) => postSlug(p) === item.slug);
+    if (!page) return null;
+    return { href: withBase(`/${postSlug(page)}/`), label: item.label?.trim() || page.data.title };
+  }
+  if (item.type === "link" && item.url && item.label) {
+    return { href: item.url, label: item.label, external: true, rel: "noopener noreferrer" };
+  }
+  if (item.type === "text" && item.label?.trim()) {
+    return { label: withYear(item.label.trim()) };
+  }
+  if (item.url && item.label) {
+    return { href: item.url, label: item.label, external: true, rel: "noopener noreferrer" };
+  }
+  if (item.label?.trim()) return { label: withYear(item.label.trim()) };
+  return null;
+}
+
+function beianEntries(): FooterEntry[] {
+  const entries: FooterEntry[] = [];
+  const icp = gitpress.site.beian?.icp?.trim();
+  if (icp) {
+    entries.push({
+      label: icp,
+      href: "https://beian.miit.gov.cn/",
+      external: true,
+      rel: "noopener noreferrer",
+    });
+  }
+  const gongan = (gitpress.site.beian?.gongan ?? "").replace(/\D/g, "");
+  if (gongan) {
+    entries.push({
+      label: `公网安备 ${gongan}号`,
+      href: `https://beian.mps.gov.cn/#/query/webSearch?recordcode=${gongan}`,
+      external: true,
+      rel: "noopener noreferrer",
+      icon: "gongan",
+    });
+  }
+  return entries;
+}
+
+/** Default slots when `site.footer` is absent. RSS/GitPress/theme/copyright are all hideable once saved. */
+export function buildFooter(pages: Page[]): FooterEntry[] {
+  const slots: FooterItem[] = gitpress.site.footer ?? [
+    { type: "copyright" },
+    { type: "gitpress" },
+    ...(themeManifest.homepage ? [{ type: "theme" as const }] : []),
+    { type: "rss" },
+  ];
+  const entries: FooterEntry[] = [];
+  for (const item of slots) {
+    const entry = resolveFooterItem(item, pages);
+    if (entry) entries.push(entry);
+  }
+  entries.push(...beianEntries());
+  return entries;
 }

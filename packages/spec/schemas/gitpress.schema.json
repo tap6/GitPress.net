@@ -89,6 +89,36 @@
             },
             "additionalProperties": true
           }
+        },
+        "footer": {
+          "type": "array",
+          "description": "Explicit footer. When present, themes render exactly these items (then site.beian). When absent, default is copyright + GitPress + theme credit + RSS, all hideable. System types: copyright, gitpress, theme, rss. Custom types are only page, link, text. Unknown types: render as link if url+label, else plain text if label. copyright labels may include {year}. theme has no url here — resolve from the active theme.json homepage.",
+          "items": {
+            "type": "object",
+            "required": ["type"],
+            "properties": {
+              "type": { "type": "string" },
+              "slug": { "type": "string" },
+              "url": { "type": "string" },
+              "label": { "type": "string" }
+            },
+            "additionalProperties": true
+          }
+        },
+        "beian": {
+          "type": "object",
+          "description": "Mainland China ICP / public-security filing. Themes append this after footer items when set. Not a footer list entry (cannot be hidden except by clearing the fields).",
+          "properties": {
+            "icp": {
+              "type": "string",
+              "description": "MIIT ICP number, e.g. 京ICP备12345678号. Linked to https://beian.miit.gov.cn/"
+            },
+            "gongan": {
+              "type": "string",
+              "description": "MPS filing recordcode (digits). Linked to the official query page with a shield icon."
+            }
+          },
+          "additionalProperties": true
         }
       },
       "additionalProperties": true

@@ -6,6 +6,7 @@
   "description": "Clean, quiet, typography-first theme with plenty of whitespace.",
   "author": "GitPress",
   "license": "MIT",
+  "homepage": "https://github.com/tap6/gitpress",
   "engine": "astro",
   "preview": "preview.svg",
   "tags": ["minimal", "sans-serif", "clean"],

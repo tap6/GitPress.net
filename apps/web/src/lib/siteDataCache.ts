@@ -1,5 +1,5 @@
 import { revalidatePath, revalidateTag, unstable_cache } from "next/cache";
-import { getSiteCategories, getSiteConfig, getSiteNav, listMedia, listPages, listPosts } from "./content";
+import { getSiteBeian, getSiteCategories, getSiteConfig, getSiteFooter, getSiteNav, listMedia, listPages, listPosts } from "./content";
 import { getActionsUsage, getInstallationOctokit } from "./github";
 
 const REVALIDATE_SECONDS = 45;
@@ -51,6 +51,22 @@ export function cachedSiteNav(installationId: number, dataRepo: string) {
   return unstable_cache(
     async () => getSiteNav(await getInstallationOctokit(installationId), dataRepo),
     ["site-nav", dataRepo],
+    { revalidate: REVALIDATE_SECONDS, tags: [siteDataTag(dataRepo)] },
+  )();
+}
+
+export function cachedSiteFooter(installationId: number, dataRepo: string) {
+  return unstable_cache(
+    async () => getSiteFooter(await getInstallationOctokit(installationId), dataRepo),
+    ["site-footer", dataRepo],
+    { revalidate: REVALIDATE_SECONDS, tags: [siteDataTag(dataRepo)] },
+  )();
+}
+
+export function cachedSiteBeian(installationId: number, dataRepo: string) {
+  return unstable_cache(
+    async () => getSiteBeian(await getInstallationOctokit(installationId), dataRepo),
+    ["site-beian", dataRepo],
     { revalidate: REVALIDATE_SECONDS, tags: [siteDataTag(dataRepo)] },
   )();
 }

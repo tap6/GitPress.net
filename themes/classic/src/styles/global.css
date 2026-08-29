@@ -164,6 +164,39 @@ a:hover {
   font-size: 0.88rem;
 }
 
+.site-footer-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  row-gap: 0.35rem;
+}
+
+.site-footer-list li {
+  display: inline-flex;
+  align-items: center;
+}
+
+.site-footer-list li:not(:last-child)::after {
+  content: "·";
+  margin: 0 0.55em;
+  opacity: 0.55;
+}
+
+.site-footer-gongan {
+  display: inline-flex;
+  align-items: center;
+}
+
+.site-footer-gongan svg {
+  display: block;
+  margin-right: 0.3em;
+  flex-shrink: 0;
+}
+
 /* Post list */
 .post-item {
   padding: 1.6rem 0;

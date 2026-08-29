@@ -20,6 +20,10 @@
     "description": { "type": "string" },
     "author": { "type": "string" },
     "license": { "type": "string" },
+    "homepage": {
+      "type": "string",
+      "description": "Public page or git repository for this theme. The footer theme-credit slot links here. If omitted, themes skip the credit even when the slot is enabled."
+    },
     "engine": {
       "type": "string",
       "enum": ["astro"],

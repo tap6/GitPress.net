@@ -1,5 +1,7 @@
 import { BrandMediaForm } from "@/components/BrandMediaForm";
 import { SiteUrlForm } from "@/components/SiteUrlForm";
+import { BeianForm } from "@/components/BeianForm";
+import { FooterForm } from "@/components/FooterForm";
 import { rotateDeployKeyAction } from "@/lib/actions";
 import { AiSettingsForm } from "@/components/AiSettingsForm";
 import { ProgressButton } from "@/components/ProgressButton";
@@ -7,8 +9,9 @@ import { SettingsForm } from "@/components/SettingsForm";
 import { getAiConfig } from "@/lib/ai";
 import { githubPagesDefaultUrl, isDefaultPagesOrigin } from "@/lib/customDomain";
 import { getInstallationOctokit, getInstallationPermissionGap, getPagesSite, splitRepo } from "@/lib/github";
-import { cachedSiteConfig } from "@/lib/siteDataCache";
+import { cachedListPages, cachedSiteBeian, cachedSiteConfig, cachedSiteFooter } from "@/lib/siteDataCache";
 import { requireSite } from "@/lib/sites";
+import { getBuiltinTheme } from "@/lib/themes";
 
 export const metadata = { title: "设置" };
 
@@ -22,16 +25,23 @@ export default async function SettingsPage({
   const { siteId } = await params;
   const { domain: domainNotice } = await searchParams;
   const { site, installation, user } = await requireSite(siteId);
-  const [config, permissionGap, aiConfig, pages] = await Promise.all([
+  const [config, permissionGap, aiConfig, pages, footer, beian, octokit] = await Promise.all([
     cachedSiteConfig(installation.installationId, site.dataRepo),
     getInstallationPermissionGap(installation.installationId),
     getAiConfig(user.id),
-    getPagesSite(await getInstallationOctokit(installation.installationId), splitRepo(site.siteRepo)),
+    cachedListPages(installation.installationId, site.dataRepo),
+    cachedSiteFooter(installation.installationId, site.dataRepo),
+    cachedSiteBeian(installation.installationId, site.dataRepo),
+    getInstallationOctokit(installation.installationId),
   ]);
+  const pagesSite = await getPagesSite(octokit, splitRepo(site.siteRepo));
   const analyticsSnippet =
     typeof config?.site.analyticsSnippet === "string" ? config.site.analyticsSnippet : "";
+  const author = typeof config?.site.author === "string" ? config.site.author : "";
   const logo = typeof config?.site.logo === "string" ? config.site.logo : "";
   const avatar = typeof config?.site.avatar === "string" ? config.site.avatar : "";
+  const themeName = String(config?.theme.name ?? site.themeName);
+  const themeDisplayName = getBuiltinTheme(themeName)?.displayName ?? themeName;
   const defaultUrl = githubPagesDefaultUrl(site.siteRepo);
   const onDefaultPages = isDefaultPagesOrigin(site.url, site.siteRepo);
   const notice =
@@ -56,6 +66,7 @@ export default async function SettingsPage({
                 name: site.name,
                 description: site.description ?? "",
                 language: site.language,
+                author,
                 analyticsSnippet,
               }}
             />
@@ -66,6 +77,27 @@ export default async function SettingsPage({
           <h2 className="shrink-0 border-b border-neutral-100 px-5 py-3 text-sm font-semibold">Logo 与头像</h2>
           <div className="gp-settings-card__body">
             <BrandMediaForm siteId={site.id} logo={logo} avatar={avatar} />
+          </div>
+        </section>
+
+        <section className="gp-settings-card gp-settings-card--footer rounded border border-neutral-200 bg-white shadow-sm">
+          <h2 className="shrink-0 border-b border-neutral-100 px-5 py-3 text-sm font-semibold">页脚</h2>
+          <div className="gp-settings-card__body">
+            <FooterForm
+              siteId={site.id}
+              siteTitle={site.name}
+              themeDisplayName={themeDisplayName}
+              initial={footer}
+              pages={pages}
+              language={site.language}
+            />
+          </div>
+        </section>
+
+        <section className="gp-settings-card gp-settings-card--beian rounded border border-neutral-200 bg-white shadow-sm">
+          <h2 className="shrink-0 border-b border-neutral-100 px-5 py-3 text-sm font-semibold">备案</h2>
+          <div className="gp-settings-card__body">
+            <BeianForm siteId={site.id} initial={beian} />
           </div>
         </section>
 
@@ -103,9 +135,9 @@ export default async function SettingsPage({
               siteRepo={site.siteRepo}
               currentUrl={site.url}
               defaultUrl={defaultUrl}
-              pagesCname={pages?.cname ?? null}
-              certificateState={pages?.certificateState ?? null}
-              defaultRegisterPages={Boolean(pages?.cname) || onDefaultPages}
+              pagesCname={pagesSite?.cname ?? null}
+              certificateState={pagesSite?.certificateState ?? null}
+              defaultRegisterPages={Boolean(pagesSite?.cname) || onDefaultPages}
               notice={notice}
             />
           </div>

@@ -6,7 +6,13 @@ import { ProgressButton } from "@/components/ProgressButton";
 
 interface Props {
   siteId: string;
-  initial: { name: string; description: string; language: string; analyticsSnippet: string };
+  initial: {
+    name: string;
+    description: string;
+    language: string;
+    author: string;
+    analyticsSnippet: string;
+  };
 }
 
 export function SettingsForm({ siteId, initial }: Props) {
@@ -34,6 +40,18 @@ export function SettingsForm({ siteId, initial }: Props) {
           defaultValue={initial.description}
           className="mt-1 w-full rounded border border-neutral-300 px-3 py-2 focus:border-wp-accent focus:outline-none"
         />
+      </label>
+      <label className="block">
+        <span className="font-medium">作者(可选)</span>
+        <input
+          name="author"
+          defaultValue={initial.author}
+          placeholder="用于版权等署名,不是 GitHub 用户名"
+          className="mt-1 w-full rounded border border-neutral-300 px-3 py-2 focus:border-wp-accent focus:outline-none"
+        />
+        <span className="mt-1 block text-xs text-neutral-400">
+          留空则页脚版权默认用站点名称。不希望公开 GitHub 账号时,请不要填登录名。
+        </span>
       </label>
       <label className="block">
         <span className="font-medium">语言</span>

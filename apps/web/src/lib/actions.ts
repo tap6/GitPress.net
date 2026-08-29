@@ -12,7 +12,9 @@ import {
   deletePost,
   getSiteConfig,
   parseTagList,
+  saveSiteBeian,
   saveSiteCategories,
+  saveSiteFooter,
   saveSiteNav,
   savePost,
   slugify,
@@ -29,6 +31,7 @@ import {
 } from "./mediaName";
 import { assertAllowedMediaUpload } from "./mediaTypes";
 import { persistNavItem, type NavItem } from "./nav";
+import { persistBeian, persistFooterItem, type FooterItem } from "./footer";
 import { resolvePublicOrigin } from "./customDomain";
 import { provisionSite, rotateDeployKey, triggerRebuild } from "./provision";
 import { revalidateSiteData } from "./siteDataCache";
@@ -90,7 +93,7 @@ export async function createSiteAction(
         slug,
         description,
         language,
-        author: user.name ?? installation.accountLogin,
+        author: user.name?.trim() ?? "",
         themeName,
       },
     });
@@ -590,6 +593,7 @@ export async function saveSettingsAction(
   if (!name) return { error: "请填写站点名称。" };
   const description = String(formData.get("description") ?? "").trim();
   const language = String(formData.get("language") ?? "en");
+  const author = String(formData.get("author") ?? "").trim();
   const analyticsSnippet = String(formData.get("analyticsSnippet") ?? "").trim();
 
   const octokit = await getInstallationOctokit(installation.installationId);
@@ -601,6 +605,8 @@ export async function saveSettingsAction(
         config.site.title = name;
         config.site.description = description;
         config.site.language = language;
+        if (author) config.site.author = author;
+        else delete config.site.author;
         if (analyticsSnippet) {
           config.site.analyticsSnippet = analyticsSnippet;
         } else {
@@ -831,6 +837,98 @@ export async function saveMenuAction(
   }
 
   revalidateSiteData(site.dataRepo, [`/sites/${siteId}/menu`]);
+  return { saved: true };
+}
+
+// ---------------------------------------------------------------------------
+// Footer
+// ---------------------------------------------------------------------------
+
+export interface SaveFooterState {
+  error?: string;
+  saved?: boolean;
+}
+
+export async function saveFooterAction(
+  _prev: SaveFooterState,
+  formData: FormData,
+): Promise<SaveFooterState> {
+  const siteId = String(formData.get("siteId"));
+  const { site, installation } = await requireSite(siteId);
+
+  let footer: FooterItem[];
+  try {
+    const parsed = JSON.parse(String(formData.get("footerJson") ?? "[]"));
+    if (!Array.isArray(parsed)) throw new Error("invalid");
+    footer = parsed.map((raw: unknown) => {
+      const item = raw as Record<string, unknown>;
+      const label = typeof item.label === "string" ? item.label.trim() : "";
+      switch (item.type) {
+        case "copyright":
+          return persistFooterItem({ type: "copyright", label: label || undefined });
+        case "gitpress":
+          return persistFooterItem({ type: "gitpress", label: label || undefined });
+        case "theme":
+          return persistFooterItem({ type: "theme", label: label || undefined });
+        case "rss":
+          return persistFooterItem({ type: "rss", label: label || undefined });
+        case "page": {
+          const slug = String(item.slug ?? "").trim();
+          if (!slug) throw new Error("页脚中的页面项缺少 slug");
+          return persistFooterItem({ type: "page", slug, label: label || undefined });
+        }
+        case "link": {
+          const url = String(item.url ?? "").trim();
+          if (!url) throw new Error("自定义链接不能为空网址");
+          if (!label) throw new Error("自定义链接需要填写名称");
+          return persistFooterItem({ type: "link", url, label });
+        }
+        case "text":
+          if (!label) throw new Error("纯文本不能为空");
+          return persistFooterItem({ type: "text", label });
+        default:
+          throw new Error(`未知的页脚项类型:${String(item.type)}`);
+      }
+    });
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "页脚数据格式有误" };
+  }
+
+  const octokit = await getInstallationOctokit(installation.installationId);
+  try {
+    await saveSiteFooter(octokit, site.dataRepo, footer);
+  } catch (error) {
+    return { error: `保存失败:${error instanceof Error ? error.message : String(error)}` };
+  }
+
+  revalidateSiteData(site.dataRepo, [`/sites/${siteId}/settings`]);
+  return { saved: true };
+}
+
+export interface SaveBeianState {
+  error?: string;
+  saved?: boolean;
+}
+
+export async function saveBeianAction(
+  _prev: SaveBeianState,
+  formData: FormData,
+): Promise<SaveBeianState> {
+  const siteId = String(formData.get("siteId"));
+  const { site, installation } = await requireSite(siteId);
+  const beian = persistBeian({
+    icp: String(formData.get("icp") ?? ""),
+    gongan: String(formData.get("gongan") ?? ""),
+  }) ?? {};
+
+  const octokit = await getInstallationOctokit(installation.installationId);
+  try {
+    await saveSiteBeian(octokit, site.dataRepo, beian);
+  } catch (error) {
+    return { error: `保存失败:${error instanceof Error ? error.message : String(error)}` };
+  }
+
+  revalidateSiteData(site.dataRepo, [`/sites/${siteId}/settings`]);
   return { saved: true };
 }
 

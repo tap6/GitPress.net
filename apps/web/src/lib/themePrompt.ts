@@ -24,7 +24,11 @@ GitPress 是 Git 原生博客平台:内容在用户的 GitHub 数据仓库,主�
 
 - 若存在 site.nav,顶栏必须严格按该数组渲染(type: home | rss | category | page | link),用每项可选的 label 覆盖显示名;不要再额外拼接分类或页面。
 - 若没有 site.nav,隐式顶栏 = 首页 + inNav 不为 false 的分类 + 全部独立页面。首页缺省文案随 site.language:中文「首页」、日文「ホーム」、其它 "Home"。
-- 不要把 RSS 放进默认顶栏。页脚提供 RSS 链接;<head> 保留 <link rel="alternate" type="application/rss+xml" href="…/rss.xml">。
+- 不要把 RSS 放进默认顶栏。<head> 始终保留 <link rel="alternate" type="application/rss+xml" href="…/rss.xml">,/rss.xml 始终生成。
+- 若存在 site.footer,页脚必须严格按该数组渲染(type: copyright | gitpress | theme | rss | page | link | text)。copyright 默认「© {year} 站点名」,不要用 GitHub 用户名;{year} 构建时替换。gitpress 链到 https://gitpress.net(rel=generator)。theme 链到本主题 theme.json 的 homepage(没有 homepage 则跳过该槽)。rss 链到 /rss.xml。自定义只有 page / link / text。不认识的 type:有 url+label 当外链,只有 label 当纯文本,否则跳过。
+- 若没有 site.footer,默认页脚 = 版权 + GitPress + 主题署名(有 homepage 时) + RSS。每一项站长都可以关掉。
+- 若存在 site.beian.icp / site.beian.gongan,追加在页脚末尾。ICP 链 https://beian.miit.gov.cn/;公安备案显示盾牌,链 https://beian.mps.gov.cn/#/query/webSearch?recordcode={号}。不要把备案写进 theme.config。
+- theme.json 请提供 homepage(开源仓库或介绍页)。
 - 原样插入 site.analyticsSnippet 到 </head> 前。
 
 ## 主题选项(configSchema)
@@ -41,7 +45,7 @@ JSON Schema 会出现在 GitPress 后台「外观」页。请提供并在布局�
 
 ## 建议的仓库布局
 
-theme.json、package.json、astro.config.mjs、src/layouts、src/pages(首页分页、文章、页面、分类归档、rss.xml)、src/lib/gitpress.ts(读配置、withBase、buildNav)、src/styles。
+theme.json、package.json、astro.config.mjs、src/layouts、src/pages(首页分页、文章、页面、分类归档、rss.xml)、src/lib/gitpress.ts(读配置、withBase、buildNav、buildFooter)、src/styles。
 
 RSS、sitemap、分页大小用 site.postsPerPage(缺省 10)。
 

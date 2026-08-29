@@ -6,6 +6,7 @@
   "description": "Dark, bold, card-based magazine theme for night owls.",
   "author": "GitPress",
   "license": "MIT",
+  "homepage": "https://github.com/tap6/gitpress",
   "engine": "astro",
   "preview": "preview.svg",
   "tags": ["dark", "cards", "magazine"],
