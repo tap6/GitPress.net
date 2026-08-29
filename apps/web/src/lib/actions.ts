@@ -27,12 +27,8 @@ import {
   updateSiteConfig,
   uploadMedia,
 } from "./content";
-import {
-  CommentsPermissionError,
-  connectGiscus,
-  parseSiteComments,
-  type SiteComments,
-} from "./comments";
+import { parseSiteComments, type SiteComments } from "./comments";
+import { CommentsPermissionError, connectGiscus } from "./commentsConnect";
 import { getInstallationOctokit, listBuildRuns, splitRepo, setPagesCustomDomain, putFile } from "./github";
 import {
   MAX_BATCH_BYTES,
