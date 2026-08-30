@@ -4,7 +4,9 @@ import { nowLocalDateTime, parsePostDate } from "./postDate";
 export const PUBLISH_CHECK_QUOTA_MINUTES = 2000;
 export const ESTIMATED_MINUTES_PER_SCHEDULED_RUN = 2;
 export const PUBLISH_CHECK_MONTH_DAYS = 30;
-export const DEFAULT_PUBLISH_CHECK_INTERVAL = "6h";
+export const DEFAULT_PUBLISH_CHECK_INTERVAL = "2h";
+export const ESTIMATED_SAVES_PER_POST = 2;
+export const DEFAULT_ESTIMATE_POSTS_PER_MONTH = 8;
 export const PUBLISH_CHECK_WORKFLOW_PATH = ".github/workflows/gitpress-build.yml";
 export const LEGACY_HOURLY_CRON = "7 * * * *";
 
@@ -23,6 +25,9 @@ export const PUBLISH_CHECK_INTERVAL_IDS = [
 ] as const;
 
 export type PublishCheckIntervalId = (typeof PUBLISH_CHECK_INTERVAL_IDS)[number];
+
+/** First-enable default and the in-form “建议” mark. 2h ≈ 36% of the free 2000. */
+export const SUGGESTED_PUBLISH_CHECK_INTERVAL: PublishCheckIntervalId = "2h";
 
 export interface PublishCheckInterval {
   id: PublishCheckIntervalId;
@@ -86,6 +91,26 @@ export function estimatePublishCheck(id: PublishCheckIntervalId): PublishCheckEs
     minutesPerMonth,
     percentOfQuota: Math.round((minutesPerMonth / PUBLISH_CHECK_QUOTA_MINUTES) * 100),
   };
+}
+
+export function estimateWritingMinutes(postsPerMonth: number): number {
+  const count = Number.isFinite(postsPerMonth) ? Math.max(0, Math.round(postsPerMonth)) : 0;
+  return count * ESTIMATED_SAVES_PER_POST * ESTIMATED_MINUTES_PER_SCHEDULED_RUN;
+}
+
+/**
+ * Suggest a check interval from monthly writing volume.
+ * Clock cost is fixed once enabled; heavy writers get a looser interval so
+ * save-triggered builds still fit in the free 2000 minutes.
+ */
+export function recommendPublishCheckInterval(postsPerMonth: number): PublishCheckIntervalId {
+  const writeMin = estimateWritingMinutes(postsPerMonth);
+  const clockBudget = Math.max(0, Math.round(PUBLISH_CHECK_QUOTA_MINUTES * 0.5) - writeMin);
+  const preferred: PublishCheckIntervalId[] = ["2h", "3h", "6h", "12h", "24h"];
+  for (const id of preferred) {
+    if (estimatePublishCheck(id).minutesPerMonth <= clockBudget) return id;
+  }
+  return "24h";
 }
 
 export function parsePublishCheck(yml: string | null | undefined): PublishCheckParse {
