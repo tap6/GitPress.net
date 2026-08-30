@@ -19,6 +19,7 @@ export default async function AdminLayout({
       siteName={site.name}
       siteUrl={site.url}
       dataRepo={site.dataRepo}
+      siteRepo={site.siteRepo}
       userName={user.name ?? "博主"}
       permissionGap={permissionGap}
     >

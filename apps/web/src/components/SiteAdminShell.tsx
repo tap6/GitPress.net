@@ -16,6 +16,7 @@ interface Props {
   siteName: string;
   siteUrl: string | null;
   dataRepo: string;
+  siteRepo: string;
   userName: string;
   permissionGap?: PermissionGap | null;
   children: React.ReactNode;
@@ -33,6 +34,7 @@ export function SiteAdminShell({
   siteName,
   siteUrl,
   dataRepo,
+  siteRepo,
   userName,
   permissionGap,
   children,
@@ -150,7 +152,7 @@ export function SiteAdminShell({
           <RouteLoadingBar />
         </Suspense>
         {permissionGap && <PermissionUpdateBanner gap={permissionGap} />}
-        <BuildStatusBar siteId={siteId} dataRepo={dataRepo} />
+        <BuildStatusBar siteId={siteId} dataRepo={dataRepo} siteRepo={siteRepo} />
         <main className="flex min-h-0 flex-1 flex-col p-4 sm:p-6 lg:p-8">{children}</main>
       </div>
     </div>

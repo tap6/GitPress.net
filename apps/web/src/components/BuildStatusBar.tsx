@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { getBuildStatusAction, type BuildStatusSnapshot } from "@/lib/actions";
-import { describeBuildTrigger } from "@/lib/buildLabels";
+import { isScheduledBuildEvent } from "@/lib/recentBuilds";
 import { BUILD_TRIGGER_EVENT, type BuildTriggerDetail } from "./buildTriggerEvent";
 
 type Phase = "hidden" | "submitting" | "building" | "success" | "failure" | "unknown";
@@ -13,6 +13,12 @@ const EXPECTED_BUILD_SECONDS = 90;
 interface Props {
   siteId: string;
   dataRepo: string;
+  siteRepo: string;
+}
+
+function repoName(full: string): string {
+  const name = full.split("/").pop();
+  return name && name.length > 0 ? name : full;
 }
 
 /**
@@ -24,7 +30,7 @@ interface Props {
  * time until the run concludes — instead of the button flashing for under a
  * second and leaving no trace that anything is happening.
  */
-export function BuildStatusBar({ siteId, dataRepo }: Props) {
+export function BuildStatusBar({ siteId, dataRepo, siteRepo }: Props) {
   const [phase, setPhase] = useState<Phase>("hidden");
   const [snapshot, setSnapshot] = useState<BuildStatusSnapshot | null>(null);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
@@ -135,6 +141,14 @@ export function BuildStatusBar({ siteId, dataRepo }: Props) {
 
   if (phase === "hidden") return null;
 
+  const dataLabel = repoName(dataRepo);
+  const siteLabel = repoName(siteRepo);
+  const pipeline = (
+    <>
+      从私有数据仓「<span title={dataRepo}>{dataLabel}</span>」构建并推送到「<span title={siteRepo}>{siteLabel}</span>」
+    </>
+  );
+  const scheduled = isScheduledBuildEvent(snapshot?.event);
   const progress = Math.min(96, (elapsedSeconds / EXPECTED_BUILD_SECONDS) * 96);
   const tone =
     phase === "failure"
@@ -150,25 +164,25 @@ export function BuildStatusBar({ siteId, dataRepo }: Props) {
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
           {phase === "submitting" && (
-            <span>🕓 更改已提交,正在等待 GitHub 开始构建。已在云端排队,可离开本页。</span>
+            <span>GitHub 已收到数据，正在等待开始构建。可离开本页。</span>
           )}
           {phase === "building" && (
             <span>
-              ⏳ 正在构建:{describeBuildTrigger(snapshot?.commitMessage ?? null, snapshot?.event)} · {elapsedSeconds}s
+              ⏳ {scheduled ? "定时检查：" : ""}正在{pipeline} · {elapsedSeconds}s
               <span className="ml-1 font-normal text-sky-600/80">
-                (预计 60–120 秒 · 已在 GitHub 上运行,可离开本页。再次保存会取消这次、改跑最新一次)
+                （大约 1–2 分钟，可离开。再保存会改跑最新一次）
               </span>
             </span>
           )}
           {phase === "success" && (
-            <span>✓ 构建成功:{describeBuildTrigger(snapshot?.commitMessage ?? null, snapshot?.event)}</span>
+            <span>✓ 已{pipeline}</span>
           )}
           {phase === "failure" && (
-            <span>✗ 构建失败:{describeBuildTrigger(snapshot?.commitMessage ?? null, snapshot?.event)}</span>
+            <span>✗ 未能{pipeline}</span>
           )}
           {phase === "unknown" && (
             <span>
-              更改已提交,但 GitHub App 缺少「Actions」权限,无法在此显示实时进度(内容仍会正常构建)。
+              GitHub 已收到数据，但 App 缺少「Actions」权限，这里看不到实时进度（构建仍会进行）。
             </span>
           )}
           {(phase === "building" || phase === "success" || phase === "failure") &&

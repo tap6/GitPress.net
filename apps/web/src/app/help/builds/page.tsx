@@ -18,7 +18,7 @@ export default function BuildsHelpPage() {
       </p>
       <h1 className="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl">构建是怎么跑的</h1>
       <p className="mt-4 leading-relaxed text-neutral-500">
-        顶部「正在构建」表示任务已经交到 GitHub Actions,不是卡在你的浏览器里。可以关标签、去写下一篇。
+        顶部「已收到数据 / 正在从数据仓构建并推送到网站仓」表示这次更改已经写进私有数据仓，GitHub Actions 正在编译并推到公开网站仓，不是卡在浏览器里。可以关标签、去写下一篇。
       </p>
 
       <section className="mt-10">

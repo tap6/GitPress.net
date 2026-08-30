@@ -15,8 +15,8 @@ export const HELP_ARTICLES: HelpArticleMeta[] = [
   {
     href: "/help/builds",
     title: "构建是怎么跑的",
-    summary: "保存后任务已经在 GitHub Actions 上，可以离开本页。再次保存会取消进行中的那次，改跑最新一次。",
-    keywords: ["构建", "正在构建", "离开", "取消", "Actions", "排队"],
+    summary: "保存后数据已在私有数据仓，Actions 从那里构建并推到公开网站仓，可以离开本页。再次保存会取消进行中的那次，改跑最新一次。",
+    keywords: ["构建", "正在构建", "数据仓", "GitHub", "离开", "取消", "Actions", "排队"],
   },
   {
     href: "/help/ai-writing",

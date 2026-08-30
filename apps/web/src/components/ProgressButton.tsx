@@ -94,7 +94,7 @@ export function ProgressButton({
         {pending
           ? `${pendingLabel ?? "处理中"}…(${elapsedSeconds.toFixed(0)}s)`
           : justSubmitted
-            ? "✓ 已提交"
+            ? "✓ 已写入 GitHub"
             : children}
       </button>
       {pending && (
@@ -112,7 +112,7 @@ export function ProgressButton({
         </span>
       )}
       {justSubmitted && buildSiteId && (
-        <span className="text-[11px] text-neutral-400">已提交,网站构建中,可离开本页</span>
+        <span className="text-[11px] text-neutral-400">GitHub 已收到数据，正在构建，可离开本页</span>
       )}
     </span>
   );
