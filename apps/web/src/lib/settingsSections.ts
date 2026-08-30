@@ -9,6 +9,7 @@ export const SETTINGS_SECTIONS = [
   { id: "domain", label: "访问地址" },
   { id: "account", label: "AI 写作" },
   { id: "widgets", label: "小工具" },
+  { id: "publish", label: "定时发布" },
   { id: "maintain", label: "维护" },
 ] as const;
 

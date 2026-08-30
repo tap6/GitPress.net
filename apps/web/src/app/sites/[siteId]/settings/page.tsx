@@ -11,8 +11,10 @@ import { CommentsForm } from "@/components/CommentsForm";
 import { SettingsForm } from "@/components/SettingsForm";
 import { SettingsPanel, SettingsWorkspace } from "@/components/SettingsWorkspace";
 import { WidgetsSettingsForm } from "@/components/WidgetsSettingsForm";
+import { PublishCheckSettingsForm } from "@/components/PublishCheckSettingsForm";
 import { getAiConfig } from "@/lib/ai";
 import { getScratchNote } from "@/lib/scratchNote";
+import { loadPublishCheck } from "@/lib/publishCheckRepo";
 import { githubPagesDefaultUrl, isDefaultPagesOrigin } from "@/lib/customDomain";
 import { getInstallationOctokit, getInstallationPermissionGap, getPagesSite, splitRepo } from "@/lib/github";
 import { cachedListPages, cachedSiteBeian, cachedSiteConfig, cachedSiteFooter } from "@/lib/siteDataCache";
@@ -41,6 +43,7 @@ export default async function SettingsPage({
     getInstallationOctokit(installation.installationId),
     getScratchNote(site.id),
   ]);
+  const publishCheck = await loadPublishCheck(octokit, site.dataRepo, site.siteRepo);
   const pagesSite = await getPagesSite(octokit, splitRepo(site.siteRepo));
   const analyticsSnippet =
     typeof config?.site.analyticsSnippet === "string" ? config.site.analyticsSnippet : "";
@@ -199,6 +202,18 @@ export default async function SettingsPage({
         <section className="w-full max-w-3xl rounded border border-neutral-200 bg-white shadow-sm">
           <h2 className="border-b border-neutral-100 px-5 py-3 text-sm font-semibold">小工具</h2>
           <WidgetsSettingsForm siteId={site.id} scratchEnabled={scratch.enabled} />
+        </section>
+      </SettingsPanel>
+
+      <SettingsPanel id="publish">
+        <section className="w-full max-w-3xl rounded border border-neutral-200 bg-white shadow-sm">
+          <h2 className="border-b border-neutral-100 px-5 py-3 text-sm font-semibold">定时发布</h2>
+          <PublishCheckSettingsForm
+            siteId={site.id}
+            enabled={publishCheck.enabled}
+            interval={publishCheck.interval}
+            dataRepoPrivate={publishCheck.dataRepoPrivate}
+          />
         </section>
       </SettingsPanel>
 

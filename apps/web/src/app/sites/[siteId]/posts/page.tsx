@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { PostsTable } from "./PostsTable";
+import { getInstallationOctokit } from "@/lib/github";
+import { loadPublishCheck } from "@/lib/publishCheckRepo";
 import { cachedListPosts, cachedSiteCategories } from "@/lib/siteDataCache";
 import { requireSite } from "@/lib/sites";
 
@@ -15,9 +17,11 @@ export default async function PostsPage({
   const { siteId } = await params;
   const { saved } = await searchParams;
   const { site, installation } = await requireSite(siteId);
-  const [posts, categories] = await Promise.all([
+  const octokit = await getInstallationOctokit(installation.installationId);
+  const [posts, categories, publishCheck] = await Promise.all([
     cachedListPosts(installation.installationId, site.dataRepo),
     cachedSiteCategories(installation.installationId, site.dataRepo),
+    loadPublishCheck(octokit, site.dataRepo, site.siteRepo),
   ]);
 
   return (
@@ -43,7 +47,12 @@ export default async function PostsPage({
         </div>
       )}
 
-      <PostsTable siteId={site.id} posts={posts} categories={categories} />
+      <PostsTable
+        siteId={site.id}
+        posts={posts}
+        categories={categories}
+        publishCheckEnabled={publishCheck.enabled}
+      />
 
       <p className="mt-3 text-xs text-neutral-400">
         状态只有两种:「已发布」会出现在公开站点;「草稿」会写入私有数据仓库并触发构建,但公开站点不显示。静态博客没有登录态,因此不另做「仅自己可见」的第三种状态。{" "}

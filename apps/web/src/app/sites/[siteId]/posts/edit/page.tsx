@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { PostEditor } from "@/components/PostEditor";
 import { getPost } from "@/lib/content";
 import { getInstallationOctokit, listRepoCommits, splitRepo } from "@/lib/github";
+import { loadPublishCheck } from "@/lib/publishCheckRepo";
 import { cachedSiteCategories } from "@/lib/siteDataCache";
 import { requireSite } from "@/lib/sites";
 
@@ -25,9 +26,10 @@ export default async function EditPostPage({
   const octokit = await getInstallationOctokit(installation.installationId);
   const post = await getPost(octokit, site.dataRepo, path);
   if (!post) redirect(`/sites/${siteId}/posts`);
-  const [categories, history] = await Promise.all([
+  const [categories, history, publishCheck] = await Promise.all([
     cachedSiteCategories(installation.installationId, site.dataRepo),
     listRepoCommits(octokit, splitRepo(site.dataRepo), { path: post.path, perPage: 30 }),
+    loadPublishCheck(octokit, site.dataRepo, site.siteRepo),
   ]);
 
   return (
@@ -39,6 +41,7 @@ export default async function EditPostPage({
         categories={categories}
         gitCommits={history.commits}
         gitError={history.error}
+        publishCheckEnabled={publishCheck.enabled}
         initial={{
           title: post.title,
           date: post.date,

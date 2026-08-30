@@ -21,8 +21,10 @@ import {
   deletePage,
   deletePost,
   findSlugConflict,
+  getPost,
   getSiteConfig,
   isPagePath,
+  listPosts,
   parseTagList,
   savePage,
   saveSiteBeian,
@@ -48,6 +50,14 @@ import { assertAllowedMediaUpload } from "./mediaTypes";
 import { persistNavItem, type NavItem } from "./nav";
 import { persistBeian, persistFooterItem, type FooterItem } from "./footer";
 import { nowLocalDateTime, parsePostDate } from "./postDate";
+import {
+  DEFAULT_PUBLISH_CHECK_INTERVAL,
+  futureDateBlockedMessage,
+  futureDateNotAllowed,
+  isPublishCheckIntervalId,
+  listScheduledPosts,
+} from "./publishCheck";
+import { loadPublishCheck, writePublishCheckWorkflow } from "./publishCheckRepo";
 import { resolvePublicOrigin } from "./customDomain";
 import { provisionSite, rotateDeployKey, triggerRebuild } from "./provision";
 import { revalidateSiteData } from "./siteDataCache";
@@ -179,6 +189,17 @@ export async function savePostAction(
   const path = existingPath || `content/posts/${requestedSlug}.md`;
 
   const octokit = await getInstallationOctokit(installation.installationId);
+  const publishCheck = await loadPublishCheck(octokit, site.dataRepo, site.siteRepo);
+  if (!publishCheck.enabled) {
+    let previousDate: string | null = null;
+    if (existingPath) {
+      const existing = await getPost(octokit, site.dataRepo, existingPath);
+      previousDate = existing?.date ?? null;
+    }
+    if (futureDateNotAllowed(date, previousDate)) {
+      return { error: futureDateBlockedMessage() };
+    }
+  }
   const slugConflict = await findSlugConflict(octokit, site.dataRepo, "post", requestedSlug, existingPath || undefined);
   if (slugConflict) return { error: slugConflict };
   const mediaFiles = formData.getAll("media");
@@ -338,6 +359,11 @@ export async function updatePostMetaAction(
 
   const { site, installation } = await requireSite(siteId);
   const octokit = await getInstallationOctokit(installation.installationId);
+  const existing = await getPost(octokit, site.dataRepo, path);
+  const publishCheck = await loadPublishCheck(octokit, site.dataRepo, site.siteRepo);
+  if (!publishCheck.enabled && futureDateNotAllowed(date, existing?.date ?? null)) {
+    return { error: futureDateBlockedMessage() };
+  }
   try {
     await updatePostMeta(octokit, site.dataRepo, path, {
       title,
@@ -1256,6 +1282,56 @@ export async function saveBeianAction(
 
   revalidateSiteData(site.dataRepo, [`/sites/${siteId}/settings`]);
   return { saved: true };
+}
+
+export interface SavePublishCheckState {
+  error?: string;
+  blockedPosts?: Array<{ title: string; path: string }>;
+}
+
+export async function savePublishCheckAction(
+  _prev: SavePublishCheckState,
+  formData: FormData,
+): Promise<SavePublishCheckState> {
+  const siteId = String(formData.get("siteId"));
+  const { site, installation } = await requireSite(siteId);
+  const enabled = formData.get("enabled") === "on";
+  const intervalRaw = String(formData.get("interval") ?? "");
+  const interval = isPublishCheckIntervalId(intervalRaw)
+    ? intervalRaw
+    : DEFAULT_PUBLISH_CHECK_INTERVAL;
+
+  const octokit = await getInstallationOctokit(installation.installationId);
+  if (!enabled) {
+    const scheduled = listScheduledPosts(await listPosts(octokit, site.dataRepo));
+    if (scheduled.length > 0) {
+      return {
+        error: "还有未到日期的已发布文章。先改成现在、改成草稿，或等它们上线后，才能关闭定时发布。",
+        blockedPosts: scheduled,
+      };
+    }
+  }
+
+  try {
+    await writePublishCheckWorkflow(
+      octokit,
+      site.dataRepo,
+      site.siteRepo,
+      enabled ? interval : null,
+      enabled
+        ? `Update publish check interval (${interval}) [skip ci]`
+        : "Turn off publish check [skip ci]",
+    );
+  } catch (error) {
+    return { error: `保存失败:${error instanceof Error ? error.message : String(error)}` };
+  }
+
+  revalidateSiteData(site.dataRepo, [
+    `/sites/${siteId}`,
+    `/sites/${siteId}/settings`,
+    `/sites/${siteId}/posts`,
+  ]);
+  return {};
 }
 
 export async function rebuildAction(formData: FormData): Promise<void> {

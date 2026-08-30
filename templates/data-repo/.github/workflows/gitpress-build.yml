@@ -1,14 +1,13 @@
 # GitPress build pipeline — intentionally thin.
 # All build logic lives in the versioned action so this file rarely (if ever)
 # needs to change. Breaking changes only ship under a new major tag (@v2).
+# Timed rebuilds (schedule) are added from GitPress settings, not by default.
 name: GitPress Build
 
 on:
   push:
     branches: [main]
   workflow_dispatch:
-  schedule:
-    - cron: "7 * * * *"
 
 permissions:
   contents: read

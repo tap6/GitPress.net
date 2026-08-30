@@ -13,6 +13,7 @@ import {
   type LocalDraftFields,
 } from "@/lib/localDraft";
 import { datetimeLocalValue, nowLocalDateTime } from "@/lib/postDate";
+import { dateInputMax } from "@/lib/publishCheck";
 import { clearPendingMedia, writePendingMedia } from "@/lib/pendingMedia";
 
 function isDesktopEditorViewport(): boolean {
@@ -59,6 +60,7 @@ interface Props {
   categories?: SiteCategory[];
   gitCommits?: EditorGitCommit[];
   gitError?: string | null;
+  publishCheckEnabled?: boolean;
   initial?: {
     title: string;
     date: string | null;
@@ -77,6 +79,7 @@ export function PostEditor({
   categories = [],
   gitCommits = [],
   gitError = null,
+  publishCheckEnabled = false,
   initial,
 }: Props) {
   const [title, setTitle] = useState(initial?.title ?? "");
@@ -324,10 +327,20 @@ export function PostEditor({
                 name="date"
                 step={1}
                 value={date}
+                max={dateInputMax(publishCheckEnabled, initial?.date ?? null)}
                 onChange={(e) => setDate(e.target.value)}
                 className="mt-1 w-full rounded border border-neutral-300 px-2 py-1.5"
               />
             </label>
+            {!publishCheckEnabled && (
+              <p className="text-[11px] leading-relaxed text-neutral-400">
+                定时发布已关闭，日期不能晚于现在。需要预约请到{" "}
+                <Link href={`/sites/${siteId}/settings#publish`} className="text-wp-accent hover:underline">
+                  设置 → 定时发布
+                </Link>
+                。
+              </p>
+            )}
             <ProgressButton
               expectedSeconds={5 + pendingCount * 2}
               pendingLabel="提交中"

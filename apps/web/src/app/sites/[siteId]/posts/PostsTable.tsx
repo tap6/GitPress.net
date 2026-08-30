@@ -12,17 +12,19 @@ import {
 import { ProgressButton } from "@/components/ProgressButton";
 import type { PostSummary, SiteCategory } from "@/lib/content";
 import { datetimeLocalValue, formatPostDateTime, nowLocalDateTime } from "@/lib/postDate";
+import { dateInputMax } from "@/lib/publishCheck";
 
 interface Props {
   siteId: string;
   posts: PostSummary[];
   categories: SiteCategory[];
+  publishCheckEnabled?: boolean;
 }
 
 type Filter = "all" | "published" | "draft";
 type SortKey = "title" | "category" | "tags" | "date" | "status";
 
-export function PostsTable({ siteId, posts, categories }: Props) {
+export function PostsTable({ siteId, posts, categories, publishCheckEnabled = false }: Props) {
   const [selected, setSelected] = useState<Set<string>>(() => new Set());
   const [editingPath, setEditingPath] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>("all");
@@ -274,6 +276,7 @@ export function PostsTable({ siteId, posts, categories }: Props) {
                   setEditingPath((current) => (current === post.path ? null : post.path))
                 }
                 onEditDone={() => setEditingPath(null)}
+                publishCheckEnabled={publishCheckEnabled}
               />
             ))}
           </tbody>
@@ -346,6 +349,7 @@ function PostRow({
   editing,
   onToggleEdit,
   onEditDone,
+  publishCheckEnabled,
 }: {
   siteId: string;
   post: PostSummary;
@@ -356,6 +360,7 @@ function PostRow({
   editing: boolean;
   onToggleEdit: () => void;
   onEditDone: () => void;
+  publishCheckEnabled: boolean;
 }) {
   const editHref = `/sites/${siteId}/posts/edit?path=${encodeURIComponent(post.path)}`;
   const when = formatPostDateTime(post.date);
@@ -448,6 +453,7 @@ function PostRow({
               post={post}
               categories={categories}
               onDone={onEditDone}
+              publishCheckEnabled={publishCheckEnabled}
             />
           </td>
         </tr>
@@ -461,11 +467,13 @@ function QuickEditForm({
   post,
   categories,
   onDone,
+  publishCheckEnabled,
 }: {
   siteId: string;
   post: PostSummary;
   categories: SiteCategory[];
   onDone: () => void;
+  publishCheckEnabled: boolean;
 }) {
   const onDoneRef = useRef(onDone);
   onDoneRef.current = onDone;
@@ -522,8 +530,14 @@ function QuickEditForm({
           name="date"
           step={1}
           defaultValue={datetimeLocalValue(post.date, nowLocalDateTime())}
+          max={dateInputMax(publishCheckEnabled, post.date)}
           className="mt-1 w-full rounded border border-neutral-300 bg-white px-2 py-1.5 text-sm"
         />
+        {!publishCheckEnabled && (
+          <span className="mt-1 block text-[11px] text-neutral-400">
+            定时发布已关闭，不能选未来时间。
+          </span>
+        )}
       </label>
       <label className="block text-xs">
         <span className="text-neutral-500">状态</span>

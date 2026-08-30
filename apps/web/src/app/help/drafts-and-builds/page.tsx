@@ -58,6 +58,20 @@ export default function DraftsAndBuildsHelpPage() {
       </section>
 
       <section className="mt-10">
+        <h2 className="text-lg font-semibold">定时发布</h2>
+        <p className="mt-2 text-sm leading-relaxed text-neutral-600">
+          默认关着。关着时不能把文章日期选到现在之后。要预约上线,到设置 → 定时发布打开检查,并选一个间隔。
+        </p>
+        <ul className="mt-3 list-disc space-y-2 pl-5 text-sm leading-relaxed text-neutral-600">
+          <li>保存文章会立刻构建一次;没到日期时,公开站点仍看不到这篇。</li>
+          <li>打开后,GitHub 按你选的间隔自己再构建。某一轮跑的时候日期已经过了,文章才会出现。</li>
+          <li>这是检查间隔,不是对准文章上的那一分钟。到点后最多再等一个间隔;GitHub 忙时还可能再偏一会儿。</li>
+          <li>改期只改文章日期,不用再改设置。</li>
+          <li>关掉之前,要先处理还没到日期的已发布稿(改成现在、改成草稿,或等它们上线)。</li>
+        </ul>
+      </section>
+
+      <section className="mt-10">
         <h2 className="text-lg font-semibold">页面没有草稿</h2>
         <p className="mt-2 text-sm leading-relaxed text-neutral-600">
           About 这类独立页保存后就会出现在公开站点。想先写后发,先写在文章里当草稿,或先不链进菜单。

@@ -8,6 +8,8 @@ import {
   listBuildRuns,
   splitRepo,
 } from "@/lib/github";
+import { listScheduledPosts } from "@/lib/publishCheck";
+import { loadPublishCheck } from "@/lib/publishCheckRepo";
 import { cachedActionsUsage, cachedListPosts } from "@/lib/siteDataCache";
 import { requireSite } from "@/lib/sites";
 import { ActionsUsageChart } from "@/components/ActionsUsageChart";
@@ -36,19 +38,22 @@ export default async function SiteDashboard({
   const { site, installation } = await requireSite(siteId);
 
   const octokit = await getInstallationOctokit(installation.installationId);
-  const [posts, { runs, actionsPermissionMissing }, permissionGap, usage, scratch] = await Promise.all([
-    cachedListPosts(installation.installationId, site.dataRepo),
-    listBuildRuns(octokit, splitRepo(site.dataRepo)),
-    getInstallationPermissionGap(installation.installationId),
-    cachedActionsUsage({
-      installationId: installation.installationId,
-      dataRepo: site.dataRepo,
-      accountLogin: installation.accountLogin,
-      accountType: installation.accountType,
-      userToken: installation.userToken,
-    }),
-    getScratchNote(site.id),
-  ]);
+  const [posts, { runs, actionsPermissionMissing }, permissionGap, usage, scratch, publishCheck] =
+    await Promise.all([
+      cachedListPosts(installation.installationId, site.dataRepo),
+      listBuildRuns(octokit, splitRepo(site.dataRepo)),
+      getInstallationPermissionGap(installation.installationId),
+      cachedActionsUsage({
+        installationId: installation.installationId,
+        dataRepo: site.dataRepo,
+        accountLogin: installation.accountLogin,
+        accountType: installation.accountType,
+        userToken: installation.userToken,
+      }),
+      getScratchNote(site.id),
+      loadPublishCheck(octokit, site.dataRepo, site.siteRepo),
+    ]);
+  const scheduledWhileOff = publishCheck.enabled ? [] : listScheduledPosts(posts);
   const published = posts.filter((post) => !post.draft).length;
   const drafts = posts.length - published;
   const hasRunningBuild = runs.some((run) => run.conclusion == null);
@@ -70,6 +75,31 @@ export default async function SiteDashboard({
             </>
           )}
           即可访问。
+        </div>
+      )}
+
+      {scheduledWhileOff.length > 0 && (
+        <div className="mt-4 rounded border-l-4 border-amber-400 bg-white p-4 text-sm shadow-sm">
+          <p>
+            有 {scheduledWhileOff.length} 篇已发布文章的日期还在未来，但定时发布检查是关的，到点后不会自动出现。
+            打开{" "}
+            <Link href={`/sites/${site.id}/settings#publish`} className="text-wp-accent hover:underline">
+              设置 → 定时发布
+            </Link>
+            ，或到期后保存 / 手动重建。
+          </p>
+          <ul className="mt-2 list-disc space-y-1 pl-5 text-neutral-600">
+            {scheduledWhileOff.slice(0, 5).map((post) => (
+              <li key={post.path}>
+                <Link
+                  href={`/sites/${site.id}/posts/edit?path=${encodeURIComponent(post.path)}`}
+                  className="hover:underline"
+                >
+                  {post.title}
+                </Link>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
 

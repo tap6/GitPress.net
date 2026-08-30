@@ -11,6 +11,7 @@ import {
   putFile,
   removeDeployKeys,
 } from "./github";
+import { buildWorkflow } from "./publishCheck";
 
 export interface ProvisionInput {
   installation: {
@@ -36,9 +37,6 @@ export interface ProvisionResult {
   basePath: string;
   pagesEnabled: boolean;
 }
-
-const BUILD_ACTION_REPO = () => process.env.GITPRESS_BUILD_ACTION_REPO ?? "tap6/build-action";
-const THEMES_REPO = () => process.env.GITPRESS_THEMES_REPO ?? "tap6/gitpress";
 
 /**
  * Create the two repositories for a new site and initialize them:
@@ -130,7 +128,7 @@ export async function provisionSite(input: ProvisionInput): Promise<ProvisionRes
     },
     {
       path: ".github/workflows/gitpress-build.yml",
-      content: buildWorkflow(`${owner}/${siteRepoName}`),
+      content: buildWorkflow(`${owner}/${siteRepoName}`, null),
     },
   ];
   for (const file of files) {
@@ -183,48 +181,6 @@ export async function rotateDeployKey(
 
 export function repoOctokit(installationId: number): Promise<Octokit> {
   return getInstallationOctokit(installationId);
-}
-
-// ---------------------------------------------------------------------------
-// Templates (kept in sync with templates/data-repo — inlined so they are
-// available at runtime in the serverless bundle)
-// ---------------------------------------------------------------------------
-
-function buildWorkflow(siteRepo: string): string {
-  return `# GitPress build pipeline — intentionally thin.
-# All build logic lives in the versioned action so this file rarely (if ever)
-# needs to change. Breaking changes only ship under a new major tag (@v2).
-name: GitPress Build
-
-on:
-  push:
-    branches: [main]
-  workflow_dispatch:
-  schedule:
-    - cron: "7 * * * *"
-
-permissions:
-  contents: read
-
-concurrency:
-  group: gitpress-build
-  cancel-in-progress: true
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-      - name: Build site and publish to the site repository
-        uses: ${BUILD_ACTION_REPO()}@v1
-        with:
-          site-repo: ${siteRepo}
-          themes-repo: ${THEMES_REPO()}
-          deploy-key: \${{ secrets.GITPRESS_DEPLOY_KEY }}
-`;
 }
 
 function helloPost(today: string, language: string): string {

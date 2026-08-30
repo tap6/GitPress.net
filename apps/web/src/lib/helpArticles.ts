@@ -9,8 +9,8 @@ export const HELP_ARTICLES: HelpArticleMeta[] = [
   {
     href: "/help/drafts-and-builds",
     title: "底稿、草稿和已发布",
-    summary: "本地底稿只在这台浏览器。草稿会写入私有仓库并触发构建，但不会出现在公开网站。",
-    keywords: ["草稿", "底稿", "发布", "保存", "不进入构建", "GitHub", "公开"],
+    summary: "本地底稿只在这台浏览器。草稿会写入私有仓库并触发构建，但不会出现在公开网站。定时发布要先在设置里打开检查。",
+    keywords: ["草稿", "底稿", "发布", "保存", "不进入构建", "GitHub", "公开", "定时", "预约", "未来"],
   },
   {
     href: "/help/builds",
