@@ -81,24 +81,30 @@ const showComments = commentsEnabled();
     {
       showComments && giscus ? (
         <div id="gitpress-comments" class="comments">
-          <script
-            is:inline
-            src="https://giscus.app/client.js"
-            data-repo={giscus.repo}
-            data-repo-id={giscus.repoId}
-            data-category={giscus.category}
-            data-category-id={giscus.categoryId}
-            data-mapping="pathname"
-            data-strict="0"
-            data-reactions-enabled="1"
-            data-emit-metadata="0"
-            data-input-position="bottom"
-            data-theme="preferred_color_scheme"
-            data-lang={giscus.lang}
-            data-loading="lazy"
-            crossorigin="anonymous"
-            async
-          />
+          <script is:inline define:vars={{ giscus }}>
+            (function () {
+              var theme =
+                document.documentElement.dataset.theme === "dark" ? "dark" : "light";
+              var script = document.createElement("script");
+              script.src = "https://giscus.app/client.js";
+              script.async = true;
+              script.crossOrigin = "anonymous";
+              script.setAttribute("data-repo", giscus.repo);
+              script.setAttribute("data-repo-id", giscus.repoId);
+              script.setAttribute("data-category", giscus.category);
+              script.setAttribute("data-category-id", giscus.categoryId);
+              script.setAttribute("data-mapping", "pathname");
+              script.setAttribute("data-strict", "0");
+              script.setAttribute("data-reactions-enabled", "1");
+              script.setAttribute("data-emit-metadata", "0");
+              script.setAttribute("data-input-position", "bottom");
+              script.setAttribute("data-theme", theme);
+              script.setAttribute("data-lang", giscus.lang);
+              script.setAttribute("data-loading", "lazy");
+              var host = document.getElementById("gitpress-comments");
+              if (host) host.appendChild(script);
+            })();
+          </script>
         </div>
       ) : showComments && gitpress.site.commentsSnippet ? (
         <div id="gitpress-comments" class="comments">

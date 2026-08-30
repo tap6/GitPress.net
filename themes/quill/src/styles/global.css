@@ -400,6 +400,12 @@ a:hover {
 
 .comments {
   margin-top: 2.5rem;
+  color: var(--text);
+  color-scheme: light;
+}
+
+[data-theme="dark"] .comments {
+  color-scheme: dark;
 }
 
 .search-fallback {

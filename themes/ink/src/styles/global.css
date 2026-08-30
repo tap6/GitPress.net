@@ -344,6 +344,8 @@ a:hover {
 
 .comments {
   margin-top: 2.5rem;
+  color: var(--text);
+  color-scheme: dark;
 }
 
 .search-fallback {

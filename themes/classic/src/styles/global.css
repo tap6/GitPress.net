@@ -300,6 +300,8 @@ a:hover {
 
 .comments {
   margin-top: 2.5rem;
+  color: var(--text);
+  color-scheme: light;
 }
 
 .search-fallback {

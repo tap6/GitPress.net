@@ -212,6 +212,7 @@ export function giscusEmbed(): {
   category: string;
   categoryId: string;
   lang: string;
+  theme: string;
 } | undefined {
   const giscus = gitpress.site.comments?.giscus;
   if (!giscus?.repo || !giscus.repoId || !giscus.category || !giscus.categoryId) return undefined;
@@ -221,6 +222,7 @@ export function giscusEmbed(): {
     category: giscus.category,
     categoryId: giscus.categoryId,
     lang: giscus.lang || "en",
+    theme: "light",
   };
 }
 
