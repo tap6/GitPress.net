@@ -12,7 +12,7 @@ export async function GET(
   const preview = readBuiltinThemePreview(name, theme.preview);
   if (!preview) return new Response("Not found", { status: 404 });
 
-  return new Response(preview.body, {
+  return new Response(new Uint8Array(preview.body), {
     headers: {
       "Content-Type": preview.type,
       "Cache-Control": "public, max-age=3600, stale-while-revalidate=86400",
