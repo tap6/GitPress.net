@@ -11,6 +11,7 @@ import {
   fetchGithubThemeManifest,
   formatGithubThemeSource,
   parseGithubThemeInput,
+  themeCardCacheFromManifest,
 } from "./themeSource";
 
 export interface OpsFormState {
@@ -64,9 +65,7 @@ export async function addThemeListingAction(
 
   try {
     await db.insert(themeListings).values({
-      name: manifest.name,
-      displayName: manifest.displayName?.trim() || manifest.name,
-      description: manifest.description?.trim() || "",
+      ...themeCardCacheFromManifest(source, manifest),
       source,
       status,
       notes,
@@ -113,9 +112,7 @@ export async function refreshThemeListingAction(formData: FormData): Promise<voi
   await db
     .update(themeListings)
     .set({
-      name: manifest.name,
-      displayName: manifest.displayName?.trim() || manifest.name,
-      description: manifest.description?.trim() || "",
+      ...themeCardCacheFromManifest(row.source, manifest),
       updatedAt: new Date(),
     })
     .where(eq(themeListings.id, id));

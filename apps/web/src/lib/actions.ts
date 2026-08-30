@@ -4,7 +4,7 @@ import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/db";
-import { githubInstallations, sites, themeListings } from "@/db/schema";
+import { githubInstallations, siteThemeLibrary, sites, themeListings } from "@/db/schema";
 import { deleteAiConfig, generateDraft, generateSummary, getAiConfig, saveAiConfig } from "./ai";
 import { persistSiteCategory, type SiteCategory } from "./categories";
 import {
@@ -51,9 +51,13 @@ import {
   formatGithubThemeSource,
   parseGithubThemeInput,
   parseGithubThemeSource,
-  type GithubThemeRef,
-  type RemoteThemeManifest,
+  themeCardCacheFromManifest,
 } from "./themeSource";
+import {
+  SITE_THEME_LIBRARY_LIMIT,
+  findListedThemeSource,
+  siteThemeLibraryCount,
+} from "./themeLibrary";
 
 // ---------------------------------------------------------------------------
 // Site creation wizard
@@ -439,44 +443,43 @@ export async function switchThemeAction(formData: FormData): Promise<void> {
   const themeName = String(formData.get("theme"));
   const { site, installation } = await requireSite(siteId);
   if (!getBuiltinTheme(themeName)) throw new Error("Unknown theme");
-
-  const octokit = await getInstallationOctokit(installation.installationId);
-  await updateSiteConfig(
-    octokit,
-    site.dataRepo,
-    (config) => {
-      config.theme.name = themeName;
-      config.theme.source = "builtin";
-      config.theme.ref = "v1";
-    },
-    `Switch theme to ${themeName}`,
-  );
-  await db.update(sites).set({ themeName, themeSource: "builtin" }).where(eq(sites.id, siteId));
-  revalidateSiteData(site.dataRepo, [`/sites/${siteId}/appearance`, `/sites/${siteId}`]);
+  await persistActiveTheme(site, installation, {
+    name: themeName,
+    source: "builtin",
+    ref: "v1",
+    commitMessage: `Switch theme to ${themeName}`,
+  });
 }
 
-async function persistImportedTheme(
-  site: { id: string; dataRepo: string },
+async function persistActiveTheme(
+  site: { id: string; dataRepo: string; themeName: string; themeSource: string },
   installation: { installationId: number },
-  source: string,
-  parsed: GithubThemeRef,
-  manifest: RemoteThemeManifest & { name: string },
+  next: { name: string; source: string; ref: string; commitMessage: string },
 ): Promise<void> {
   const octokit = await getInstallationOctokit(installation.installationId);
+  const siteConfig = await getSiteConfig(octokit, site.dataRepo);
+  const currentSource = String(siteConfig?.theme.source ?? site.themeSource ?? "builtin");
+  const currentName = String(siteConfig?.theme.name ?? site.themeName);
+  const resetConfig = currentSource !== next.source || currentName !== next.name;
+
   await updateSiteConfig(
     octokit,
     site.dataRepo,
     (config) => {
-      config.theme.name = manifest.name;
-      config.theme.source = source;
-      config.theme.ref = parsed.ref;
-      config.theme.config = {};
+      config.theme.name = next.name;
+      config.theme.source = next.source;
+      config.theme.ref = next.ref;
+      if (resetConfig) config.theme.config = {};
     },
-    `Import theme ${manifest.name} from ${source}`,
+    next.commitMessage,
   );
   await db
     .update(sites)
-    .set({ themeName: manifest.name, themeConfig: {}, themeSource: source })
+    .set({
+      themeName: next.name,
+      themeSource: next.source,
+      ...(resetConfig ? { themeConfig: {} } : {}),
+    })
     .where(eq(sites.id, site.id));
   revalidateSiteData(site.dataRepo, [`/sites/${site.id}/appearance`, `/sites/${site.id}`]);
 }
@@ -533,7 +536,7 @@ export async function importThemeAction(
   formData: FormData,
 ): Promise<ImportThemeState> {
   const siteId = String(formData.get("siteId"));
-  const { site, installation } = await requireSite(siteId);
+  const { site } = await requireSite(siteId);
 
   let parsed;
   try {
@@ -547,6 +550,21 @@ export async function importThemeAction(
   }
 
   const source = formatGithubThemeSource(parsed);
+  if (await findListedThemeSource(source)) {
+    return { error: "该主题已在「已收录」中,可直接启用,不必再添加到我的导入。" };
+  }
+
+  const [existing] = await db
+    .select({ id: siteThemeLibrary.id })
+    .from(siteThemeLibrary)
+    .where(and(eq(siteThemeLibrary.siteId, site.id), eq(siteThemeLibrary.source, source)))
+    .limit(1);
+  if (existing) return { error: "该主题已在「我的导入」里。" };
+
+  if ((await siteThemeLibraryCount(site.id)) >= SITE_THEME_LIBRARY_LIMIT) {
+    return { error: `每个站点最多收藏 ${SITE_THEME_LIBRARY_LIMIT} 个导入主题。` };
+  }
+
   const manifest = await fetchGithubThemeManifest(source);
   if (!manifest) {
     return { error: "读不到 theme.json。请确认仓库公开,并且路径、分支或标签正确。" };
@@ -558,12 +576,17 @@ export async function importThemeAction(
   }
 
   try {
-    await persistImportedTheme(site, installation, source, parsed, manifest);
+    await db.insert(siteThemeLibrary).values({
+      siteId: site.id,
+      source,
+      ...themeCardCacheFromManifest(source, manifest),
+    });
   } catch (error) {
-    return { error: `导入失败:${error instanceof Error ? error.message : String(error)}` };
+    return { error: `添加失败:${error instanceof Error ? error.message : String(error)}` };
   }
 
-  return { saved: true, name: manifest.name };
+  revalidateSiteData(site.dataRepo, [`/sites/${site.id}/appearance`]);
+  return { saved: true, name: manifest.displayName?.trim() || manifest.name };
 }
 
 export async function applyCatalogThemeAction(formData: FormData): Promise<void> {
@@ -583,7 +606,63 @@ export async function applyCatalogThemeAction(formData: FormData): Promise<void>
   const manifest = await fetchGithubThemeManifest(listing.source);
   if (!manifest) throw new Error("读不到 theme.json。主题仓库可能已改名或设为私有。");
   assertUsableThemeManifest(manifest);
-  await persistImportedTheme(site, installation, listing.source, parsed, manifest);
+  await persistActiveTheme(site, installation, {
+    name: manifest.name,
+    source: listing.source,
+    ref: parsed.ref,
+    commitMessage: `Switch theme to ${manifest.name} from ${listing.source}`,
+  });
+}
+
+export async function enableLibraryThemeAction(formData: FormData): Promise<void> {
+  const siteId = String(formData.get("siteId"));
+  const libraryId = String(formData.get("libraryId"));
+  const { site, installation } = await requireSite(siteId);
+  const [row] = await db
+    .select()
+    .from(siteThemeLibrary)
+    .where(and(eq(siteThemeLibrary.id, libraryId), eq(siteThemeLibrary.siteId, site.id)))
+    .limit(1);
+  if (!row) throw new Error("该导入主题不在列表中。");
+
+  const parsed = parseGithubThemeSource(row.source);
+  if (!parsed) throw new Error("导入地址无效。");
+
+  const manifest = await fetchGithubThemeManifest(row.source);
+  if (!manifest) throw new Error("读不到 theme.json。主题仓库可能已改名或设为私有。");
+  assertUsableThemeManifest(manifest);
+  await persistActiveTheme(site, installation, {
+    name: manifest.name,
+    source: row.source,
+    ref: parsed.ref,
+    commitMessage: `Switch theme to ${manifest.name} from ${row.source}`,
+  });
+}
+
+export async function removeLibraryThemeAction(
+  _prev: ImportThemeState,
+  formData: FormData,
+): Promise<ImportThemeState> {
+  const siteId = String(formData.get("siteId"));
+  const libraryId = String(formData.get("libraryId"));
+  const { site, installation } = await requireSite(siteId);
+  const [row] = await db
+    .select()
+    .from(siteThemeLibrary)
+    .where(and(eq(siteThemeLibrary.id, libraryId), eq(siteThemeLibrary.siteId, site.id)))
+    .limit(1);
+  if (!row) return { error: "该导入主题不在列表中。" };
+
+  const octokit = await getInstallationOctokit(installation.installationId);
+  const siteConfig = await getSiteConfig(octokit, site.dataRepo);
+  const currentSource = String(siteConfig?.theme.source ?? site.themeSource ?? "builtin");
+  if (currentSource === row.source) {
+    return { error: "这是当前主题,请先启用其他主题再从列表移除。" };
+  }
+
+  await db.delete(siteThemeLibrary).where(eq(siteThemeLibrary.id, row.id));
+  revalidateSiteData(site.dataRepo, [`/sites/${site.id}/appearance`]);
+  return { saved: true, name: row.displayName };
 }
 
 export interface SaveBrandState {

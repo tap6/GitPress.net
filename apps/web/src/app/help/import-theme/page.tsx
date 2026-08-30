@@ -4,7 +4,7 @@ import Link from "next/link";
 export const metadata: Metadata = {
   title: "从 GitHub 导入主题",
   description:
-    "GitPress 不会把主题装到服务器上。导入只是记下 GitHub 仓库地址,每次构建时由 Actions 去那个仓库拉取并编译。",
+    "GitPress 不会把主题装到服务器上。先把公开仓库加到本站「我的导入」,启用后才由 Actions 拉取并编译。",
 };
 
 export default function ImportThemeHelpPage() {
@@ -64,10 +64,11 @@ export default function ImportThemeHelpPage() {
         </section>
 
         <section className="mt-10">
-          <h2 className="text-lg font-semibold">点「导入并启用」之后发生了什么</h2>
+          <h2 className="text-lg font-semibold">点「添加到我的主题」之后发生了什么</h2>
           <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm leading-relaxed text-neutral-600">
             <li>后台先访问该仓库的 <code className="rounded bg-neutral-100 px-1">theme.json</code>,确认是 GitPress spec v1、引擎是 Astro。</li>
-            <li>把上面的指针写进你的数据仓库 <code className="rounded bg-neutral-100 px-1">gitpress.json</code>(同时记下你在外观页勾选的选项)。</li>
+            <li>把仓库地址记到本站的「我的导入」列表(存在 GitPress 控制面,不写入你的文章仓库)。这时还不会换主题、也不会重建。</li>
+            <li>你在外观页点「启用」后,才把指针写进数据仓库 <code className="rounded bg-neutral-100 px-1">gitpress.json</code>。</li>
             <li>数据仓库的 push 触发 GitHub Actions。</li>
             <li>Action 在 GitHub 的构建机器上 <code className="rounded bg-neutral-100 px-1">git clone</code> 那个主题仓库,把你的文章和图片挂进去,执行 <code className="rounded bg-neutral-100 px-1">astro build</code>。</li>
             <li>只有编译好的 HTML/CSS 被推到公开网站仓库,供 GitHub Pages 托管。主题源码不会留在网站仓库里。</li>
@@ -109,7 +110,7 @@ export default function ImportThemeHelpPage() {
             <li>不会把 zip 或主题文件上传到 GitPress.net。</li>
             <li>不会改你的文章、图片、分类;换主题只改呈现。</li>
             <li>不会在公开网站仓库里留下一份可编辑的主题源码。下次构建会再 clone 一次当时锁定的版本。</li>
-            <li>作者以后更新了 GitHub 上的主题,你的站点仍用导入时写下的 ref;要升级,需要再导入一次或改{" "}
+            <li>作者以后更新了 GitHub 上的主题,你的站点仍用启用时写下的 ref;要升级,需要改列表里的地址或{" "}
               <code className="rounded bg-neutral-100 px-1">gitpress.json</code> 里的 ref 后重建。</li>
           </ul>
         </section>

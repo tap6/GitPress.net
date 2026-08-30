@@ -4,7 +4,7 @@
 
 ## 最低要求
 
-1. 根目录有 `theme.json`(见 `schemas/theme.schema.json`):`specVersion` 为 `1`,`engine` 为 `"astro"`,`name` 为小写短标识,`version` 为主题自身的 semver。`configSchema` 推荐提供(后台「外观」页按它生成表单),但不是硬性必填。`preview` 指向包内预览图(推荐 `preview.svg`),GitPress.net 外观页和创建站点时会显示。
+1. 根目录有 `theme.json`(见 `schemas/theme.schema.json`):`specVersion` 为 `1`,`engine` 为 `"astro"`,`name` 为小写短标识,`version` 为主题自身的 semver。`configSchema` 推荐提供(后台「外观」页按它生成表单),但不是硬性必填。`preview` 指向包内预览图(推荐 `preview.svg`),GitPress.net 外观页会显示;`author` 会出现在主题卡片上。官方内置主题带「官方」角标,商店上架的带「已收录」。
 2. 普通 Astro 项目:`package.json` 能 `npx astro build`。
 3. 构建时 GitPress Action 会把数据仓库挂进主题项目,路径不可改:
 

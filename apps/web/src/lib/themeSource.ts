@@ -98,9 +98,43 @@ export interface RemoteThemeManifest {
   name?: string;
   displayName?: string;
   description?: string;
+  author?: string;
+  version?: string;
+  license?: string;
+  homepage?: string;
   engine?: string;
   preview?: string;
+  tags?: string[];
   configSchema?: ThemeConfigSchema;
+}
+
+/** Cached card fields written to Neon (catalog + per-site library). */
+export interface ThemeCardCache {
+  name: string;
+  displayName: string;
+  author: string;
+  description: string;
+  preview: string;
+  version: string;
+  license: string;
+  homepage: string;
+}
+
+export function themeCardCacheFromManifest(
+  source: string,
+  manifest: RemoteThemeManifest & { name: string },
+): ThemeCardCache {
+  const parsed = parseGithubThemeSource(source);
+  return {
+    name: manifest.name,
+    displayName: manifest.displayName?.trim() || manifest.name,
+    author: manifest.author?.trim() || parsed?.owner || "",
+    description: manifest.description?.trim() || "",
+    preview: manifest.preview?.trim() || "preview.svg",
+    version: manifest.version?.trim() || "",
+    license: manifest.license?.trim() || "",
+    homepage: manifest.homepage?.trim() || "",
+  };
 }
 
 function githubRawFileUrl(ref: GithubThemeRef, filePath: string): string | null {

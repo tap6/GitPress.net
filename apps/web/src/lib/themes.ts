@@ -35,6 +35,11 @@ export interface BuiltinTheme {
   name: string;
   displayName: string;
   description: string;
+  author: string;
+  version: string;
+  license: string;
+  homepage: string;
+  tags: string[];
   /** Relative path inside the theme package, from theme.json `preview`. */
   preview: string;
   /** Admin picker URL served from /theme-previews/{name}. */
@@ -53,6 +58,11 @@ const PRESENTATION: Record<string, { description: string }> = {
 interface ThemeManifestJson {
   displayName?: string;
   description?: string;
+  author?: string;
+  version?: string;
+  license?: string;
+  homepage?: string;
+  tags?: string[];
   preview?: string;
   configSchema?: ThemeConfigSchema;
 }
@@ -70,6 +80,11 @@ export const BUILTIN_THEMES: BuiltinTheme[] = Object.entries(MANIFESTS).map(([na
     name,
     displayName: manifest.displayName ?? name,
     description: presentation?.description ?? manifest.description ?? "",
+    author: manifest.author?.trim() || "GitPress",
+    version: manifest.version?.trim() || "",
+    license: manifest.license?.trim() || "",
+    homepage: manifest.homepage?.trim() || "",
+    tags: manifest.tags ?? [],
     preview: manifest.preview?.trim() || "preview.svg",
     previewSrc: `/theme-previews/${name}`,
     configSchema: manifest.configSchema ?? {},

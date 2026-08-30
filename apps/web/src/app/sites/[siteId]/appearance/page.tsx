@@ -1,10 +1,17 @@
-import { applyCatalogThemeAction, saveThemeOptionsAction, switchThemeAction } from "@/lib/actions";
+import { saveThemeOptionsAction } from "@/lib/actions";
 import { ProgressButton } from "@/components/ProgressButton";
 import { ThemeImportForm } from "@/components/ThemeImportForm";
-import { ThemePreviewImage } from "@/components/ThemePreviewImage";
+import { ThemeShelf } from "@/components/ThemeShelf";
 import { cachedSiteConfig } from "@/lib/siteDataCache";
 import { listListedThemeCatalog } from "@/lib/themeCatalog";
-import { fetchGithubThemeManifest, githubThemePreviewUrl } from "@/lib/themeSource";
+import { ensureLegacyImportedThemeOnShelf, listSiteThemeLibrary } from "@/lib/themeLibrary";
+import type { ThemeShelfItem } from "@/lib/themeShelf";
+import {
+  fetchGithubThemeManifest,
+  githubThemePageUrl,
+  githubThemePreviewUrl,
+  parseGithubThemeSource,
+} from "@/lib/themeSource";
 import { BUILTIN_THEMES, getBuiltinTheme, themeOptionLabel } from "@/lib/themes";
 import { requireSite } from "@/lib/sites";
 
@@ -21,116 +28,90 @@ export default async function AppearancePage({
     cachedSiteConfig(installation.installationId, site.dataRepo),
     listListedThemeCatalog(),
   ]);
-  const themeSource = String(config?.theme.source ?? "builtin");
+  const themeSource = String(config?.theme.source ?? site.themeSource ?? "builtin");
   const usingBuiltin = themeSource === "builtin";
   const currentTheme = usingBuiltin ? getBuiltinTheme(site.themeName) : null;
   const importedManifest = usingBuiltin ? null : await fetchGithubThemeManifest(themeSource);
+
+  if (!usingBuiltin) {
+    await ensureLegacyImportedThemeOnShelf({
+      siteId: site.id,
+      themeSource,
+      manifest: importedManifest?.name ? { ...importedManifest, name: importedManifest.name } : null,
+    });
+  }
+
+  const library = await listSiteThemeLibrary(site.id);
   const optionSchema = currentTheme?.configSchema ?? importedManifest?.configSchema;
   const optionTitle = currentTheme?.displayName ?? importedManifest?.displayName ?? site.themeName;
   const themeConfig = (site.themeConfig ?? {}) as Record<string, unknown>;
   const optionEntries = Object.entries(optionSchema?.properties ?? {});
 
+  const official: ThemeShelfItem[] = BUILTIN_THEMES.map((theme) => ({
+    id: theme.name,
+    kind: "builtin",
+    badge: "official",
+    name: theme.name,
+    displayName: theme.displayName,
+    author: theme.author,
+    description: theme.description,
+    previewSrc: theme.previewSrc,
+    source: "builtin",
+    version: theme.version,
+    license: theme.license,
+    homepage: theme.homepage,
+    githubUrl: theme.homepage || "https://github.com/tap6/gitpress",
+    active: usingBuiltin && theme.name === site.themeName,
+  }));
+
+  const listed: ThemeShelfItem[] = catalog.map((listing) => {
+    const parsed = parseGithubThemeSource(listing.source);
+    return {
+      id: listing.id,
+      kind: "catalog",
+      badge: "listed",
+      name: listing.name,
+      displayName: listing.displayName,
+      author: listing.author || parsed?.owner || "",
+      description: listing.description,
+      previewSrc: githubThemePreviewUrl(listing.source, listing.preview),
+      source: listing.source,
+      version: listing.version,
+      license: listing.license,
+      homepage: listing.homepage,
+      githubUrl: parsed ? githubThemePageUrl(parsed) : null,
+      active: !usingBuiltin && themeSource === listing.source,
+    };
+  });
+
+  const mine: ThemeShelfItem[] = library.map((row) => {
+    const parsed = parseGithubThemeSource(row.source);
+    return {
+      id: row.id,
+      kind: "library",
+      badge: null,
+      name: row.name,
+      displayName: row.displayName,
+      author: row.author || parsed?.owner || "",
+      description: row.description,
+      previewSrc: githubThemePreviewUrl(row.source, row.preview),
+      source: row.source,
+      version: row.version,
+      license: row.license,
+      homepage: row.homepage,
+      githubUrl: parsed ? githubThemePageUrl(parsed) : null,
+      active: !usingBuiltin && themeSource === row.source,
+    };
+  });
+
   return (
     <div className="max-w-5xl">
       <h1 className="text-2xl font-normal text-neutral-800">外观 · 主题</h1>
       <p className="mt-1 text-sm text-neutral-500">
-        主题只改变呈现方式,你的文章与图片保存在数据仓库中,换主题零影响。
+        主题只改变呈现方式,你的文章与图片保存在数据仓库中,换主题零影响。点卡片看详情,启用才会重建站点。
       </p>
 
-      {!usingBuiltin && (
-        <div className="mt-5 rounded border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          当前使用导入主题 <strong>{site.themeName}</strong>
-          <span className="mt-1 block font-mono text-xs text-amber-800/80">{themeSource}</span>
-          点选上方内置主题可改回去。
-        </div>
-      )}
-
-      <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {BUILTIN_THEMES.map((theme) => {
-          const active = usingBuiltin && theme.name === site.themeName;
-          return (
-            <div
-              key={theme.name}
-              className={`overflow-hidden rounded-lg border-2 bg-white shadow-sm ${
-                active ? "border-wp-accent" : "border-neutral-200"
-              }`}
-            >
-              <ThemePreviewImage src={theme.previewSrc} alt={`${theme.displayName} 预览`} />
-              <div className="border-t border-neutral-100 p-4">
-                <p className="text-sm font-semibold">{theme.displayName}</p>
-                <p className="mt-0.5 text-xs text-neutral-400">{theme.description}</p>
-                {active ? (
-                  <p className="mt-3 text-xs font-medium text-wp-accent">✓ 当前主题</p>
-                ) : (
-                  <form action={switchThemeAction} className="mt-3">
-                    <input type="hidden" name="siteId" value={site.id} />
-                    <input type="hidden" name="theme" value={theme.name} />
-                    <ProgressButton
-                      expectedSeconds={5}
-                      pendingLabel="切换中"
-                      buildSiteId={site.id}
-                      className="rounded border border-wp-accent px-3 py-1 text-xs text-wp-accent hover:bg-wp-accent hover:text-white"
-                    >
-                      启用
-                    </ProgressButton>
-                  </form>
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {catalog.length > 0 && (
-        <div className="mt-8">
-          <h2 className="text-sm font-semibold text-neutral-700">主题商店</h2>
-          <p className="mt-1 text-xs text-neutral-400">
-            运营上架的 GitHub 主题。启用后由你自己的 Actions 拉取,不会装到 GitPress 服务器。
-          </p>
-          <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {catalog.map((listing) => {
-              const active = !usingBuiltin && themeSource === listing.source;
-              return (
-                <div
-                  key={listing.id}
-                  className={`overflow-hidden rounded-lg border-2 bg-white shadow-sm ${
-                    active ? "border-wp-accent" : "border-neutral-200"
-                  }`}
-                >
-                  <ThemePreviewImage
-                    src={githubThemePreviewUrl(listing.source)}
-                    alt={`${listing.displayName} 预览`}
-                  />
-                  <div className="border-t border-neutral-100 p-4">
-                    <p className="text-sm font-semibold">{listing.displayName}</p>
-                    <p className="mt-0.5 font-mono text-[11px] text-neutral-400">{listing.name}</p>
-                    <p className="mt-0.5 text-xs text-neutral-500">{listing.description || "社区主题"}</p>
-                    <p className="mt-2 truncate font-mono text-[10px] text-neutral-400" title={listing.source}>
-                      {listing.source}
-                    </p>
-                    {active ? (
-                      <p className="mt-3 text-xs font-medium text-wp-accent">✓ 当前主题</p>
-                    ) : (
-                      <form action={applyCatalogThemeAction} className="mt-3">
-                        <input type="hidden" name="siteId" value={site.id} />
-                        <input type="hidden" name="listingId" value={listing.id} />
-                        <ProgressButton
-                          expectedSeconds={6}
-                          pendingLabel="启用中"
-                          buildSiteId={site.id}
-                          className="rounded border border-wp-accent px-3 py-1 text-xs text-wp-accent hover:bg-wp-accent hover:text-white"
-                        >
-                          启用
-                        </ProgressButton>
-                      </form>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
+      <ThemeShelf siteId={site.id} official={official} listed={listed} library={mine} />
 
       {optionEntries.length > 0 && (
         <div className="mt-8 max-w-lg rounded border border-neutral-200 bg-white shadow-sm">
@@ -196,7 +177,7 @@ export default async function AppearancePage({
 
       <div className="mt-8 max-w-lg rounded border border-neutral-200 bg-white shadow-sm">
         <h2 className="flex items-center justify-between gap-3 border-b border-neutral-100 px-5 py-3 text-sm font-semibold">
-          从 GitHub 导入主题
+          添加到我的导入
           <a
             href="/help/import-theme"
             target="_blank"
@@ -210,7 +191,7 @@ export default async function AppearancePage({
       </div>
 
       <p className="mt-6 text-xs text-neutral-400">
-        主题商店由运营在后台维护。也可以从任意公开 GitHub 仓库导入符合 spec v1 的 Astro 主题。
+        已收录主题由运营在后台维护。也可以从任意公开 GitHub 仓库添加到本站列表。
         想自己做一份?看{" "}
         <a href="/make-theme" className="underline hover:text-neutral-600">
           DIY 主题教程

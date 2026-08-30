@@ -1,11 +1,17 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { ProgressButton } from "@/components/ProgressButton";
 import { importThemeAction, type ImportThemeState } from "@/lib/actions";
 
 export function ThemeImportForm({ siteId }: { siteId: string }) {
+  const router = useRouter();
   const [state, formAction] = useActionState<ImportThemeState, FormData>(importThemeAction, {});
+
+  useEffect(() => {
+    if (state.saved) router.refresh();
+  }, [state.saved, router]);
 
   return (
     <form action={formAction} className="space-y-3 p-5 text-sm">
@@ -52,7 +58,7 @@ export function ThemeImportForm({ siteId }: { siteId: string }) {
       </div>
       <p className="text-xs text-neutral-400">
         仓库需公开,且根目录或子目录里有符合 spec v1 的 <code>theme.json</code>。
-        导入只是记下仓库地址,构建时由 GitHub Actions 去拉取,主题不会装到 GitPress 服务器上。{" "}
+        添加只是记到本站列表,不会立刻换主题;启用后构建时由 GitHub Actions 去拉取。{" "}
         <a
           href="/help/import-theme"
           target="_blank"
@@ -65,16 +71,15 @@ export function ThemeImportForm({ siteId }: { siteId: string }) {
       {state.error && <p className="rounded bg-red-50 p-3 text-red-600">{state.error}</p>}
       {state.saved && (
         <p className="rounded bg-emerald-50 p-3 text-emerald-700">
-          已导入主题 {state.name},站点将在约 1 分钟后更新。
+          已添加到「我的导入」:{state.name}。打开卡片启用后才会重建站点。
         </p>
       )}
       <ProgressButton
-        expectedSeconds={6}
-        pendingLabel="导入中"
-        buildSiteId={siteId}
+        expectedSeconds={4}
+        pendingLabel="添加中"
         className="rounded bg-wp-accent px-4 py-2 font-medium text-white hover:bg-wp-accent-dark"
       >
-        导入并启用
+        添加到我的主题
       </ProgressButton>
     </form>
   );

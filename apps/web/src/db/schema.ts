@@ -7,6 +7,7 @@ import {
   primaryKey,
   text,
   timestamp,
+  unique,
 } from "drizzle-orm/pg-core";
 import type { AdapterAccountType } from "next-auth/adapters";
 
@@ -157,6 +158,12 @@ export const themeListings = pgTable("theme_listing", {
   name: text("name").notNull(),
   displayName: text("display_name").notNull(),
   description: text("description").notNull().default(""),
+  author: text("author").notNull().default(""),
+  version: text("version").notNull().default(""),
+  license: text("license").notNull().default(""),
+  homepage: text("homepage").notNull().default(""),
+  /** Relative path inside the theme package, usually `preview.svg`. */
+  preview: text("preview").notNull().default("preview.svg"),
   /** Normalized `github:owner/repo[/<subdir>]#<ref>`. */
   source: text("source").notNull().unique(),
   status: text("status").$type<ThemeListingStatus>().notNull().default("listed"),
@@ -168,3 +175,31 @@ export const themeListings = pgTable("theme_listing", {
   createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { mode: "date" }).notNull().defaultNow(),
 });
+
+/**
+ * Per-site imported theme shelf. Pointers only — theme files stay on GitHub.
+ * The currently enabled theme is still `gitpress.json` / `sites.themeSource`.
+ */
+export const siteThemeLibrary = pgTable(
+  "site_theme_library",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    siteId: text("site_id")
+      .notNull()
+      .references(() => sites.id, { onDelete: "cascade" }),
+    /** Normalized `github:owner/repo[/<subdir>]#<ref>`. */
+    source: text("source").notNull(),
+    name: text("name").notNull(),
+    displayName: text("display_name").notNull(),
+    author: text("author").notNull().default(""),
+    description: text("description").notNull().default(""),
+    preview: text("preview").notNull().default("preview.svg"),
+    version: text("version").notNull().default(""),
+    license: text("license").notNull().default(""),
+    homepage: text("homepage").notNull().default(""),
+    createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+  },
+  (table) => [unique("site_theme_library_site_source").on(table.siteId, table.source)],
+);

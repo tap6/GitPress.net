@@ -9,7 +9,7 @@ GitPress 是 Git 原生博客平台:内容在用户的 GitHub 数据仓库,主�
 
 ## 你必须遵守的约定
 
-1. 主题根目录有 theme.json: specVersion 为 1, engine 为 "astro", name 为小写短标识(如 "aurora"), version 为主题自身的 semver。推荐提供 configSchema(JSON Schema),后台「外观」页会按它生成表单;不是硬性必填,但没有就无法在后台调选项。推荐提供 preview 指向包内预览图(通常是 preview.svg),GitPress.net 外观页和创建站点时会显示。
+1. 主题根目录有 theme.json: specVersion 为 1, engine 为 "astro", name 为小写短标识(如 "aurora"), version 为主题自身的 semver。推荐提供 configSchema(JSON Schema),后台「外观」页会按它生成表单;不是硬性必填,但没有就无法在后台调选项。推荐提供 preview 指向包内预览图(通常是 preview.svg),以及 author。GitPress.net 外观页会显示预览和作者;官方内置带「官方」角标,商店上架带「已收录」。
 2. 普通 Astro 项目,可通过 \`npx astro build\` 构建。astro.config 的 site / base 必须读取 gitpress.config.json 里的 site.url 与 site.basePath(GitHub Pages 项目站 base 是 "/仓库名/")。
 3. 构建时这些挂载点不可改、也不要在文档里让我手动复制:
    - 数据仓库 gitpress.json → 主题内 gitpress.config.json

@@ -107,9 +107,15 @@ export function NewSiteForm({ installations, themes, connectMoreUrl }: Props) {
                   : "border-neutral-200 hover:border-neutral-300"
               }`}
             >
-              <ThemePreviewImage src={theme.previewSrc} alt={`${theme.displayName} 预览`} className="h-32" />
+              <div className="relative">
+                <ThemePreviewImage src={theme.previewSrc} alt={`${theme.displayName} 预览`} className="h-32" />
+                <span className="absolute right-2 top-2 rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-medium text-white">
+                  官方
+                </span>
+              </div>
               <div className="border-t border-neutral-100 bg-white p-3">
                 <p className="text-sm font-semibold">{theme.displayName}</p>
+                <p className="mt-0.5 text-xs text-neutral-400">{theme.author}</p>
                 <p className="mt-0.5 text-xs text-neutral-400">{theme.description}</p>
               </div>
             </button>
