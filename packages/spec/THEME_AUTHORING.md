@@ -56,7 +56,7 @@
 - `site.categories` + `inNav`(仅当 **没有** `site.nav` 时用于隐式顶栏;每个分类仍要有归档页)
 - `site.footer`(有则严格按数组渲染页脚槽;没有则用默认:版权 + GitPress + 主题署名 + RSS)
 - `site.beian`(有 `icp` / `gongan` 则追加在页脚末尾,不要放进 `theme.config`)
-- `site.analyticsSnippet`(原样插入 `</head>` 前)
+- `site.analyticsSnippet`(原样插入 `</head>` 前)。不要读 `site.analytics`;那是平台 UI 用的,构建器会把已开启的项编译进 snippet。
 - `site.comments.enabled`(独立开关。缺省时:有 `comments.giscus` 或 `commentsSnippet` 则视为开)
 - `site.comments.giscus`(有则按字段拼 giscus `<script>`,不要 `set:html`)
 - `site.commentsSnippet`(仅当没有 `giscus` 时原样插入每篇**文章**正文下方;独立页面默认不渲染)

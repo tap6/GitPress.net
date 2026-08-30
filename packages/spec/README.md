@@ -35,7 +35,12 @@ GitPress 生态的共同契约:平台、构建 Action、所有主题(包括 AI �
       { "slug": "notes", "label": "随笔", "inNav": false }
     ],
     "postsPerPage": 10,
-    "analyticsSnippet": "<script>/* GA4 / Umami / Plausible / Clarity 等平台给的完整代码,原样插入 </head> 前 */</script>",
+    "analyticsSnippet": "<script>/* 由已开启的 analytics.providers 编译而来,主题原样插入 </head> 前 */</script>",
+    "analytics": {
+      "providers": [
+        { "type": "ga4", "enabled": true, "measurementId": "G-XXXXXXXX", "dashboardUrl": "https://analytics.google.com/" }
+      ]
+    },
     "comments": {
       "enabled": true,
       "giscus": {
@@ -70,7 +75,8 @@ GitPress 生态的共同契约:平台、构建 Action、所有主题(包括 AI �
 
 - `categories`:站长维护的有序分类列表。主题为每个分类生成 `/categories/<slug>/` 归档页。若尚未配置 `site.nav`,顶部导航只包含 `inNav` 不为 `false` 的项(缺省为 `true`);一旦存在 `site.nav`,顶栏完全由菜单决定,`inNav` 不再影响导航。每篇文章从这个列表选一个主分类(写入 frontmatter 的 `categories` 数组第 0 项),与自由的 `tags` 并存、互不影响。关掉顶栏不等于删除分类。
 - `postsPerPage`:首页与归档页的分页大小,缺省 10。
-- `analyticsSnippet`:原始 HTML/脚本片段,缺省不注入任何统计代码。
+- `analyticsSnippet`:主题原样插入 `</head>` 前的 HTML。缺省不注入任何统计代码。
+- `analytics.providers`:平台维护的结构化统计项(`ga4` / `clarity` / `cloudflare` / `baidu` / `umami` / `51la` / `custom`)。`enabled` 为关时仍保存在数据仓,但不编入公开站。主题**不要**读这个对象;构建器把已开启的项编译进 `analyticsSnippet`。旧站只有手贴的 snippet、没有 `analytics` 时行为不变。
 - `comments.enabled`:站点级评论开关。关掉只是不渲染,不删除 `giscus` 配置。缺省时:已连接 giscus 或仍有 `commentsSnippet` 则视为开启。
 - `comments.giscus`:平台一键连接后写入的仓库 / 分类 ID。主题按字段拼 giscus 脚本,不要 `set:html` 任意 HTML。
 - `commentsSnippet`:旧的原样嵌入代码,仅在没有 `comments.giscus` 时作为兜底;独立页面默认不渲染评论区。

@@ -67,7 +67,43 @@
         },
         "analyticsSnippet": {
           "type": "string",
-          "description": "Raw HTML/script snippet (GA4, Umami, Plausible, Clarity, ...) inserted verbatim before </head> on every page. Empty/absent means no analytics are injected."
+          "description": "Raw HTML/script snippet inserted verbatim before </head> on every page. When site.analytics.providers is present, builders compile enabled providers into this field. Empty/absent means no analytics are injected."
+        },
+        "analytics": {
+          "type": "object",
+          "description": "Structured analytics providers for the GitPress UI. Themes must ignore this and insert analyticsSnippet only. Disabled providers are kept but not compiled into the published site.",
+          "properties": {
+            "providers": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["type"],
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": ["ga4", "clarity", "cloudflare", "baidu", "umami", "51la", "custom"]
+                  },
+                  "enabled": { "type": "boolean" },
+                  "dashboardUrl": {
+                    "type": "string",
+                    "description": "Optional https URL of the provider dashboard."
+                  },
+                  "measurementId": { "type": "string" },
+                  "projectId": { "type": "string" },
+                  "token": { "type": "string" },
+                  "siteId": { "type": "string" },
+                  "websiteId": { "type": "string" },
+                  "src": { "type": "string" },
+                  "id": { "type": "string" },
+                  "ck": { "type": "string" },
+                  "label": { "type": "string" },
+                  "html": { "type": "string" }
+                },
+                "additionalProperties": true
+              }
+            }
+          },
+          "additionalProperties": true
         },
         "comments": {
           "type": "object",

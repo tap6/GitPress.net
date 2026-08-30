@@ -37,6 +37,13 @@ import {
   updateSiteConfig,
   uploadMedia,
 } from "./content";
+import {
+  compileAnalyticsSnippet,
+  parseAnalyticsProvider,
+  parseDashboardUrl,
+  persistSiteAnalytics,
+  validateAnalyticsProviders,
+} from "./analytics";
 import { parseSiteComments, type SiteComments } from "./comments";
 import { CommentsPermissionError, connectGiscus } from "./commentsConnect";
 import { getInstallationOctokit, listBuildRuns, splitRepo, setPagesCustomDomain, putFile } from "./github";
@@ -808,7 +815,6 @@ export async function saveSettingsAction(
   const description = String(formData.get("description") ?? "").trim();
   const language = String(formData.get("language") ?? "en");
   const author = String(formData.get("author") ?? "").trim();
-  const analyticsSnippet = String(formData.get("analyticsSnippet") ?? "").trim();
 
   const octokit = await getInstallationOctokit(installation.installationId);
   try {
@@ -821,11 +827,6 @@ export async function saveSettingsAction(
         config.site.language = language;
         if (author) config.site.author = author;
         else delete config.site.author;
-        if (analyticsSnippet) {
-          config.site.analyticsSnippet = analyticsSnippet;
-        } else {
-          delete config.site.analyticsSnippet;
-        }
       },
       "Update site settings",
     );
@@ -836,6 +837,73 @@ export async function saveSettingsAction(
   await db.update(sites).set({ name, description, language }).where(eq(sites.id, siteId));
   revalidateSiteData(site.dataRepo, [`/sites/${siteId}/settings`, `/sites/${siteId}`]);
   return { saved: true };
+}
+
+export interface SaveAnalyticsState {
+  error?: string;
+  saved?: boolean;
+  rebuilt?: boolean;
+}
+
+export async function saveAnalyticsAction(
+  _prev: SaveAnalyticsState,
+  formData: FormData,
+): Promise<SaveAnalyticsState> {
+  const siteId = String(formData.get("siteId"));
+  const { site, installation } = await requireSite(siteId);
+
+  let incoming: unknown;
+  try {
+    incoming = JSON.parse(String(formData.get("providers") ?? "[]"));
+  } catch {
+    return { error: "统计配置格式无效，请刷新后重试。" };
+  }
+  if (!Array.isArray(incoming) || incoming.length > 20) {
+    return { error: "统计配置格式无效。" };
+  }
+  for (const item of incoming) {
+    if (!item || typeof item !== "object") continue;
+    const url = (item as { dashboardUrl?: unknown }).dashboardUrl;
+    if (typeof url === "string" && url.trim()) {
+      const parsed = parseDashboardUrl(url);
+      if ("error" in parsed) return { error: parsed.error };
+    }
+  }
+  const providers = incoming
+    .map((item) => parseAnalyticsProvider(item))
+    .filter((item): item is NonNullable<typeof item> => Boolean(item));
+  if (providers.length !== incoming.length) {
+    return { error: "统计配置格式无效，请刷新后重试。" };
+  }
+  const invalid = validateAnalyticsProviders(providers);
+  if (invalid) return { error: invalid };
+
+  const persisted = persistSiteAnalytics(providers);
+  const nextSnippet = compileAnalyticsSnippet(persisted?.providers ?? []);
+
+  const octokit = await getInstallationOctokit(installation.installationId);
+  let rebuilt = false;
+  try {
+    await updateSiteConfig(
+      octokit,
+      site.dataRepo,
+      (config) => {
+        const previous =
+          typeof config.site.analyticsSnippet === "string" ? config.site.analyticsSnippet.trim() : "";
+        rebuilt = previous !== nextSnippet;
+        if (persisted) config.site.analytics = persisted;
+        else delete config.site.analytics;
+        if (nextSnippet) config.site.analyticsSnippet = nextSnippet;
+        else delete config.site.analyticsSnippet;
+      },
+      rebuilt ? "Update site analytics" : "Update site analytics [skip ci]",
+    );
+  } catch (error) {
+    return { error: `保存失败:${error instanceof Error ? error.message : String(error)}` };
+  }
+
+  revalidateSiteData(site.dataRepo, [`/sites/${siteId}/analytics`, `/sites/${siteId}/settings`]);
+  return { saved: true, rebuilt };
 }
 
 export interface SaveCommentsState {

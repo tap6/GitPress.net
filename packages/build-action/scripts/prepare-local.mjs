@@ -16,6 +16,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { join, resolve } from "node:path";
+import { applyAnalyticsSnippet } from "./analytics.mjs";
 
 const [themeArg, dataArg] = process.argv.slice(2);
 if (!themeArg || !dataArg) {
@@ -63,8 +64,9 @@ if (existsSync(join(dataDir, "media"))) {
   cpSync(join(dataDir, "media"), mountMedia, { recursive: true });
 }
 
-const configRaw = readFileSync(join(dataDir, "gitpress.json"), "utf8");
-writeFileSync(join(themeDir, "gitpress.config.json"), substitute(configRaw));
+const config = JSON.parse(substitute(readFileSync(join(dataDir, "gitpress.json"), "utf8")));
+applyAnalyticsSnippet(config);
+writeFileSync(join(themeDir, "gitpress.config.json"), `${JSON.stringify(config, null, 2)}\n`);
 
 // Substitute placeholders in copied markdown as well (template files only).
 for (const sub of ["posts", "pages"]) {

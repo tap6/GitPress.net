@@ -7,8 +7,24 @@
  * - Builders must refuse (not guess at) versions they do not understand.
  */
 
+import type { SiteAnalytics } from "./analytics";
+
 export const GITPRESS_SCHEMA_VERSION = 1 as const;
 export const THEME_SPEC_VERSION = 1 as const;
+
+export {
+  ANALYTICS_PROVIDER_TYPES,
+  BUILTIN_ANALYTICS_TYPES,
+  applyCompiledAnalyticsSnippet,
+  analyticsProviderLabel,
+  compileAnalyticsSnippet,
+  parseSiteAnalytics,
+  persistSiteAnalytics,
+  type AnalyticsProvider,
+  type AnalyticsProviderType,
+  type BuiltinAnalyticsType,
+  type SiteAnalytics,
+} from "./analytics";
 
 /** Directory layout of a data repository, relative to its root. */
 export const DATA_REPO_LAYOUT = {
@@ -166,6 +182,12 @@ export interface SiteInfo {
    * no analytics are injected.
    */
   analyticsSnippet?: string;
+  /**
+   * Structured analytics providers maintained by the GitPress UI.
+   * Themes must ignore this and keep inserting `analyticsSnippet` only.
+   * Builders compile enabled providers into `analyticsSnippet`.
+   */
+  analytics?: SiteAnalytics;
   /**
    * Preferred comments config. Themes render giscus from `comments.giscus`
    * when `commentsEnabled(site)` is true.

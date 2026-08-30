@@ -31,6 +31,12 @@ export const HELP_ARTICLES: HelpArticleMeta[] = [
     keywords: ["主题", "导入", "外观", "theme.json", "货架"],
   },
   {
+    href: "/help/analytics",
+    title: "怎样看访问量",
+    summary: "在统计页接入 GA、Clarity、Umami 等。配置在数据仓，数字在各家后台看。",
+    keywords: ["统计", "Analytics", "GA", "Clarity", "Umami", "百度", "访问量", "PV"],
+  },
+  {
     href: "/help/custom-domain",
     title: "用自己的域名访问博客",
     summary: "一级或二级域名都可以。按 GitHub Pages、Vercel、Cloudflare 或其他托管查看步骤。",

@@ -4,7 +4,7 @@ import { HELP_ARTICLES } from "@/lib/helpArticles";
 
 export const metadata: Metadata = {
   title: "帮助",
-  description: "草稿、构建、主题导入和域名：GitPress 后台常见问题。",
+    description: "草稿、构建、统计、主题导入和域名：GitPress 后台常见问题。",
 };
 
 export default function HelpIndexPage() {

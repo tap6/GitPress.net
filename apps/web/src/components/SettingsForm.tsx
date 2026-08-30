@@ -11,7 +11,6 @@ interface Props {
     description: string;
     language: string;
     author: string;
-    analyticsSnippet: string;
   };
 }
 
@@ -64,19 +63,6 @@ export function SettingsForm({ siteId, initial }: Props) {
           <option value="en">English</option>
           <option value="ja">日本語</option>
         </select>
-      </label>
-      <label className="block">
-        <span className="font-medium">统计代码(可选)</span>
-        <textarea
-          name="analyticsSnippet"
-          rows={4}
-          defaultValue={initial.analyticsSnippet}
-          placeholder={"粘贴 GA4 / Umami / Plausible / Clarity 等平台给的完整 <script> 代码"}
-          className="mt-1 w-full rounded border border-neutral-300 px-3 py-2 font-mono text-xs focus:border-wp-accent focus:outline-none"
-        />
-        <span className="mt-1 block text-xs text-neutral-400">
-          原样插入到网站每个页面的 &lt;/head&gt; 之前,留空则不插入任何统计脚本。
-        </span>
       </label>
       {state.error && <p className="rounded bg-red-50 p-3 text-red-600">{state.error}</p>}
       {state.saved && (

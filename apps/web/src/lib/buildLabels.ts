@@ -102,6 +102,9 @@ export function describeGitChange(commitMessage: string | null): GitChangeDescri
   if (imported) return described("theme", `导入了主题「${imported[1]}」`);
 
   if (first === "Update site settings") return described("settings", "更新了站点设置");
+  if (first === "Update site analytics" || first.startsWith("Update site analytics ")) {
+    return described("settings", "更新了统计");
+  }
   const setDomain = first.match(/^Set custom domain: (.+)$/);
   if (setDomain) return described("settings", `在 GitHub Pages 登记了「${setDomain[1]}」`);
   const siteUrl = first.match(/^Update site URL: (.+)$/);

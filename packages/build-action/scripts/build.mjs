@@ -23,6 +23,7 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { applyAnalyticsSnippet } from "./analytics.mjs";
 
 const SUPPORTED_SCHEMA_VERSION = 1;
 
@@ -141,6 +142,7 @@ if (existsSync(join(dataDir, "media"))) {
   cpSync(join(dataDir, "media"), mountMedia, { recursive: true });
 }
 
+applyAnalyticsSnippet(config);
 writeFileSync(join(themeDir, "gitpress.config.json"), JSON.stringify(config, null, 2));
 log("Mounted content, media and config into the theme project.");
 

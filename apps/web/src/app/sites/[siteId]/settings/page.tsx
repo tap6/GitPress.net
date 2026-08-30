@@ -61,8 +61,6 @@ export default async function SettingsPage({
     }),
   ]);
   const pagesSite = await getPagesSite(octokit, splitRepo(site.siteRepo));
-  const analyticsSnippet =
-    typeof config?.site.analyticsSnippet === "string" ? config.site.analyticsSnippet : "";
   const comments = parseSiteComments(config?.site.comments);
   const commentsSnippet =
     typeof config?.site.commentsSnippet === "string" ? config.site.commentsSnippet : "";
@@ -98,10 +96,9 @@ export default async function SettingsPage({
             initial={{
               name: site.name,
               description: site.description ?? "",
-              language: site.language,
-              author,
-              analyticsSnippet,
-            }}
+            language: site.language,
+            author,
+          }}
           />
         </section>
       </SettingsPanel>
