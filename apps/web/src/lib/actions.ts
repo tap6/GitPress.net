@@ -66,7 +66,8 @@ import {
   findListedThemeSource,
   siteThemeLibraryCount,
 } from "./themeLibrary";
-import { SCRATCH_NOTE_MAX_CHARS, upsertScratchNote } from "./scratchNote";
+import { upsertScratchNote } from "./scratchNote";
+import { SCRATCH_NOTE_MAX_CHARS } from "./scratchNoteLimits";
 
 // ---------------------------------------------------------------------------
 // Site creation wizard

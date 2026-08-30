@@ -1,8 +1,9 @@
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { siteScratchNotes } from "@/db/schema";
+import { SCRATCH_NOTE_MAX_CHARS } from "./scratchNoteLimits";
 
-export const SCRATCH_NOTE_MAX_CHARS = 8000;
+export { SCRATCH_NOTE_MAX_CHARS } from "./scratchNoteLimits";
 
 export interface ScratchNote {
   body: string;

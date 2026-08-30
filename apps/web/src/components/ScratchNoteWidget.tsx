@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { disableScratchNoteAction, saveScratchNoteAction } from "@/lib/actions";
-import { SCRATCH_NOTE_MAX_CHARS } from "@/lib/scratchNote";
+import { SCRATCH_NOTE_MAX_CHARS } from "@/lib/scratchNoteLimits";
 
 const CLOSE_CONFIRM =
   "关闭后会保持关闭。若要再打开，请到设置 → 小工具。";
