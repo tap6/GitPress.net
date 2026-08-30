@@ -4,6 +4,7 @@ import { useActionState, useMemo, useState } from "react";
 import Link from "next/link";
 import { savePublishCheckAction, type SavePublishCheckState } from "@/lib/actions";
 import { ProgressButton } from "@/components/ProgressButton";
+import { onFormStampAuthorNow } from "@/lib/browserWallClock";
 import {
   DEFAULT_PUBLISH_CHECK_INTERVAL,
   ESTIMATED_MINUTES_PER_SCHEDULED_RUN,
@@ -102,7 +103,7 @@ export function PublishCheckSettingsForm({
   const showConfirm = Boolean(state.needsConfirm && state.confirmKey === currentConfirmKey);
 
   return (
-    <form action={formAction} className="space-y-4 p-5 text-sm">
+    <form action={formAction} onSubmit={onFormStampAuthorNow} className="space-y-4 p-5 text-sm">
       <input type="hidden" name="siteId" value={siteId} />
       {showConfirm && state.confirmKey && (
         <input type="hidden" name="confirmedFor" value={state.confirmKey} />

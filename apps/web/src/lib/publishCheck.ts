@@ -266,7 +266,8 @@ export function listScheduledPosts<T extends { title: string; path: string; date
     .map((post) => ({ title: post.title, path: post.path }));
 }
 
-/** Clock off: keep or pull an existing future date; do not push later or newly schedule. */
+/** Clock off: keep or pull an existing future date; do not push later or newly schedule.
+ *  `now` must be the author's wall clock (`YYYY-MM-DDTHH:mm:ss`), not the server timezone. */
 export function futureDateNotAllowed(
   nextDate: string,
   previousDate: string | null,
@@ -281,9 +282,12 @@ export function futureDateBlockedMessage(): string {
   return "定时发布已关闭，不能把日期选到现在之后。需要预约请到设置 → 定时发布。";
 }
 
-export function dateInputMax(enabled: boolean, previousDate: string | null): string | undefined {
+export function dateInputMax(
+  enabled: boolean,
+  previousDate: string | null,
+  now = nowLocalDateTime(),
+): string | undefined {
   if (enabled) return undefined;
-  const now = nowLocalDateTime();
   if (previousDate && previousDate > now) return previousDate;
   return now;
 }

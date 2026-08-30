@@ -22,6 +22,12 @@ interface Props {
    * the newly queued run and shows real progress for the next 1–2 minutes.
    */
   buildSiteId?: string;
+  /**
+   * When false, a finished submit is treated as a failed/validation response:
+   * no build banner, no “已提交” flash. Pass `!state.error` from useActionState
+   * so a rejected save does not look like GitHub started building.
+   */
+  announceBuild?: boolean;
 }
 
 /**
@@ -38,6 +44,7 @@ export function ProgressButton({
   className = "",
   disabled,
   buildSiteId,
+  announceBuild = true,
 }: Props) {
   const { pending } = useFormStatus();
   const [elapsedMs, setElapsedMs] = useState(0);
@@ -57,20 +64,24 @@ export function ProgressButton({
   // Fires once per completed submission (pending: true -> false).
   useEffect(() => {
     if (wasPending.current && !pending) {
-      if (buildSiteId) {
-        window.dispatchEvent(
-          new CustomEvent<BuildTriggerDetail>(BUILD_TRIGGER_EVENT, {
-            detail: { siteId: buildSiteId },
-          }),
-        );
+      if (announceBuild) {
+        if (buildSiteId) {
+          window.dispatchEvent(
+            new CustomEvent<BuildTriggerDetail>(BUILD_TRIGGER_EVENT, {
+              detail: { siteId: buildSiteId },
+            }),
+          );
+        }
+        setJustSubmitted(true);
+        const timeout = setTimeout(() => setJustSubmitted(false), 1800);
+        wasPending.current = pending;
+        return () => clearTimeout(timeout);
       }
-      setJustSubmitted(true);
-      const timeout = setTimeout(() => setJustSubmitted(false), 1800);
       wasPending.current = pending;
-      return () => clearTimeout(timeout);
+      return;
     }
     wasPending.current = pending;
-  }, [pending, buildSiteId]);
+  }, [pending, buildSiteId, announceBuild]);
 
   const elapsedSeconds = elapsedMs / 1000;
   const ramp = Math.min(92, (elapsedSeconds / expectedSeconds) * 92);

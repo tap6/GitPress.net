@@ -56,7 +56,7 @@ import {
 import { assertAllowedMediaUpload } from "./mediaTypes";
 import { persistNavItem, type NavItem } from "./nav";
 import { persistBeian, persistFooterItem, type FooterItem } from "./footer";
-import { nowLocalDateTime, parsePostDate } from "./postDate";
+import { parsePostDate, readAuthorNow } from "./postDate";
 import {
   DEFAULT_PUBLISH_CHECK_INTERVAL,
   futureDateBlockedMessage,
@@ -191,7 +191,8 @@ export async function savePostAction(
   const title = String(formData.get("title") ?? "").trim();
   if (!title) return { error: "请填写标题。" };
   const body = String(formData.get("body") ?? "");
-  const date = parsePostDate(formData.get("date")) ?? nowLocalDateTime();
+  const authorNow = readAuthorNow(formData);
+  const date = parsePostDate(formData.get("date")) ?? authorNow;
   const draft = formData.get("draft") === "on";
   const description = String(formData.get("description") ?? "").trim();
   const tags = parseTagList(String(formData.get("tags") ?? ""));
@@ -210,7 +211,7 @@ export async function savePostAction(
       const existing = await getPost(octokit, site.dataRepo, existingPath);
       previousDate = existing?.date ?? null;
     }
-    if (futureDateNotAllowed(date, previousDate)) {
+    if (futureDateNotAllowed(date, previousDate, authorNow)) {
       return { error: futureDateBlockedMessage() };
     }
   }
@@ -366,7 +367,8 @@ export async function updatePostMetaAction(
   const path = assertPostPath(String(formData.get("path") ?? ""));
   const title = String(formData.get("title") ?? "").trim();
   if (!title) return { error: "请填写标题。" };
-  const date = parsePostDate(formData.get("date")) ?? nowLocalDateTime();
+  const authorNow = readAuthorNow(formData);
+  const date = parsePostDate(formData.get("date")) ?? authorNow;
   const draft = String(formData.get("status") ?? "") === "draft";
   const tags = parseTagList(String(formData.get("tags") ?? ""));
   const categoryRaw = String(formData.get("category") ?? "").trim();
@@ -375,7 +377,7 @@ export async function updatePostMetaAction(
   const octokit = await getInstallationOctokit(installation.installationId);
   const existing = await getPost(octokit, site.dataRepo, path);
   const publishCheck = await loadPublishCheck(octokit, site.dataRepo, site.siteRepo);
-  if (!publishCheck.enabled && futureDateNotAllowed(date, existing?.date ?? null)) {
+  if (!publishCheck.enabled && futureDateNotAllowed(date, existing?.date ?? null, authorNow)) {
     return { error: futureDateBlockedMessage() };
   }
   try {
@@ -1385,7 +1387,7 @@ export async function savePublishCheckAction(
 
   const octokit = await getInstallationOctokit(installation.installationId);
   if (!enabled) {
-    const scheduled = listScheduledPosts(await listPosts(octokit, site.dataRepo));
+    const scheduled = listScheduledPosts(await listPosts(octokit, site.dataRepo), readAuthorNow(formData));
     if (scheduled.length > 0) {
       return {
         error: "还有未到日期的已发布文章。先改成现在、改成草稿，或等它们上线后，才能关闭定时发布。",

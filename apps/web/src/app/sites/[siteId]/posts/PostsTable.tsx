@@ -12,7 +12,7 @@ import {
 import { ProgressButton } from "@/components/ProgressButton";
 import type { PostSummary, SiteCategory } from "@/lib/content";
 import { datetimeLocalValue, formatPostDateTime, nowLocalDateTime } from "@/lib/postDate";
-import { dateInputMax } from "@/lib/publishCheck";
+import { onFormStampAuthorNow, useDateInputMax } from "@/lib/browserWallClock";
 
 interface Props {
   siteId: string;
@@ -486,9 +486,10 @@ function QuickEditForm({
     [],
   );
   const [state, formAction] = useActionState<UpdatePostMetaState, FormData>(boundAction, {});
+  const dateMax = useDateInputMax(publishCheckEnabled, post.date);
 
   return (
-    <form action={formAction} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+    <form action={formAction} onSubmit={onFormStampAuthorNow} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
       <input type="hidden" name="siteId" value={siteId} />
       <input type="hidden" name="path" value={post.path} />
       <label className="block text-xs sm:col-span-2 lg:col-span-1">
@@ -530,7 +531,7 @@ function QuickEditForm({
           name="date"
           step={1}
           defaultValue={datetimeLocalValue(post.date, nowLocalDateTime())}
-          max={dateInputMax(publishCheckEnabled, post.date)}
+          max={dateMax}
           className="mt-1 w-full rounded border border-neutral-300 bg-white px-2 py-1.5 text-sm"
         />
         {!publishCheckEnabled && (
@@ -555,6 +556,7 @@ function QuickEditForm({
           expectedSeconds={4}
           pendingLabel="保存中"
           buildSiteId={siteId}
+          announceBuild={!state.error}
           className="rounded bg-wp-accent px-3 py-1.5 text-sm font-medium text-white hover:bg-wp-accent-dark"
         >
           更新
@@ -563,7 +565,11 @@ function QuickEditForm({
           取消
         </button>
       </div>
-      {state.error && <p className="text-xs text-red-600 sm:col-span-2 lg:col-span-3">{state.error}</p>}
+      {state.error && (
+        <p data-form-error className="text-xs text-red-600 sm:col-span-2 lg:col-span-3">
+          {state.error}
+        </p>
+      )}
     </form>
   );
 }

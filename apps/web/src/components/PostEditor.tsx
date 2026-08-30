@@ -7,13 +7,13 @@ import { EditorGitHistory, type EditorGitCommit } from "@/components/EditorGitHi
 import { ProgressButton } from "@/components/ProgressButton";
 import { RichTextEditor } from "@/components/RichTextEditor";
 import type { SiteCategory } from "@/lib/content";
+import { onFormStampAuthorNow, useDateInputMax } from "@/lib/browserWallClock";
 import {
   isEmptyDraft,
   useLocalPostDraft,
   type LocalDraftFields,
 } from "@/lib/localDraft";
 import { datetimeLocalValue, nowLocalDateTime } from "@/lib/postDate";
-import { dateInputMax } from "@/lib/publishCheck";
 import { clearPendingMedia, writePendingMedia } from "@/lib/pendingMedia";
 
 function isDesktopEditorViewport(): boolean {
@@ -85,6 +85,7 @@ export function PostEditor({
   const [title, setTitle] = useState(initial?.title ?? "");
   const [slug, setSlug] = useState(initial?.slug ?? "");
   const [date, setDate] = useState(() => datetimeLocalValue(initial?.date, nowLocalDateTime()));
+  const dateMax = useDateInputMax(publishCheckEnabled, initial?.date ?? null);
   const [draft, setDraft] = useState(initial?.draft ?? false);
   const [tags, setTags] = useState(initial?.tags.join(", ") ?? "");
   const [category, setCategory] = useState(initial?.category ?? "");
@@ -96,6 +97,10 @@ export function PostEditor({
   const [pendingCount, setPendingCount] = useState(0);
   const pendingFilesRef = useRef<File[]>([]);
   const [fillEditor, setFillEditor] = useState(false);
+
+  useLayoutEffect(() => {
+    if (!initial?.date) setDate(nowLocalDateTime());
+  }, [initial?.date]);
 
   useLayoutEffect(() => {
     setFillEditor(readEditorFill());
@@ -200,6 +205,7 @@ export function PostEditor({
   return (
     <form
       action={formAction}
+      onSubmit={onFormStampAuthorNow}
       className={`flex flex-col gap-6 lg:flex-row lg:min-h-0 lg:flex-1 lg:items-stretch ${fillEditor ? "min-h-0 flex-1" : ""}`}
     >
       <input type="hidden" name="siteId" value={siteId} />
@@ -267,7 +273,9 @@ export function PostEditor({
           </p>
         )}
         {state.error && (
-          <p className="shrink-0 rounded bg-red-50 p-3 text-sm text-red-600">{state.error}</p>
+          <p data-form-error className="shrink-0 rounded bg-red-50 p-3 text-sm text-red-600">
+            {state.error}
+          </p>
         )}
         <RichTextEditor
           key={editorKey}
@@ -327,7 +335,7 @@ export function PostEditor({
                 name="date"
                 step={1}
                 value={date}
-                max={dateInputMax(publishCheckEnabled, initial?.date ?? null)}
+                max={dateMax}
                 onChange={(e) => setDate(e.target.value)}
                 className="mt-1 w-full rounded border border-neutral-300 px-2 py-1.5"
               />
@@ -345,6 +353,7 @@ export function PostEditor({
               expectedSeconds={5 + pendingCount * 2}
               pendingLabel="提交中"
               buildSiteId={siteId}
+              announceBuild={!state.error}
               className="w-full rounded bg-wp-accent px-4 py-2 font-medium text-white hover:bg-wp-accent-dark"
             >
               {draft ? "保存到仓库" : path ? "更新" : "发布"}
