@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useActionState, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { savePageAction, type SavePageState } from "@/lib/actions";
+import { EditorGitHistory, type EditorGitCommit } from "@/components/EditorGitHistory";
 import { ProgressButton } from "@/components/ProgressButton";
 import { RichTextEditor } from "@/components/RichTextEditor";
 import {
@@ -54,6 +55,8 @@ interface Props {
   path?: string;
   /** When the site already has an explicit top nav, new pages can opt in. */
   hasCustomNav?: boolean;
+  gitCommits?: EditorGitCommit[];
+  gitError?: string | null;
   initial?: {
     title: string;
     description: string;
@@ -62,7 +65,14 @@ interface Props {
   };
 }
 
-export function PageEditor({ siteId, path = "", hasCustomNav = false, initial }: Props) {
+export function PageEditor({
+  siteId,
+  path = "",
+  hasCustomNav = false,
+  gitCommits = [],
+  gitError = null,
+  initial,
+}: Props) {
   const [title, setTitle] = useState(initial?.title ?? "");
   const [slug, setSlug] = useState(initial?.slug ?? "");
   const [description, setDescription] = useState(initial?.description ?? "");
@@ -160,7 +170,7 @@ export function PageEditor({ siteId, path = "", hasCustomNav = false, initial }:
   return (
     <form
       action={formAction}
-      className={`flex flex-col gap-6 lg:flex-row ${fillEditor ? "min-h-0 flex-1 lg:items-stretch" : ""}`}
+      className={`flex flex-col gap-6 lg:flex-row lg:min-h-0 lg:flex-1 lg:items-stretch ${fillEditor ? "min-h-0 flex-1" : ""}`}
     >
       <input type="hidden" name="siteId" value={siteId} />
       <input type="hidden" name="path" value={path} />
@@ -245,8 +255,8 @@ export function PageEditor({ siteId, path = "", hasCustomNav = false, initial }:
         />
       </div>
 
-      <div className={`w-full space-y-4 lg:w-72 lg:shrink-0 ${fillEditor ? "lg:self-start" : ""}`}>
-        <div className="rounded border border-neutral-200 bg-white shadow-sm">
+      <div className="flex w-full flex-col gap-4 lg:w-72 lg:shrink-0 lg:min-h-0">
+        <div className="shrink-0 rounded border border-neutral-200 bg-white shadow-sm">
           <h2 className="border-b border-neutral-100 px-4 py-2.5 text-sm font-semibold">发布</h2>
           <div className="space-y-3 p-4 text-sm">
             <p className="text-neutral-500">
@@ -288,7 +298,7 @@ export function PageEditor({ siteId, path = "", hasCustomNav = false, initial }:
           </div>
         </div>
 
-        <div className="rounded border border-neutral-200 bg-white shadow-sm">
+        <div className="shrink-0 rounded border border-neutral-200 bg-white shadow-sm">
           <h2 className="border-b border-neutral-100 px-4 py-2.5 text-sm font-semibold">元信息</h2>
           <div className="space-y-3 p-4 text-sm">
             <label className="block">
@@ -303,6 +313,13 @@ export function PageEditor({ siteId, path = "", hasCustomNav = false, initial }:
             </label>
           </div>
         </div>
+
+        <EditorGitHistory
+          siteId={siteId}
+          commits={gitCommits}
+          error={gitError}
+          hasFile={Boolean(path)}
+        />
       </div>
     </form>
   );

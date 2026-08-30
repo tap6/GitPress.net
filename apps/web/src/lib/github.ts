@@ -287,7 +287,7 @@ function emptyCommitList(
 export async function listRepoCommits(
   octokit: Octokit,
   ref: RepoRef,
-  options: { page?: number; perPage?: number } = {},
+  options: { page?: number; perPage?: number; path?: string } = {},
 ): Promise<RepoCommitList> {
   const page = Math.max(1, options.page ?? 1);
   const perPage = options.perPage ?? 25;
@@ -296,6 +296,7 @@ export async function listRepoCommits(
       ...ref,
       page,
       per_page: perPage,
+      ...(options.path ? { path: options.path } : {}),
     });
     const link = typeof response.headers.link === "string" ? response.headers.link : "";
     const hasNext = linkHasRel(link, "next");

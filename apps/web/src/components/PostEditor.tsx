@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useActionState, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { generateSummaryAction, savePostAction, type SavePostState } from "@/lib/actions";
+import { EditorGitHistory, type EditorGitCommit } from "@/components/EditorGitHistory";
 import { ProgressButton } from "@/components/ProgressButton";
 import { RichTextEditor } from "@/components/RichTextEditor";
 import type { SiteCategory } from "@/lib/content";
@@ -56,6 +57,8 @@ interface Props {
   /** Existing repo path when editing; empty when creating. */
   path?: string;
   categories?: SiteCategory[];
+  gitCommits?: EditorGitCommit[];
+  gitError?: string | null;
   initial?: {
     title: string;
     date: string | null;
@@ -68,7 +71,14 @@ interface Props {
   };
 }
 
-export function PostEditor({ siteId, path = "", categories = [], initial }: Props) {
+export function PostEditor({
+  siteId,
+  path = "",
+  categories = [],
+  gitCommits = [],
+  gitError = null,
+  initial,
+}: Props) {
   const [title, setTitle] = useState(initial?.title ?? "");
   const [slug, setSlug] = useState(initial?.slug ?? "");
   const [date, setDate] = useState(() => datetimeLocalValue(initial?.date, nowLocalDateTime()));
@@ -187,7 +197,7 @@ export function PostEditor({ siteId, path = "", categories = [], initial }: Prop
   return (
     <form
       action={formAction}
-      className={`flex flex-col gap-6 lg:flex-row ${fillEditor ? "min-h-0 flex-1 lg:items-stretch" : ""}`}
+      className={`flex flex-col gap-6 lg:flex-row lg:min-h-0 lg:flex-1 lg:items-stretch ${fillEditor ? "min-h-0 flex-1" : ""}`}
     >
       <input type="hidden" name="siteId" value={siteId} />
       <input type="hidden" name="path" value={path} />
@@ -274,8 +284,8 @@ export function PostEditor({ siteId, path = "", categories = [], initial }: Prop
       </div>
 
       {/* Sidebar: publish box */}
-      <div className={`w-full space-y-4 lg:w-72 lg:shrink-0 ${fillEditor ? "lg:self-start" : ""}`}>
-        <div className="rounded border border-neutral-200 bg-white shadow-sm">
+      <div className="flex w-full flex-col gap-4 lg:w-72 lg:shrink-0 lg:min-h-0">
+        <div className="shrink-0 rounded border border-neutral-200 bg-white shadow-sm">
           <h2 className="border-b border-neutral-100 px-4 py-2.5 text-sm font-semibold">发布</h2>
           <div className="space-y-3 p-4 text-sm">
             <label className="block">
@@ -335,7 +345,7 @@ export function PostEditor({ siteId, path = "", categories = [], initial }: Prop
           </div>
         </div>
 
-        <div className="rounded border border-neutral-200 bg-white shadow-sm">
+        <div className="shrink-0 rounded border border-neutral-200 bg-white shadow-sm">
           <h2 className="border-b border-neutral-100 px-4 py-2.5 text-sm font-semibold">元信息</h2>
           <div className="space-y-3 p-4 text-sm">
             <label className="block">
@@ -404,6 +414,13 @@ export function PostEditor({ siteId, path = "", categories = [], initial }: Prop
             </label>
           </div>
         </div>
+
+        <EditorGitHistory
+          siteId={siteId}
+          commits={gitCommits}
+          error={gitError}
+          hasFile={Boolean(path)}
+        />
       </div>
     </form>
   );

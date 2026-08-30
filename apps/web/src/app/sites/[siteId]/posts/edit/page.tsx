@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { PostEditor } from "@/components/PostEditor";
 import { getPost } from "@/lib/content";
-import { getInstallationOctokit } from "@/lib/github";
+import { getInstallationOctokit, listRepoCommits, splitRepo } from "@/lib/github";
 import { cachedSiteCategories } from "@/lib/siteDataCache";
 import { requireSite } from "@/lib/sites";
 
@@ -25,7 +25,10 @@ export default async function EditPostPage({
   const octokit = await getInstallationOctokit(installation.installationId);
   const post = await getPost(octokit, site.dataRepo, path);
   if (!post) redirect(`/sites/${siteId}/posts`);
-  const categories = await cachedSiteCategories(installation.installationId, site.dataRepo);
+  const [categories, history] = await Promise.all([
+    cachedSiteCategories(installation.installationId, site.dataRepo),
+    listRepoCommits(octokit, splitRepo(site.dataRepo), { path: post.path, perPage: 30 }),
+  ]);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -34,6 +37,8 @@ export default async function EditPostPage({
         siteId={siteId}
         path={post.path}
         categories={categories}
+        gitCommits={history.commits}
+        gitError={history.error}
         initial={{
           title: post.title,
           date: post.date,
