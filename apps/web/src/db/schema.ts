@@ -203,3 +203,17 @@ export const siteThemeLibrary = pgTable(
   },
   (table) => [unique("site_theme_library_site_source").on(table.siteId, table.source)],
 );
+
+/**
+ * Per-site dashboard scratch pad. Control-plane only — never written to
+ * the data repo, so saving it does not trigger a build.
+ */
+export const siteScratchNotes = pgTable("site_scratch_note", {
+  siteId: text("site_id")
+    .primaryKey()
+    .references(() => sites.id, { onDelete: "cascade" }),
+  body: text("body").notNull().default(""),
+  /** When false the dashboard widget stays hidden until re-enabled in Settings → 小工具. */
+  enabled: boolean("enabled").notNull().default(true),
+  updatedAt: timestamp("updated_at", { mode: "date" }).notNull().defaultNow(),
+});

@@ -10,7 +10,9 @@ import { giscusInstallUrl, probeGiscusApp } from "@/lib/commentsConnect";
 import { CommentsForm } from "@/components/CommentsForm";
 import { SettingsForm } from "@/components/SettingsForm";
 import { SettingsPanel, SettingsWorkspace } from "@/components/SettingsWorkspace";
+import { WidgetsSettingsForm } from "@/components/WidgetsSettingsForm";
 import { getAiConfig } from "@/lib/ai";
+import { getScratchNote } from "@/lib/scratchNote";
 import { githubPagesDefaultUrl, isDefaultPagesOrigin } from "@/lib/customDomain";
 import { getInstallationOctokit, getInstallationPermissionGap, getPagesSite, splitRepo } from "@/lib/github";
 import { cachedListPages, cachedSiteBeian, cachedSiteConfig, cachedSiteFooter } from "@/lib/siteDataCache";
@@ -29,7 +31,7 @@ export default async function SettingsPage({
   const { siteId } = await params;
   const { domain: domainNotice } = await searchParams;
   const { site, installation, user } = await requireSite(siteId);
-  const [config, permissionGap, aiConfig, pages, footer, beian, octokit] = await Promise.all([
+  const [config, permissionGap, aiConfig, pages, footer, beian, octokit, scratch] = await Promise.all([
     cachedSiteConfig(installation.installationId, site.dataRepo),
     getInstallationPermissionGap(installation.installationId),
     getAiConfig(user.id),
@@ -37,6 +39,7 @@ export default async function SettingsPage({
     cachedSiteFooter(installation.installationId, site.dataRepo),
     cachedSiteBeian(installation.installationId, site.dataRepo),
     getInstallationOctokit(installation.installationId),
+    getScratchNote(site.id),
   ]);
   const pagesSite = await getPagesSite(octokit, splitRepo(site.siteRepo));
   const analyticsSnippet =
@@ -141,7 +144,11 @@ export default async function SettingsPage({
             </p>
             <h3 className="text-sm font-medium text-neutral-800">AI 写作</h3>
             <p className="text-xs text-neutral-400">
-              用于文章编辑器里的「生成摘要」和「生成初稿」。任意 OpenAI 兼容接口均可。
+              用于文章编辑器里的「生成摘要」和「生成初稿」。任意 OpenAI 兼容接口均可。说明见{" "}
+              <a href="/help/ai-writing" className="text-wp-accent hover:underline">
+                AI 写作
+              </a>
+              。
             </p>
             <AiSettingsForm
               embedded
@@ -185,6 +192,13 @@ export default async function SettingsPage({
               。默认走 GitHub Pages；接到哪家、域名怎么挂，在上方「访问地址」里按托管切换查看。
             </p>
           </div>
+        </section>
+      </SettingsPanel>
+
+      <SettingsPanel id="widgets">
+        <section className="w-full max-w-3xl rounded border border-neutral-200 bg-white shadow-sm">
+          <h2 className="border-b border-neutral-100 px-5 py-3 text-sm font-semibold">小工具</h2>
+          <WidgetsSettingsForm siteId={site.id} scratchEnabled={scratch.enabled} />
         </section>
       </SettingsPanel>
 

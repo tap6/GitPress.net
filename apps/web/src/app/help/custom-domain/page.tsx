@@ -10,19 +10,13 @@ export const metadata: Metadata = {
 
 export default function CustomDomainHelpPage() {
   return (
-    <div className="min-h-screen bg-white text-neutral-900">
-      <header className="mx-auto flex max-w-3xl items-center justify-between px-6 py-5">
-        <Link href="/" className="text-xl font-bold tracking-tight">
-          Git<span className="text-gp-brand">Press</span>
+    <>
+      <p className="mt-2">
+        <Link href="/help" className="text-sm text-neutral-500 hover:text-neutral-900">
+          ← 全部帮助
         </Link>
-        <Link href="/" className="text-sm text-neutral-500 hover:text-neutral-900">
-          返回首页
-        </Link>
-      </header>
-
-      <main className="mx-auto max-w-3xl px-6 pb-20">
-        <CustomDomainHelp />
-      </main>
-    </div>
+      </p>
+      <CustomDomainHelp />
+    </>
   );
 }

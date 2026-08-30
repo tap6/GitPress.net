@@ -13,6 +13,8 @@ import { requireSite } from "@/lib/sites";
 import { ActionsUsageChart } from "@/components/ActionsUsageChart";
 import { BuildStatusPoller, RunElapsed } from "@/components/BuildStatus";
 import { ProgressButton } from "@/components/ProgressButton";
+import { ScratchNoteWidget } from "@/components/ScratchNoteWidget";
+import { getScratchNote } from "@/lib/scratchNote";
 
 export const metadata = { title: "仪表盘" };
 
@@ -34,7 +36,7 @@ export default async function SiteDashboard({
   const { site, installation } = await requireSite(siteId);
 
   const octokit = await getInstallationOctokit(installation.installationId);
-  const [posts, { runs, actionsPermissionMissing }, permissionGap, usage] = await Promise.all([
+  const [posts, { runs, actionsPermissionMissing }, permissionGap, usage, scratch] = await Promise.all([
     cachedListPosts(installation.installationId, site.dataRepo),
     listBuildRuns(octokit, splitRepo(site.dataRepo)),
     getInstallationPermissionGap(installation.installationId),
@@ -45,6 +47,7 @@ export default async function SiteDashboard({
       accountType: installation.accountType,
       userToken: installation.userToken,
     }),
+    getScratchNote(site.id),
   ]);
   const published = posts.filter((post) => !post.draft).length;
   const drafts = posts.length - published;
@@ -70,6 +73,8 @@ export default async function SiteDashboard({
         </div>
       )}
 
+      {scratch.enabled && <ScratchNoteWidget siteId={site.id} initialBody={scratch.body} />}
+
       <div className="mt-6 grid gap-4 sm:grid-cols-3">
         <div className="rounded border border-neutral-200 bg-white p-5 shadow-sm">
           <p className="text-3xl font-light">{published}</p>
@@ -77,7 +82,7 @@ export default async function SiteDashboard({
         </div>
         <div className="rounded border border-neutral-200 bg-white p-5 shadow-sm">
           <p className="text-3xl font-light">{drafts}</p>
-          <p className="mt-1 text-sm text-neutral-500">草稿(仅存于私有仓库)</p>
+          <p className="mt-1 text-sm text-neutral-500">草稿(写入私有仓库,公开站点不显示)</p>
         </div>
         <div className="rounded border border-neutral-200 bg-white p-5 shadow-sm">
           <p className="text-3xl font-light">{site.themeName}</p>

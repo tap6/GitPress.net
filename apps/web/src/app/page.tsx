@@ -50,8 +50,8 @@ export default async function LandingPage() {
           <a href="#privacy" className="text-neutral-500 hover:text-neutral-900">
             隐私
           </a>
-          <Link href="/help/custom-domain" className="text-neutral-500 hover:text-neutral-900">
-            用自己的域名
+          <Link href="/help" className="text-neutral-500 hover:text-neutral-900">
+            帮助
           </Link>
           <Link href="/make-theme" className="text-neutral-500 hover:text-neutral-900">
             做主题
@@ -312,8 +312,8 @@ export default async function LandingPage() {
               隐私
             </a>
             {" · "}
-            <Link href="/help/custom-domain" className="text-neutral-500 hover:text-neutral-800">
-              用自己的域名
+            <Link href="/help" className="text-neutral-500 hover:text-neutral-800">
+              帮助
             </Link>
             {" · "}
             <Link href="/make-theme" className="text-neutral-500 hover:text-neutral-800">

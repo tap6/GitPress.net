@@ -277,7 +277,7 @@ export function PageEditor({ siteId, path = "", hasCustomNav = false, initial }:
               buildSiteId={siteId}
               className="w-full rounded bg-wp-accent px-4 py-2 font-medium text-white hover:bg-wp-accent-dark"
             >
-              {path ? "更新" : "发布 / 保存"}
+              {path ? "更新" : "发布"}
             </ProgressButton>
             <Link
               href={`/sites/${siteId}/pages`}

@@ -7,7 +7,7 @@ import { EditorContent, useEditor, type Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Link from "next/link";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { generateDraftAction } from "@/lib/actions";
+import { AiDraftModal } from "@/components/AiDraftModal";
 import { ImageUploadTray, type ImageUploadTask } from "@/components/ImageUploadTray";
 import {
   MAX_BATCH_BYTES,
@@ -99,7 +99,7 @@ export function RichTextEditor({
   const [markdown, setMarkdownState] = useState(defaultValue);
   const [mode, setMode] = useState<"rich" | "source">("rich");
   const [tasks, setTasks] = useState<ImageUploadTask[]>([]);
-  const [generatingDraft, setGeneratingDraft] = useState(false);
+  const [aiDraftOpen, setAiDraftOpen] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const editorRef = useRef<Editor | null>(null);
@@ -302,29 +302,23 @@ export function RichTextEditor({
     setMode("rich");
   }
 
-  async function handleGenerateDraft() {
-    if (!editor) return;
-    const topic = window.prompt("输入主题或要点,AI 会在光标处插入一段 Markdown 初稿:");
-    if (!topic || !topic.trim()) return;
-    setGeneratingDraft(true);
-    setAiError(null);
-    const result = await generateDraftAction(siteId, topic.trim());
-    setGeneratingDraft(false);
-    if (result.error || !result.draft) {
-      setAiError(result.error ?? "生成失败");
+  function applyDraft(next: string, mode: "insert" | "replace") {
+    const current = editorRef.current;
+    if (!current) {
+      setMarkdown(next);
+      return;
+    }
+    if (mode === "replace") {
+      current.commands.setContent(next, { contentType: "markdown" });
+      setMarkdown(next);
       return;
     }
     try {
-      editor
-        .chain()
-        .focus()
-        .insertContent(result.draft, { contentType: "markdown" } as never)
-        .run();
+      current.chain().focus().insertContent(next, { contentType: "markdown" } as never).run();
     } catch {
-      const current = editor.getMarkdown();
-      const next = `${current}\n\n${result.draft}`;
-      editor.commands.setContent(next, { contentType: "markdown" });
-      setMarkdown(next);
+      const combined = `${current.getMarkdown()}\n\n${next}`;
+      current.commands.setContent(combined, { contentType: "markdown" });
+      setMarkdown(combined);
     }
   }
 
@@ -503,11 +497,14 @@ export function RichTextEditor({
         />
         <Divider />
         <ToolbarButton
-          disabled={mode !== "rich" || generatingDraft}
+          disabled={mode !== "rich"}
           label="AI 生成初稿"
-          onClick={handleGenerateDraft}
+          onClick={() => {
+            setAiError(null);
+            setAiDraftOpen(true);
+          }}
         >
-          {generatingDraft ? "生成中…" : "✨ AI 初稿"}
+          ✨ AI 初稿
         </ToolbarButton>
         <div className="ml-auto flex items-center gap-1">
           <ToolbarButton
@@ -562,12 +559,19 @@ export function RichTextEditor({
       )}
       {queued && (
         <p className="mt-1 shrink-0 text-[11px] text-neutral-400">
-          图片目前只在本机预览,点右侧「发布 / 保存」时会和文章一起写入数据仓库,只触发一次构建。
+          图片目前只在本机预览,点右侧保存时会和文章一起写入数据仓库,只触发一次构建。
         </p>
       )}
       <ImageUploadTray
         tasks={tasks}
         onDismiss={(id) => setTasks((prev) => prev.filter((task) => task.id !== id))}
+      />
+      <AiDraftModal
+        siteId={siteId}
+        open={aiDraftOpen}
+        onClose={() => setAiDraftOpen(false)}
+        onInsert={(markdown) => applyDraft(markdown, "insert")}
+        onReplace={(markdown) => applyDraft(markdown, "replace")}
       />
       </div>
     </div>

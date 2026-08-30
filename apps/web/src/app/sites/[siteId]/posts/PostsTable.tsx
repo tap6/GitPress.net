@@ -169,7 +169,7 @@ export function PostsTable({ siteId, posts, categories }: Props) {
               批量操作
             </option>
             <option value="publish">设为已发布</option>
-            <option value="draft">设为草稿(不公开)</option>
+            <option value="draft">设为草稿(公开站点不显示)</option>
             <option value="delete">删除</option>
           </select>
           <ProgressButton
@@ -411,7 +411,7 @@ function PostRow({
         <td className="px-4 py-3">
           {post.draft ? (
             <span
-              title="草稿仅存于私有仓库,不会进入构建"
+              title="草稿写入私有仓库并会触发构建,但公开站点不显示"
               className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700"
             >
               <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
@@ -533,7 +533,7 @@ function QuickEditForm({
           className="mt-1 w-full rounded border border-neutral-300 bg-white px-2 py-1.5 text-sm"
         >
           <option value="publish">已发布(公开站点可见)</option>
-          <option value="draft">草稿 · 不公开(不进入构建)</option>
+          <option value="draft">草稿 · 不公开(写入私有仓库,公开站点不显示)</option>
         </select>
       </label>
       <div className="flex items-end gap-3">

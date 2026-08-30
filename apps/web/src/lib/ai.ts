@@ -103,17 +103,30 @@ export async function generateSummary(config: AiConfig, body: string): Promise<s
   );
 }
 
-export async function generateDraft(config: AiConfig, prompt: string): Promise<string> {
+export type DraftTone = "default" | "formal" | "casual";
+export type DraftLength = "short" | "medium";
+
+export async function generateDraft(
+  config: AiConfig,
+  prompt: string,
+  options?: { tone?: DraftTone; length?: DraftLength },
+): Promise<string> {
+  const tone = options?.tone ?? "default";
+  const length = options?.length ?? "medium";
+  const toneHint =
+    tone === "formal" ? "语气正式、克制。" : tone === "casual" ? "语气轻松、口语化。" : "语气自然、适合博客。";
+  const lengthHint =
+    length === "short" ? "篇幅短,大约 200–400 字。" : "篇幅中等,大约 600–1000 字。";
+  const maxTokens = length === "short" ? 700 : 1600;
   return chatComplete(
     config,
     [
       {
         role: "system",
-        content:
-          "你是一个博客写作助手。根据用户给出的主题或要点,直接输出一段 Markdown 格式的正文草稿,不要加任何解释性文字,也不要用代码块包裹整段内容。",
+        content: `你是一个博客写作助手。根据用户给出的主题或要点,直接输出一段 Markdown 格式的正文草稿。${toneHint}${lengthHint}不要加任何解释性文字,也不要用代码块包裹整段内容。`,
       },
       { role: "user", content: prompt },
     ],
-    1200,
+    maxTokens,
   );
 }

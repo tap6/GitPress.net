@@ -248,7 +248,7 @@ export function PostEditor({ siteId, path = "", categories = [], initial }: Prop
           <p className="shrink-0 text-[11px] text-neutral-400">
             {local.persistOk
               ? savedLabel
-                ? `${savedLabel} · 仅存在此浏览器,提交到 GitHub 后才会出现在站点上。`
+                ? `${savedLabel} · 仅存在此浏览器,点保存才会写入仓库。`
                 : "正在写入本地底稿…"
               : "本地底稿写入失败(可能是浏览器存储已满),请尽快点保存提交到 GitHub。"}
           </p>
@@ -286,10 +286,27 @@ export function PostEditor({ siteId, path = "", categories = [], initial }: Prop
                 className="mt-1 w-full rounded border border-neutral-300 bg-white px-2 py-1.5"
               >
                 <option value="publish">已发布(公开站点可见)</option>
-                <option value="draft">草稿 · 不公开(不进入构建)</option>
+                <option value="draft">草稿 · 不公开(写入私有仓库,公开站点不显示)</option>
               </select>
             </label>
             {draft && <input type="hidden" name="draft" value="on" />}
+            <p className="text-[11px] leading-relaxed text-neutral-400">
+              {draft ? (
+                <>
+                  保存会写入私有仓库并触发构建,但公开网站不会出现这篇。{" "}
+                  <Link href="/help/drafts-and-builds" className="text-wp-accent hover:underline" target="_blank">
+                    说明
+                  </Link>
+                </>
+              ) : (
+                <>
+                  保存后会出现在公开站点。{" "}
+                  <Link href="/help/drafts-and-builds" className="text-wp-accent hover:underline" target="_blank">
+                    底稿 / 草稿 / 已发布
+                  </Link>
+                </>
+              )}
+            </p>
             <label className="block">
               <span className="text-neutral-500">日期时间</span>
               <input
@@ -307,7 +324,7 @@ export function PostEditor({ siteId, path = "", categories = [], initial }: Prop
               buildSiteId={siteId}
               className="w-full rounded bg-wp-accent px-4 py-2 font-medium text-white hover:bg-wp-accent-dark"
             >
-              {path ? "更新" : "发布 / 保存"}
+              {draft ? "保存到仓库" : path ? "更新" : "发布"}
             </ProgressButton>
             <Link
               href={`/sites/${siteId}/posts`}

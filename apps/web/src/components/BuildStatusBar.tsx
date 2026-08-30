@@ -149,11 +149,15 @@ export function BuildStatusBar({ siteId, dataRepo }: Props) {
     <div className={`sticky top-0 z-20 border-b px-4 py-2 text-sm sm:px-8 ${tone}`}>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-          {phase === "submitting" && <span>🕓 更改已提交,正在等待 GitHub 开始构建…</span>}
+          {phase === "submitting" && (
+            <span>🕓 更改已提交,正在等待 GitHub 开始构建。已在云端排队,可离开本页。</span>
+          )}
           {phase === "building" && (
             <span>
               ⏳ 正在构建:{describeBuildTrigger(snapshot?.commitMessage ?? null)} · {elapsedSeconds}s
-              <span className="ml-1 font-normal text-sky-600/80">(预计 60–120 秒)</span>
+              <span className="ml-1 font-normal text-sky-600/80">
+                (预计 60–120 秒 · 已在 GitHub 上运行,可离开本页。再次保存会取消这次、改跑最新一次)
+              </span>
             </span>
           )}
           {phase === "success" && (
@@ -173,6 +177,11 @@ export function BuildStatusBar({ siteId, dataRepo }: Props) {
                 在 GitHub 查看
               </a>
             )}
+          {(phase === "submitting" || phase === "building") && (
+            <a href="/help/builds" target="_blank" rel="noreferrer" className="underline">
+              说明
+            </a>
+          )}
           {phase === "unknown" && (
             <a
               href={`https://github.com/${dataRepo}/actions`}

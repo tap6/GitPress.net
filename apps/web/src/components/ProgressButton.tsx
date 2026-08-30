@@ -101,7 +101,7 @@ export function ProgressButton({
         </span>
       )}
       {justSubmitted && buildSiteId && (
-        <span className="text-[11px] text-neutral-400">已提交,网站构建中…</span>
+        <span className="text-[11px] text-neutral-400">已提交,网站构建中,可离开本页</span>
       )}
     </span>
   );

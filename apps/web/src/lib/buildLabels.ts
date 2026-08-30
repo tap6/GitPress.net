@@ -91,7 +91,10 @@ export function describeGitChange(commitMessage: string | null): GitChangeDescri
   if (deleteMedia) return described("media", `删除了媒体「${baseName(deleteMedia[1])}」`);
 
   const theme = first.match(/^Switch theme to (.+)$/);
-  if (theme) return described("theme", `把主题换成了「${theme[1]}」`);
+  if (theme) {
+    const name = theme[1].replace(/\s+from\s+\S+$/, "").trim();
+    return described("theme", `把主题换成了「${name}」`);
+  }
 
   if (first === "Update theme options") return described("theme", "调整了主题选项");
 
@@ -109,6 +112,13 @@ export function describeGitChange(commitMessage: string | null): GitChangeDescri
   if (first.startsWith("Update site URL")) return described("settings", "更新了站点地址");
   if (first === "Update site logo and avatar") return described("settings", "更新了站点标志与头像");
   if (first === "Update categories") return described("settings", "更新了分类");
+  if (first === "Connect giscus comments") return described("settings", "连接了评论区");
+  if (first === "Enable comments") return described("settings", "开启了评论");
+  if (first === "Disable comments") return described("settings", "关闭了评论");
+  if (first === "Disconnect giscus comments") return described("settings", "断开了评论区");
+  if (first === "Update comments snippet") return described("settings", "更新了评论嵌入代码");
+  if (first === "Update footer") return described("settings", "更新了页脚");
+  if (first === "Update beian") return described("settings", "更新了备案信息");
   if (first === "Update menu") return described("nav", "更新了导航菜单");
   if (first === "Trigger rebuild") return described("build", "手动触发了重建");
   if (first.startsWith("Initialize ")) {

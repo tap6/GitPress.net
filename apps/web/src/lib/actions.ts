@@ -5,7 +5,15 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/db";
 import { githubInstallations, siteThemeLibrary, sites, themeListings } from "@/db/schema";
-import { deleteAiConfig, generateDraft, generateSummary, getAiConfig, saveAiConfig } from "./ai";
+import {
+  deleteAiConfig,
+  generateDraft,
+  generateSummary,
+  getAiConfig,
+  saveAiConfig,
+  type DraftLength,
+  type DraftTone,
+} from "./ai";
 import { persistSiteCategory, type SiteCategory } from "./categories";
 import {
   addPageToNav,
@@ -58,6 +66,7 @@ import {
   findListedThemeSource,
   siteThemeLibraryCount,
 } from "./themeLibrary";
+import { SCRATCH_NOTE_MAX_CHARS, upsertScratchNote } from "./scratchNote";
 
 // ---------------------------------------------------------------------------
 // Site creation wizard
@@ -207,7 +216,7 @@ export async function savePostAction(
     `/sites/${siteId}`,
     `/sites/${siteId}/media`,
   ]);
-  redirect(`/sites/${siteId}/posts?saved=1`);
+  redirect(`/sites/${siteId}/posts?saved=${draft ? "draft" : "1"}`);
 }
 
 export async function deletePostAction(formData: FormData): Promise<void> {
@@ -1336,6 +1345,44 @@ export async function getBuildStatusAction(siteId: string): Promise<BuildStatusS
 }
 
 // ---------------------------------------------------------------------------
+// Dashboard scratch note (Neon only — does not touch GitHub)
+// ---------------------------------------------------------------------------
+
+export interface ScratchNoteSaveState {
+  error?: string;
+  saved?: boolean;
+}
+
+export async function saveScratchNoteAction(
+  siteId: string,
+  body: string,
+): Promise<ScratchNoteSaveState> {
+  await requireSite(siteId);
+  if (body.length > SCRATCH_NOTE_MAX_CHARS) {
+    return { error: `随手记最多 ${SCRATCH_NOTE_MAX_CHARS} 字。` };
+  }
+  await upsertScratchNote(siteId, { body });
+  return { saved: true };
+}
+
+export async function disableScratchNoteAction(siteId: string): Promise<ScratchNoteSaveState> {
+  await requireSite(siteId);
+  await upsertScratchNote(siteId, { enabled: false });
+  revalidatePath(`/sites/${siteId}`);
+  revalidatePath(`/sites/${siteId}/settings`);
+  return { saved: true };
+}
+
+export async function setScratchNoteEnabledAction(formData: FormData): Promise<void> {
+  const siteId = String(formData.get("siteId"));
+  await requireSite(siteId);
+  const enabled = formData.get("enabled") === "on";
+  await upsertScratchNote(siteId, { enabled });
+  revalidatePath(`/sites/${siteId}`);
+  revalidatePath(`/sites/${siteId}/settings`);
+}
+
+// ---------------------------------------------------------------------------
 // AI settings (per-user, shared across all of the user's sites)
 // ---------------------------------------------------------------------------
 
@@ -1416,13 +1463,14 @@ export interface GenerateDraftState {
 export async function generateDraftAction(
   siteId: string,
   prompt: string,
+  options?: { tone?: DraftTone; length?: DraftLength },
 ): Promise<GenerateDraftState> {
   const { user } = await requireSite(siteId);
   if (!prompt.trim()) return { error: "请先填写主题或要点。" };
   const config = await getAiConfig(user.id);
   if (!config) return { error: "还没有配置 AI,请先前往「AI 设置」。" };
   try {
-    const draft = await generateDraft(config, prompt);
+    const draft = await generateDraft(config, prompt, options);
     return { draft };
   } catch (error) {
     return { error: error instanceof Error ? error.message : String(error) };

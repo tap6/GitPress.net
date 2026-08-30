@@ -8,6 +8,7 @@ export const SETTINGS_SECTIONS = [
   { id: "beian", label: "备案" },
   { id: "domain", label: "访问地址" },
   { id: "account", label: "AI 写作" },
+  { id: "widgets", label: "小工具" },
   { id: "maintain", label: "维护" },
 ] as const;
 

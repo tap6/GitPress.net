@@ -32,7 +32,12 @@ export default async function PostsPage({
         </Link>
       </div>
 
-      {saved && (
+      {saved === "draft" && (
+        <div className="mt-4 rounded border-l-4 border-amber-400 bg-white p-3 text-sm shadow-sm">
+          已保存到私有数据仓库。构建仍会跑,但这篇草稿不会出现在公开网站。
+        </div>
+      )}
+      {saved === "1" && (
         <div className="mt-4 rounded border-l-4 border-emerald-500 bg-white p-3 text-sm shadow-sm">
           已保存并提交到数据仓库,网站将在约 1 分钟后更新。
         </div>
@@ -41,7 +46,10 @@ export default async function PostsPage({
       <PostsTable siteId={site.id} posts={posts} categories={categories} />
 
       <p className="mt-3 text-xs text-neutral-400">
-        状态只有两种:「已发布」会出现在公开站点;「草稿 · 不公开」只存在于私有数据仓库,构建时排除。静态博客没有登录态,因此不另做「仅自己可见」的第三种状态。
+        状态只有两种:「已发布」会出现在公开站点;「草稿」会写入私有数据仓库并触发构建,但公开站点不显示。静态博客没有登录态,因此不另做「仅自己可见」的第三种状态。{" "}
+        <Link href="/help/drafts-and-builds" className="text-wp-accent hover:underline">
+          底稿、草稿和已发布
+        </Link>
       </p>
     </div>
   );
