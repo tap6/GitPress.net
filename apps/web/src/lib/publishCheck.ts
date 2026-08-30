@@ -7,6 +7,8 @@ export const PUBLISH_CHECK_MONTH_DAYS = 30;
 export const DEFAULT_PUBLISH_CHECK_INTERVAL = "2h";
 export const ESTIMATED_SAVES_PER_POST = 2;
 export const DEFAULT_ESTIMATE_POSTS_PER_MONTH = 8;
+/** Stacked account estimate at or above this needs an extra confirm before save. */
+export const QUOTA_CAUTION_PERCENT = 80;
 export const PUBLISH_CHECK_WORKFLOW_PATH = ".github/workflows/gitpress-build.yml";
 export const LEGACY_HOURLY_CRON = "7 * * * *";
 
@@ -98,15 +100,89 @@ export function estimateWritingMinutes(postsPerMonth: number): number {
   return count * ESTIMATED_SAVES_PER_POST * ESTIMATED_MINUTES_PER_SCHEDULED_RUN;
 }
 
+export interface OtherPublishCheck {
+  siteId: string;
+  name: string;
+  interval: PublishCheckIntervalId;
+  minutesPerMonth: number;
+}
+
+export interface QuotaProjection {
+  thisMinutes: number;
+  otherMinutes: number;
+  writingMinutes: number;
+  totalMinutes: number;
+  percent: number;
+  reasons: string[];
+}
+
+export function thisCheckMinutes(
+  enabled: boolean,
+  interval: PublishCheckIntervalId | null,
+  isPrivate: boolean,
+): number {
+  if (!enabled || !isPrivate || !interval) return 0;
+  return estimatePublishCheck(interval).minutesPerMonth;
+}
+
+export function projectQuotaUsage(options: {
+  enabled: boolean;
+  interval: PublishCheckIntervalId | null;
+  isPrivate: boolean;
+  otherMinutes: number;
+  writingMinutes: number;
+  otherChecks?: OtherPublishCheck[];
+  accountUsedMinutes?: number | null;
+}): QuotaProjection {
+  const thisMinutes = thisCheckMinutes(options.enabled, options.interval, options.isPrivate);
+  const otherMinutes = Math.max(0, options.otherMinutes);
+  const writingMinutes = Math.max(0, options.writingMinutes);
+  const totalMinutes = thisMinutes + otherMinutes + writingMinutes;
+  const percent = Math.round((totalMinutes / PUBLISH_CHECK_QUOTA_MINUTES) * 100);
+  const reasons: string[] = [];
+  const others = options.otherChecks ?? [];
+  if (others.length > 0) {
+    const names = others.map((site) => `「${site.name}」`).join("、");
+    reasons.push(
+      `同一个 GitHub 帐户下还有 ${others.length} 个站开了定时发布检查（${names}），额度是共用的`,
+    );
+  }
+  if (thisMinutes >= estimatePublishCheck("1h").minutesPerMonth) {
+    reasons.push("当前间隔比较密，空转次数会很多");
+  }
+  if (options.accountUsedMinutes != null && options.accountUsedMinutes >= PUBLISH_CHECK_QUOTA_MINUTES * 0.4) {
+    reasons.push(`这个帐户本月已经用了约 ${Math.round(options.accountUsedMinutes)} 分钟`);
+  }
+  if (writingMinutes >= 80) {
+    reasons.push("按填写的写作量，保存文章本身也会占掉一部分时长");
+  }
+  if (reasons.length === 0 && percent >= QUOTA_CAUTION_PERCENT) {
+    reasons.push("预计占用已经偏高");
+  }
+  return { thisMinutes, otherMinutes, writingMinutes, totalMinutes, percent, reasons };
+}
+
+export function publishCheckConfirmKey(
+  enabled: boolean,
+  interval: PublishCheckIntervalId | null,
+): string {
+  return enabled ? `on:${interval}` : "off";
+}
+
 /**
- * Suggest a check interval from monthly writing volume.
- * Clock cost is fixed once enabled; heavy writers get a looser interval so
- * save-triggered builds still fit in the free 2000 minutes.
+ * Tightest practical interval that keeps stacked usage under the caution line.
+ * Includes 1h when the account still has room; never auto-picks 15/30 minutes.
  */
-export function recommendPublishCheckInterval(postsPerMonth: number): PublishCheckIntervalId {
+export function recommendPublishCheckInterval(
+  postsPerMonth: number,
+  otherMinutes = 0,
+): PublishCheckIntervalId {
   const writeMin = estimateWritingMinutes(postsPerMonth);
-  const clockBudget = Math.max(0, Math.round(PUBLISH_CHECK_QUOTA_MINUTES * 0.5) - writeMin);
-  const preferred: PublishCheckIntervalId[] = ["2h", "3h", "6h", "12h", "24h"];
+  const clockBudget = Math.max(
+    0,
+    Math.round((PUBLISH_CHECK_QUOTA_MINUTES * QUOTA_CAUTION_PERCENT) / 100) - writeMin - otherMinutes,
+  );
+  const preferred: PublishCheckIntervalId[] = ["1h", "2h", "3h", "6h", "12h", "24h"];
   for (const id of preferred) {
     if (estimatePublishCheck(id).minutesPerMonth <= clockBudget) return id;
   }

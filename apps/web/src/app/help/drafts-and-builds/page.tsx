@@ -60,7 +60,7 @@ export default function DraftsAndBuildsHelpPage() {
       <section className="mt-10">
         <h2 className="text-lg font-semibold">定时发布</h2>
         <p className="mt-2 text-sm leading-relaxed text-neutral-600">
-          默认关着。关着时不能把文章日期选到现在之后。要预约上线,到设置 → 定时发布打开检查。能接受粗一点的延迟就选更长的间隔,更省 Actions;多数情况建议每 2 小时。
+          默认关着。关着时不能把文章日期选到现在之后。要预约上线,到设置 → 定时发布打开检查。能接受粗一点的延迟就选更长的间隔,更省 Actions;单站多数情况建议每 2 小时。同一个 GitHub 帐户下的多个站共用免费时长,叠得太满时保存前会请你确认。
         </p>
         <ul className="mt-3 list-disc space-y-2 pl-5 text-sm leading-relaxed text-neutral-600">
           <li>保存文章会立刻构建一次;没到日期时,公开站点仍看不到这篇。</li>

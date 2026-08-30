@@ -14,10 +14,16 @@ import { WidgetsSettingsForm } from "@/components/WidgetsSettingsForm";
 import { PublishCheckSettingsForm } from "@/components/PublishCheckSettingsForm";
 import { getAiConfig } from "@/lib/ai";
 import { getScratchNote } from "@/lib/scratchNote";
-import { loadPublishCheck } from "@/lib/publishCheckRepo";
+import { listAccountPublishCheckContext, loadPublishCheck } from "@/lib/publishCheckRepo";
 import { githubPagesDefaultUrl, isDefaultPagesOrigin } from "@/lib/customDomain";
 import { getInstallationOctokit, getInstallationPermissionGap, getPagesSite, splitRepo } from "@/lib/github";
-import { cachedListPages, cachedSiteBeian, cachedSiteConfig, cachedSiteFooter } from "@/lib/siteDataCache";
+import {
+  cachedActionsUsage,
+  cachedListPages,
+  cachedSiteBeian,
+  cachedSiteConfig,
+  cachedSiteFooter,
+} from "@/lib/siteDataCache";
 import { requireSite } from "@/lib/sites";
 import { getBuiltinTheme } from "@/lib/themes";
 
@@ -43,7 +49,17 @@ export default async function SettingsPage({
     getInstallationOctokit(installation.installationId),
     getScratchNote(site.id),
   ]);
-  const publishCheck = await loadPublishCheck(octokit, site.dataRepo, site.siteRepo);
+  const [publishCheck, accountChecks, usage] = await Promise.all([
+    loadPublishCheck(octokit, site.dataRepo, site.siteRepo),
+    listAccountPublishCheckContext(user.id, site.id, installation.accountLogin),
+    cachedActionsUsage({
+      installationId: installation.installationId,
+      dataRepo: site.dataRepo,
+      accountLogin: installation.accountLogin,
+      accountType: installation.accountType,
+      userToken: installation.userToken,
+    }),
+  ]);
   const pagesSite = await getPagesSite(octokit, splitRepo(site.siteRepo));
   const analyticsSnippet =
     typeof config?.site.analyticsSnippet === "string" ? config.site.analyticsSnippet : "";
@@ -213,6 +229,11 @@ export default async function SettingsPage({
             enabled={publishCheck.enabled}
             interval={publishCheck.interval}
             dataRepoPrivate={publishCheck.dataRepoPrivate}
+            accountLogin={installation.accountLogin}
+            sameAccountSiteCount={accountChecks.sameAccountSiteCount}
+            otherChecks={accountChecks.otherChecks}
+            otherPrivateMinutes={accountChecks.otherPrivateMinutes}
+            accountUsedMinutes={usage.accountMinutesThisMonth}
           />
         </section>
       </SettingsPanel>

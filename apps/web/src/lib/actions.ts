@@ -56,8 +56,15 @@ import {
   futureDateNotAllowed,
   isPublishCheckIntervalId,
   listScheduledPosts,
+  projectQuotaUsage,
+  publishCheckConfirmKey,
+  QUOTA_CAUTION_PERCENT,
 } from "./publishCheck";
-import { loadPublishCheck, writePublishCheckWorkflow } from "./publishCheckRepo";
+import {
+  listAccountPublishCheckContext,
+  loadPublishCheck,
+  writePublishCheckWorkflow,
+} from "./publishCheckRepo";
 import { resolvePublicOrigin } from "./customDomain";
 import { provisionSite, rotateDeployKey, triggerRebuild } from "./provision";
 import { revalidateSiteData } from "./siteDataCache";
@@ -1287,6 +1294,11 @@ export async function saveBeianAction(
 export interface SavePublishCheckState {
   error?: string;
   blockedPosts?: Array<{ title: string; path: string }>;
+  needsConfirm?: boolean;
+  confirmKey?: string;
+  warning?: string;
+  reasons?: string[];
+  projectedPercent?: number;
 }
 
 export async function savePublishCheckAction(
@@ -1294,12 +1306,14 @@ export async function savePublishCheckAction(
   formData: FormData,
 ): Promise<SavePublishCheckState> {
   const siteId = String(formData.get("siteId"));
-  const { site, installation } = await requireSite(siteId);
+  const { site, installation, user } = await requireSite(siteId);
   const enabled = formData.get("enabled") === "on";
   const intervalRaw = String(formData.get("interval") ?? "");
   const interval = isPublishCheckIntervalId(intervalRaw)
     ? intervalRaw
     : DEFAULT_PUBLISH_CHECK_INTERVAL;
+  const confirmKey = publishCheckConfirmKey(enabled, enabled ? interval : null);
+  const confirmed = String(formData.get("confirmedFor") ?? "") === confirmKey;
 
   const octokit = await getInstallationOctokit(installation.installationId);
   if (!enabled) {
@@ -1308,6 +1322,31 @@ export async function savePublishCheckAction(
       return {
         error: "还有未到日期的已发布文章。先改成现在、改成草稿，或等它们上线后，才能关闭定时发布。",
         blockedPosts: scheduled,
+      };
+    }
+  }
+
+  if (enabled && !confirmed) {
+    const [current, account] = await Promise.all([
+      loadPublishCheck(octokit, site.dataRepo, site.siteRepo),
+      listAccountPublishCheckContext(user.id, site.id, installation.accountLogin),
+    ]);
+    const projection = projectQuotaUsage({
+      enabled,
+      interval,
+      isPrivate: current.dataRepoPrivate,
+      otherMinutes: account.otherPrivateMinutes,
+      writingMinutes: 0,
+      otherChecks: account.otherChecks,
+    });
+    if (projection.percent >= QUOTA_CAUTION_PERCENT && current.dataRepoPrivate) {
+      const reasonText = projection.reasons.join("，");
+      return {
+        needsConfirm: true,
+        confirmKey,
+        projectedPercent: projection.percent,
+        reasons: projection.reasons,
+        warning: `请谨慎选择。按这个设置叠加后约占免费额度的 ${projection.percent}%，可能会因为${reasonText}，导致文章编译的 GitHub Actions 时长不足。确认仍要保存吗？`,
       };
     }
   }
