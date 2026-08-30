@@ -13,7 +13,7 @@ import {
   useLocalPostDraft,
   type LocalDraftFields,
 } from "@/lib/localDraft";
-import { datetimeLocalValue, nowLocalDateTime } from "@/lib/postDate";
+import { datetimeLocalValue, nowLocalDateTime, storedDateToInputValue } from "@/lib/postDate";
 import { clearPendingMedia, writePendingMedia } from "@/lib/pendingMedia";
 
 function isDesktopEditorViewport(): boolean {
@@ -99,7 +99,8 @@ export function PostEditor({
   const [fillEditor, setFillEditor] = useState(false);
 
   useLayoutEffect(() => {
-    if (!initial?.date) setDate(nowLocalDateTime());
+    if (initial?.date) setDate(storedDateToInputValue(initial.date, nowLocalDateTime()));
+    else setDate(nowLocalDateTime());
   }, [initial?.date]);
 
   useLayoutEffect(() => {

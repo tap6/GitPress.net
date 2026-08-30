@@ -1,6 +1,6 @@
 # @gitpress/build-action
 
-GitHub Action(composite)。在数据仓库的 workflow 中运行:读取 `gitpress.json` → 拉取锁定版本的主题 → Astro 构建(默认排除草稿)→ 把产物推送到公开的网站仓库。
+GitHub Action(composite)。在数据仓库的 workflow 中运行:读取 `gitpress.json` → 拉取锁定版本的主题 → 把无时区的文章日期按 `site.timezone` 补上偏移 → Astro 构建(默认排除草稿)→ 把产物推送到公开的网站仓库。
 
 ## 用法(数据仓库 workflow)
 

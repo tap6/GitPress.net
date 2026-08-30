@@ -1,8 +1,10 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useMemo, useState } from "react";
 import { saveSettingsAction, type SaveSettingsState } from "@/lib/actions";
 import { ProgressButton } from "@/components/ProgressButton";
+import { onFormStampAuthorNow } from "@/lib/browserWallClock";
+import { COMMON_TIME_ZONES } from "@/lib/timeZones";
 
 interface Props {
   siteId: string;
@@ -11,6 +13,7 @@ interface Props {
     description: string;
     language: string;
     author: string;
+    timezone: string;
   };
 }
 
@@ -19,9 +22,23 @@ export function SettingsForm({ siteId, initial }: Props) {
     saveSettingsAction,
     {},
   );
+  const [timezone, setTimezone] = useState(initial.timezone);
+  const zones = useMemo(() => {
+    const known = new Set(COMMON_TIME_ZONES.map((item) => item.id));
+    if (timezone && !known.has(timezone)) {
+      return [{ id: timezone, label: timezone }, ...COMMON_TIME_ZONES];
+    }
+    return COMMON_TIME_ZONES;
+  }, [timezone]);
+
+  useEffect(() => {
+    if (initial.timezone) return;
+    const detected = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (detected) setTimezone(detected);
+  }, [initial.timezone]);
 
   return (
-    <form action={formAction} className="space-y-4 p-5 text-sm">
+    <form action={formAction} onSubmit={onFormStampAuthorNow} className="space-y-4 p-5 text-sm">
       <input type="hidden" name="siteId" value={siteId} />
       <label className="block">
         <span className="font-medium">站点名称</span>
@@ -63,6 +80,24 @@ export function SettingsForm({ siteId, initial }: Props) {
           <option value="en">English</option>
           <option value="ja">日本語</option>
         </select>
+      </label>
+      <label className="block">
+        <span className="font-medium">时区</span>
+        <select
+          name="timezone"
+          value={timezone}
+          onChange={(event) => setTimezone(event.target.value)}
+          className="mt-1 w-full rounded border border-neutral-300 bg-white px-3 py-2"
+        >
+          {zones.map((zone) => (
+            <option key={zone.id} value={zone.id}>
+              {zone.label === zone.id ? zone.id : `${zone.label} · ${zone.id}`}
+            </option>
+          ))}
+        </select>
+        <span className="mt-1 block text-xs text-neutral-400">
+          公开站点按此时区显示日期，无时区的旧文章也按此时区判断是否到期。编辑器里选的时间仍是你电脑上的当地时间。
+        </span>
       </label>
       {state.error && <p className="rounded bg-red-50 p-3 text-red-600">{state.error}</p>}
       {state.saved && (

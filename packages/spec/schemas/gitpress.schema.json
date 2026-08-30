@@ -32,7 +32,10 @@
           "description": "Path prefix the site is served under (GitHub Pages project sites use /<repo>/)."
         },
         "author": { "type": "string" },
-        "timezone": { "type": "string", "default": "UTC" },
+        "timezone": {
+          "type": "string",
+          "description": "IANA time zone, e.g. Asia/Shanghai. Public pages format dates here; unzoned frontmatter dates are interpreted in this zone at build time."
+        },
         "logo": {
           "type": "string",
           "description": "Public path to the site logo, typically /media/logo-….png. Lives on site so it survives theme switches. Themes decide visibility via theme.config.showLogo."

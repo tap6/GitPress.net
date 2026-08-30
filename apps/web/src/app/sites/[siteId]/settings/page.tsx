@@ -98,6 +98,7 @@ export default async function SettingsPage({
               description: site.description ?? "",
             language: site.language,
             author,
+            timezone: typeof config?.site.timezone === "string" ? config.site.timezone : "",
           }}
           />
         </section>

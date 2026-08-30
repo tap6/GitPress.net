@@ -24,7 +24,7 @@ GitPress 是 Git 原生博客平台:内容在用户的 GitHub 数据仓库,主�
 
 文章在 user-content/posts/*.md,公开地址是 /posts/{slug}/。frontmatter:
 - title(必填)
-- date:ISO 8601 本地墙钟,如 2026-08-30T14:05:00;仅日期 2026-08-30 也兼容。没有 date、draft: true、或 date 晚于站点时区(site.timezone,中文站默认 Asia/Shanghai)的当前墙钟,都不得出现在公开构建。不要用构建机 UTC 的 Date.now() 去比无时区的 date。仅当环境变量 GITPRESS_INCLUDE_DRAFTS=true 时才包含这些文章。
+- date:ISO 8601 瞬间,推荐带偏移如 2026-08-31T04:00:00+08:00;仅日期和无偏移墙钟也兼容,构建时按 site.timezone(中文站默认 Asia/Shanghai)补偏移。没有 date、draft: true、或这个瞬间晚于 Date.now(),都不得出现在公开构建。展示用 Intl 并传入 timeZone: site.timezone。仅当环境变量 GITPRESS_INCLUDE_DRAFTS=true 时才包含这些文章。
 - updated、draft、tags、categories、description、cover、slug、redirectFrom 可选。
 - slug 覆盖由文件名推导的标识;redirectFrom 是旧 slug 列表,主题必须为每个旧 slug 再生成一条静态跳转(Astro.redirect 301)到当前地址。
 

@@ -2,6 +2,7 @@
 
 import { useLayoutEffect, useState } from "react";
 import { CLIENT_NOW_FIELD, TZ_OFFSET_FIELD, nowLocalDateTime } from "./postDate";
+import { TIME_ZONE_FIELD } from "./timeZones";
 import { dateInputMax } from "./publishCheck";
 
 function setHidden(form: HTMLFormElement, name: string, value: string): void {
@@ -19,6 +20,7 @@ function setHidden(form: HTMLFormElement, name: string, value: string): void {
 export function stampAuthorNow(form: HTMLFormElement): void {
   setHidden(form, CLIENT_NOW_FIELD, nowLocalDateTime());
   setHidden(form, TZ_OFFSET_FIELD, String(new Date().getTimezoneOffset()));
+  setHidden(form, TIME_ZONE_FIELD, Intl.DateTimeFormat().resolvedOptions().timeZone || "");
 }
 
 export function onFormStampAuthorNow(event: { currentTarget: HTMLFormElement }): void {

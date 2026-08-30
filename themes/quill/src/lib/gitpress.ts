@@ -134,38 +134,6 @@ export function categoryLabel(slug: string): string {
   return siteCategories.find((c) => c.slug === slug)?.label ?? slug;
 }
 
-function pad2(value: number | string): string {
-  return String(value).padStart(2, "0");
-}
-
-/**
- * Unzoned `YYYY-MM-DDTHH:mm:ss` is parsed as UTC. Those UTC fields are the
- * author's wall clock, not an instant — compare them to now in the site TZ.
- */
-function writtenWallClock(date: Date): string {
-  return `${date.getUTCFullYear()}-${pad2(date.getUTCMonth() + 1)}-${pad2(date.getUTCDate())}T${pad2(date.getUTCHours())}:${pad2(date.getUTCMinutes())}:${pad2(date.getUTCSeconds())}`;
-}
-
-function nowWallClock(timeZone: string): string {
-  try {
-    const parts = new Intl.DateTimeFormat("en-US", {
-      timeZone,
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-      hour12: false,
-      hourCycle: "h23",
-    }).formatToParts(new Date());
-    const get = (type: string) => parts.find((part) => part.type === type)?.value ?? "00";
-    return `${get("year")}-${pad2(get("month"))}-${pad2(get("day"))}T${pad2(get("hour"))}:${pad2(get("minute"))}:${pad2(get("second"))}`;
-  } catch {
-    return writtenWallClock(new Date());
-  }
-}
-
 function siteTimeZone(): string {
   const configured = typeof gitpress.site.timezone === "string" ? gitpress.site.timezone.trim() : "";
   if (configured) return configured;
@@ -175,18 +143,15 @@ function siteTimeZone(): string {
   return "UTC";
 }
 
-function isPostDateDue(date: Date): boolean {
-  return writtenWallClock(date) <= nowWallClock(siteTimeZone());
-}
-
 export async function getPublishedPosts(): Promise<Post[]> {
   const includeDrafts = process.env.GITPRESS_INCLUDE_DRAFTS === "true";
+  const now = Date.now();
   const posts = await getCollection("posts");
   return posts
     .filter((p) => {
       if (includeDrafts) return true;
       if (p.data.draft === true || p.data.date == null) return false;
-      return isPostDateDue(p.data.date);
+      return p.data.date.getTime() <= now;
     })
     .sort(
       (a, b) =>
@@ -206,6 +171,7 @@ export function postSlug(post: Post | Page): string {
 export function formatDate(date: Date | undefined, withTime = false): string {
   if (!date) return "";
   return new Intl.DateTimeFormat(gitpress.site.language ?? "en", {
+    timeZone: siteTimeZone(),
     year: "numeric",
     month: "long",
     day: "numeric",

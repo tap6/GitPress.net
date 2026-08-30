@@ -17,6 +17,7 @@ import {
 } from "node:fs";
 import { join, resolve } from "node:path";
 import { applyAnalyticsSnippet } from "./analytics.mjs";
+import { inferTimeZone, rewritePostDatesInDir } from "./dates.mjs";
 
 const [themeArg, dataArg] = process.argv.slice(2);
 if (!themeArg || !dataArg) {
@@ -78,5 +79,6 @@ for (const sub of ["posts", "pages"]) {
     writeFileSync(path, substitute(readFileSync(path, "utf8")));
   }
 }
+rewritePostDatesInDir(join(mountContent, "posts"), inferTimeZone(config.site));
 
 console.log(`Mounted ${dataDir} into ${themeDir}. Run astro dev/build inside the theme now.`);

@@ -1,10 +1,15 @@
 /** BCP-47 helpers for admin UI copy and provisioned starter content. */
 
-export function defaultTimeZone(language?: string): string {
+export function languageBase(language?: string): string {
+  return (language ?? "en").toLowerCase().split("-")[0] ?? "en";
+}
+
+/** New-site default. English/other omit timezone so the first browser save can fill it. */
+export function defaultTimeZone(language?: string): string | undefined {
   const base = languageBase(language);
   if (base === "zh") return "Asia/Shanghai";
   if (base === "ja") return "Asia/Tokyo";
-  return "UTC";
+  return undefined;
 }
 
 export function defaultHomeLabel(language?: string): string {

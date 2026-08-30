@@ -1,11 +1,12 @@
 import matter from "gray-matter";
 import type { Octokit } from "octokit";
 import { persistSiteCategory, type SiteCategory } from "./categories";
-import { deleteFile, getFileText, listDirectory, putFile, commitFiles, splitRepo } from "./github";
+import { deleteFile, getFileText, listDirectory, putFile, commitFiles, splitRepo, type CommitFile, type RepoRef } from "./github";
 import { sanitizeMediaFileName, uniqueMediaFileName } from "./mediaName";
 import { persistNavItem, type NavItem } from "./nav";
 import { parseFooterItem, persistBeian, persistFooterItem, type FooterItem, type SiteBeian } from "./footer";
 import { parsePostDate } from "./postDate";
+import { isIanaTimeZone } from "./timeZones";
 
 export type { SiteCategory } from "./categories";
 export { isCategoryInNav, persistSiteCategory } from "./categories";
@@ -92,6 +93,8 @@ export interface SavePostInput {
   body: string;
   /** Public URL slug. Written to frontmatter only when it differs from the filename. */
   slug?: string;
+  /** When set and gitpress.json has no timezone yet, written in the same commit. */
+  timezone?: string | null;
 }
 
 export function slugify(input: string, emptyPrefix = "post"): string {
@@ -167,6 +170,24 @@ export async function findSlugConflict(
   return null;
 }
 
+async function timezoneConfigFile(
+  octokit: Octokit,
+  ref: RepoRef,
+  timezone: string | null | undefined,
+): Promise<CommitFile | null> {
+  if (!isIanaTimeZone(timezone)) return null;
+  const raw = await getFileText(octokit, ref, "gitpress.json");
+  if (!raw) return null;
+  try {
+    const config = JSON.parse(raw.text) as SiteConfig;
+    if (isIanaTimeZone(config.site?.timezone)) return null;
+    config.site = { ...config.site, timezone: timezone.trim() };
+    return { path: "gitpress.json", utf8: `${JSON.stringify(config, null, 2)}\n` };
+  } catch {
+    return null;
+  }
+}
+
 export async function savePost(
   octokit: Octokit,
   dataRepo: string,
@@ -195,13 +216,15 @@ export async function savePost(
   applySlugChange(frontmatter, path, input.slug);
 
   const text = matter.stringify(`\n${input.body.trim()}\n`, frontmatter);
-  const files = [
+  const files: CommitFile[] = [
     ...media.map((item) => ({
       path: `media/${sanitizeMediaFileName(item.name)}`,
       base64: item.base64,
     })),
     { path, utf8: text },
   ];
+  const timezoneFile = await timezoneConfigFile(octokit, ref, input.timezone);
+  if (timezoneFile) files.push(timezoneFile);
   const message =
     media.length > 0
       ? `${isNew ? "Add" : "Update"} post: ${input.title} (+${media.length} image${media.length === 1 ? "" : "s"})`
@@ -216,6 +239,7 @@ export interface UpdatePostMetaInput {
   tags?: string[];
   /** `null` clears the category; omit to leave it unchanged. */
   category?: string | null;
+  timezone?: string | null;
 }
 
 /**
@@ -253,11 +277,13 @@ export async function updatePostMeta(
 
   const body = parsed.content.replace(/^\n/, "");
   const text = matter.stringify(`\n${body.trim()}\n`, frontmatter);
-  await putFile(
+  const files: CommitFile[] = [{ path, utf8: text }];
+  const timezoneFile = await timezoneConfigFile(octokit, ref, input.timezone);
+  if (timezoneFile) files.push(timezoneFile);
+  await commitFiles(
     octokit,
     ref,
-    path,
-    { utf8: text },
+    files,
     `Update post meta: ${String(frontmatter.title ?? path)}`,
   );
 }

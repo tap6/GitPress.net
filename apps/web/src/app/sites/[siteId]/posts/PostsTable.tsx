@@ -11,7 +11,7 @@ import {
 } from "@/lib/actions";
 import { ProgressButton } from "@/components/ProgressButton";
 import type { PostSummary, SiteCategory } from "@/lib/content";
-import { datetimeLocalValue, formatPostDateTime, nowLocalDateTime } from "@/lib/postDate";
+import { formatPostDateTime, nowLocalDateTime, storedDateToInputValue } from "@/lib/postDate";
 import { onFormStampAuthorNow, useDateInputMax } from "@/lib/browserWallClock";
 
 interface Props {
@@ -530,7 +530,7 @@ function QuickEditForm({
           type="datetime-local"
           name="date"
           step={1}
-          defaultValue={datetimeLocalValue(post.date, nowLocalDateTime())}
+          defaultValue={storedDateToInputValue(post.date, nowLocalDateTime())}
           max={dateMax}
           className="mt-1 w-full rounded border border-neutral-300 bg-white px-2 py-1.5 text-sm"
         />

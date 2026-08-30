@@ -23,7 +23,7 @@
 **文章** `content/posts/*.md` → `user-content/posts/`,公开地址 `/posts/{slug}/`。
 
 - `title` 必填。
-- `date` 为 ISO 8601 本地墙钟,如 `2026-08-30T14:05:00`;仅日期 `2026-08-30` 也兼容。没有 `date`、`draft: true`、或 `date` 晚于站点时区(`site.timezone`,中文站默认 `Asia/Shanghai`)的当前墙钟,都不得出现在公开构建,除非 `GITPRESS_INCLUDE_DRAFTS=true`。不要用构建机 UTC 的 `Date.now()` 去比无时区的 `date`(GitHub Actions 是 UTC,会把早上刚发的中文稿当成未来稿滤掉)。
+- `date` 为 ISO 8601,推荐带偏移,如 `2026-08-31T04:00:00+08:00`;仅日期 `2026-08-30` 和无偏移的本地墙钟也兼容,构建时按 `site.timezone`(中文站默认 `Asia/Shanghai`)补上偏移。没有 `date`、`draft: true`、或这个瞬间还晚于构建时刻,都不得出现在公开构建,除非 `GITPRESS_INCLUDE_DRAFTS=true`。用 `date.getTime() <= Date.now()` 判断;展示用 `Intl` 并传入 `timeZone: site.timezone`。
 - 可选:`updated`、`draft`、`tags`、`categories`、`description`、`cover`、`slug`、`redirectFrom`。
 - `slug` 覆盖由文件名推导的标识。`redirectFrom` 是旧 slug 列表,主题必须为每个旧 slug 再生成一条静态 301 跳转(`Astro.redirect`)到当前地址。
 

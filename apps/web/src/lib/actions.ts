@@ -56,7 +56,8 @@ import {
 import { assertAllowedMediaUpload } from "./mediaTypes";
 import { persistNavItem, type NavItem } from "./nav";
 import { persistBeian, persistFooterItem, type FooterItem } from "./footer";
-import { parsePostDate, readAuthorNow } from "./postDate";
+import { parsePostDate, readAuthorNow, attachOffset } from "./postDate";
+import { readIanaTimeZone } from "./timeZones";
 import {
   DEFAULT_PUBLISH_CHECK_INTERVAL,
   futureDateBlockedMessage,
@@ -192,7 +193,9 @@ export async function savePostAction(
   if (!title) return { error: "请填写标题。" };
   const body = String(formData.get("body") ?? "");
   const authorNow = readAuthorNow(formData);
-  const date = parsePostDate(formData.get("date")) ?? authorNow;
+  const dateWall = parsePostDate(formData.get("date")) ?? authorNow;
+  const date = attachOffset(dateWall, formData.get("tzOffsetMinutes"));
+  const timezone = readIanaTimeZone(formData);
   const draft = formData.get("draft") === "on";
   const description = String(formData.get("description") ?? "").trim();
   const tags = parseTagList(String(formData.get("tags") ?? ""));
@@ -211,7 +214,7 @@ export async function savePostAction(
       const existing = await getPost(octokit, site.dataRepo, existingPath);
       previousDate = existing?.date ?? null;
     }
-    if (futureDateNotAllowed(date, previousDate, authorNow)) {
+    if (futureDateNotAllowed(dateWall, previousDate, authorNow)) {
       return { error: futureDateBlockedMessage() };
     }
   }
@@ -240,7 +243,7 @@ export async function savePostAction(
       octokit,
       site.dataRepo,
       path,
-      { title, date, draft, tags, category, description, body, slug: requestedSlug },
+      { title, date, draft, tags, category, description, body, slug: requestedSlug, timezone },
       isNew,
       media,
     );
@@ -368,7 +371,9 @@ export async function updatePostMetaAction(
   const title = String(formData.get("title") ?? "").trim();
   if (!title) return { error: "请填写标题。" };
   const authorNow = readAuthorNow(formData);
-  const date = parsePostDate(formData.get("date")) ?? authorNow;
+  const dateWall = parsePostDate(formData.get("date")) ?? authorNow;
+  const date = attachOffset(dateWall, formData.get("tzOffsetMinutes"));
+  const timezone = readIanaTimeZone(formData);
   const draft = String(formData.get("status") ?? "") === "draft";
   const tags = parseTagList(String(formData.get("tags") ?? ""));
   const categoryRaw = String(formData.get("category") ?? "").trim();
@@ -377,7 +382,7 @@ export async function updatePostMetaAction(
   const octokit = await getInstallationOctokit(installation.installationId);
   const existing = await getPost(octokit, site.dataRepo, path);
   const publishCheck = await loadPublishCheck(octokit, site.dataRepo, site.siteRepo);
-  if (!publishCheck.enabled && futureDateNotAllowed(date, existing?.date ?? null, authorNow)) {
+  if (!publishCheck.enabled && futureDateNotAllowed(dateWall, existing?.date ?? null, authorNow)) {
     return { error: futureDateBlockedMessage() };
   }
   try {
@@ -387,6 +392,7 @@ export async function updatePostMetaAction(
       draft,
       tags,
       category: categoryRaw || null,
+      timezone,
     });
   } catch (error) {
     return { error: `保存失败:${error instanceof Error ? error.message : String(error)}` };
@@ -817,6 +823,7 @@ export async function saveSettingsAction(
   const description = String(formData.get("description") ?? "").trim();
   const language = String(formData.get("language") ?? "en");
   const author = String(formData.get("author") ?? "").trim();
+  const timezone = readIanaTimeZone(formData);
 
   const octokit = await getInstallationOctokit(installation.installationId);
   try {
@@ -827,6 +834,7 @@ export async function saveSettingsAction(
         config.site.title = name;
         config.site.description = description;
         config.site.language = language;
+        if (timezone) config.site.timezone = timezone;
         if (author) config.site.author = author;
         else delete config.site.author;
       },

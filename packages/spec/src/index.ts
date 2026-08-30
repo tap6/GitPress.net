@@ -153,6 +153,7 @@ export interface SiteInfo {
   /** Path prefix (GitHub Pages project sites use "/<repo>/"). */
   basePath?: string;
   author?: string;
+  /** IANA zone for public date display and for interpreting unzoned frontmatter dates. */
   timezone?: string;
   /**
    * Public path to the site logo (typically `/media/logo-….png`). Themes
@@ -289,7 +290,7 @@ export interface ThemeManifest {
  */
 export interface PostFrontmatter {
   title: string;
-  /** ISO 8601 local wall time, e.g. `2026-08-30T14:05:00`. Date-only is still accepted. Missing date = treated as draft by builders. Compared as wall clock in `site.timezone`, not as a UTC instant. */
+  /** ISO 8601 instant, preferably with offset (`2026-08-31T04:00:00+08:00`). Unzoned wall clocks are interpreted in `site.timezone` at build time. Missing date = treated as draft. */
   date?: string;
   updated?: string;
   /** Drafts are excluded from public builds and never leave the private data repo. */

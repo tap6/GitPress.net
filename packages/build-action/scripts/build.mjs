@@ -24,6 +24,7 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { applyAnalyticsSnippet } from "./analytics.mjs";
+import { inferTimeZone, rewritePostDatesInDir } from "./dates.mjs";
 
 const SUPPORTED_SCHEMA_VERSION = 1;
 
@@ -134,6 +135,11 @@ mkdirSync(join(mountContent, "posts"), { recursive: true });
 mkdirSync(join(mountContent, "pages"), { recursive: true });
 if (existsSync(join(dataDir, "content"))) {
   cpSync(join(dataDir, "content"), mountContent, { recursive: true });
+}
+const siteTimeZone = inferTimeZone(config.site);
+const rewritten = rewritePostDatesInDir(join(mountContent, "posts"), siteTimeZone);
+if (rewritten > 0) {
+  log(`Interpreted ${rewritten} unzoned post date(s) as ${siteTimeZone}.`);
 }
 
 const mountMedia = join(themeDir, "public", "media");
