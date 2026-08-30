@@ -871,6 +871,8 @@ export interface BuildRun {
   /** First line of the triggering commit's message — GitHub returns this for
    *  free alongside the run, so we can show *what* was built, not just *when*. */
   commitMessage: string | null;
+  /** GitHub event that started the run (`push`, `schedule`, `workflow_dispatch`). */
+  event: string | null;
   /** Wall-clock seconds the run took, once it has concluded; null while running. */
   durationSeconds: number | null;
 }
@@ -882,11 +884,15 @@ export interface BuildRunsResult {
 }
 
 /** List recent workflow runs for the site dashboard (see the permission note on `dispatchBuild`). */
-export async function listBuildRuns(octokit: Octokit, ref: RepoRef): Promise<BuildRunsResult> {
+export async function listBuildRuns(
+  octokit: Octokit,
+  ref: RepoRef,
+  options: { perPage?: number } = {},
+): Promise<BuildRunsResult> {
   try {
     const { data } = await octokit.request("GET /repos/{owner}/{repo}/actions/runs", {
       ...ref,
-      per_page: 5,
+      per_page: options.perPage ?? 5,
     });
     return {
       runs: data.workflow_runs.map((run) => {
@@ -905,6 +911,7 @@ export async function listBuildRuns(octokit: Octokit, ref: RepoRef): Promise<Bui
           createdAt: run.created_at,
           htmlUrl: run.html_url,
           commitMessage: run.head_commit?.message?.split("\n")[0]?.trim() || null,
+          event: typeof run.event === "string" ? run.event : null,
           durationSeconds,
         };
       }),

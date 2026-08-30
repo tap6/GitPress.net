@@ -2,6 +2,11 @@ import Link from "next/link";
 import { rebuildAction } from "@/lib/actions";
 import { describeBuildTrigger, formatDuration } from "@/lib/buildLabels";
 import {
+  RECENT_BUILD_FETCH_COUNT,
+  groupRecentBuildRuns,
+  scheduledBuildSubtitle,
+} from "@/lib/recentBuilds";
+import {
   GITHUB_ACTIONS_FREE_INCLUDED_MINUTES,
   getInstallationOctokit,
   getInstallationPermissionGap,
@@ -41,7 +46,7 @@ export default async function SiteDashboard({
   const [posts, { runs, actionsPermissionMissing }, permissionGap, usage, scratch, publishCheck] =
     await Promise.all([
       cachedListPosts(installation.installationId, site.dataRepo),
-      listBuildRuns(octokit, splitRepo(site.dataRepo)),
+      listBuildRuns(octokit, splitRepo(site.dataRepo), { perPage: RECENT_BUILD_FETCH_COUNT }),
       getInstallationPermissionGap(installation.installationId),
       cachedActionsUsage({
         installationId: installation.installationId,
@@ -54,6 +59,7 @@ export default async function SiteDashboard({
       loadPublishCheck(octokit, site.dataRepo, site.siteRepo),
     ]);
   const scheduledWhileOff = publishCheck.enabled ? [] : listScheduledPosts(posts);
+  const buildGroups = groupRecentBuildRuns(runs);
   const published = posts.filter((post) => !post.draft).length;
   const drafts = posts.length - published;
   const hasRunningBuild = runs.some((run) => run.conclusion == null);
@@ -249,45 +255,56 @@ export default async function SiteDashboard({
               <p className="text-neutral-400">暂无构建记录。</p>
             ) : (
               <ul className="divide-y divide-neutral-100">
-                {runs.map((run) => (
-                  <li key={run.id} className="flex items-center justify-between gap-3 py-2 first:pt-0 last:pb-0">
-                    <div className="min-w-0">
-                      <p className="truncate font-medium text-neutral-700">
-                        {describeBuildTrigger(run.commitMessage)}
-                      </p>
-                      <a
-                        href={run.htmlUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-xs text-neutral-400 hover:text-wp-accent hover:underline"
-                      >
-                        {new Date(run.createdAt).toLocaleString("zh-CN")}
-                      </a>
-                    </div>
-                    <span
-                      className={`shrink-0 text-xs ${
-                        run.conclusion === "success"
-                          ? "text-emerald-600"
-                          : run.conclusion === "failure"
-                            ? "text-red-600"
-                            : "text-neutral-400"
-                      }`}
+                {buildGroups.map((group) => {
+                  const run = group.latest;
+                  const latestTime = new Date(run.createdAt).toLocaleString("zh-CN");
+                  const timeLabel =
+                    run.event === "schedule"
+                      ? scheduledBuildSubtitle(group, latestTime)
+                      : latestTime;
+                  return (
+                    <li
+                      key={group.key}
+                      className="flex items-center justify-between gap-3 py-2 first:pt-0 last:pb-0"
                     >
-                      {run.conclusion ? (
-                        <>
-                          {RUN_LABEL[run.conclusion] ?? run.conclusion}
-                          {formatDuration(run.durationSeconds) && (
-                            <span className="ml-1 text-neutral-400">
-                              · {formatDuration(run.durationSeconds)}
-                            </span>
-                          )}
-                        </>
-                      ) : (
-                        <RunElapsed createdAt={run.createdAt} />
-                      )}
-                    </span>
-                  </li>
-                ))}
+                      <div className="min-w-0">
+                        <p className="truncate font-medium text-neutral-700">
+                          {describeBuildTrigger(run.commitMessage, run.event)}
+                        </p>
+                        <a
+                          href={run.htmlUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-xs text-neutral-400 hover:text-wp-accent hover:underline"
+                        >
+                          {timeLabel}
+                        </a>
+                      </div>
+                      <span
+                        className={`shrink-0 text-xs ${
+                          run.conclusion === "success"
+                            ? "text-emerald-600"
+                            : run.conclusion === "failure"
+                              ? "text-red-600"
+                              : "text-neutral-400"
+                        }`}
+                      >
+                        {run.conclusion ? (
+                          <>
+                            {RUN_LABEL[run.conclusion] ?? run.conclusion}
+                            {formatDuration(run.durationSeconds) && (
+                              <span className="ml-1 text-neutral-400">
+                                · {formatDuration(run.durationSeconds)}
+                              </span>
+                            )}
+                          </>
+                        ) : (
+                          <RunElapsed createdAt={run.createdAt} />
+                        )}
+                      </span>
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </div>

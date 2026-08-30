@@ -154,17 +154,17 @@ export function BuildStatusBar({ siteId, dataRepo }: Props) {
           )}
           {phase === "building" && (
             <span>
-              ⏳ 正在构建:{describeBuildTrigger(snapshot?.commitMessage ?? null)} · {elapsedSeconds}s
+              ⏳ 正在构建:{describeBuildTrigger(snapshot?.commitMessage ?? null, snapshot?.event)} · {elapsedSeconds}s
               <span className="ml-1 font-normal text-sky-600/80">
                 (预计 60–120 秒 · 已在 GitHub 上运行,可离开本页。再次保存会取消这次、改跑最新一次)
               </span>
             </span>
           )}
           {phase === "success" && (
-            <span>✓ 构建成功:{describeBuildTrigger(snapshot?.commitMessage ?? null)}</span>
+            <span>✓ 构建成功:{describeBuildTrigger(snapshot?.commitMessage ?? null, snapshot?.event)}</span>
           )}
           {phase === "failure" && (
-            <span>✗ 构建失败:{describeBuildTrigger(snapshot?.commitMessage ?? null)}</span>
+            <span>✗ 构建失败:{describeBuildTrigger(snapshot?.commitMessage ?? null, snapshot?.event)}</span>
           )}
           {phase === "unknown" && (
             <span>

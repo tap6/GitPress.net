@@ -132,7 +132,11 @@ export function describeGitChange(commitMessage: string | null): GitChangeDescri
   return described("other", first);
 }
 
-export function describeBuildTrigger(commitMessage: string | null): string {
+export function describeBuildTrigger(
+  commitMessage: string | null,
+  event?: string | null,
+): string {
+  if (event === "schedule") return "定时发布检查";
   if (!commitMessage) return "构建";
   return describeGitChange(commitMessage).label;
 }
