@@ -65,7 +65,7 @@ export default function DraftsAndBuildsHelpPage() {
         <ul className="mt-3 list-disc space-y-2 pl-5 text-sm leading-relaxed text-neutral-600">
           <li>保存文章会立刻构建一次;没到日期时,公开站点仍看不到这篇。</li>
           <li>打开后,GitHub 按你选的间隔自己再构建。某一轮跑的时候日期已经过了,文章才会出现。</li>
-          <li>这是检查间隔,不是对准文章上的那一分钟。到点后最多再等一个间隔;GitHub 忙时还可能再偏一会儿。设置里有各档占用图,也可以按每月写几篇估一下再选。</li>
+          <li>这是检查间隔,不是对准文章上的那一分钟。到点后最多再等一个间隔;GitHub 忙时还可能再偏一会儿。设置里有各档占用图,也可以按每月大概保存几次估一下还剩多少给点保存。打字不耗 Actions。</li>
           <li>改期只改文章日期,不用再改设置。</li>
           <li>关掉之前,要先处理还没到日期的已发布稿(改成现在、改成草稿,或等它们上线)。</li>
         </ul>

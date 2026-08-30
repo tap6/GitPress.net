@@ -1336,7 +1336,7 @@ export async function savePublishCheckAction(
       interval,
       isPrivate: current.dataRepoPrivate,
       otherMinutes: account.otherPrivateMinutes,
-      writingMinutes: 0,
+      saveMinutes: 0,
       otherChecks: account.otherChecks,
     });
     if (projection.percent >= QUOTA_CAUTION_PERCENT && current.dataRepoPrivate) {

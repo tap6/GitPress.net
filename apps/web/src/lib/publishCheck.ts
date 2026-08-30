@@ -5,8 +5,6 @@ export const PUBLISH_CHECK_QUOTA_MINUTES = 2000;
 export const ESTIMATED_MINUTES_PER_SCHEDULED_RUN = 2;
 export const PUBLISH_CHECK_MONTH_DAYS = 30;
 export const DEFAULT_PUBLISH_CHECK_INTERVAL = "2h";
-export const ESTIMATED_SAVES_PER_POST = 2;
-export const DEFAULT_ESTIMATE_POSTS_PER_MONTH = 8;
 /** Stacked account estimate at or above this needs an extra confirm before save. */
 export const QUOTA_CAUTION_PERCENT = 80;
 export const PUBLISH_CHECK_WORKFLOW_PATH = ".github/workflows/gitpress-build.yml";
@@ -95,9 +93,15 @@ export function estimatePublishCheck(id: PublishCheckIntervalId): PublishCheckEs
   };
 }
 
-export function estimateWritingMinutes(postsPerMonth: number): number {
-  const count = Number.isFinite(postsPerMonth) ? Math.max(0, Math.round(postsPerMonth)) : 0;
-  return count * ESTIMATED_SAVES_PER_POST * ESTIMATED_MINUTES_PER_SCHEDULED_RUN;
+export function estimateSaveMinutes(savesPerMonth: number): number {
+  const count = Number.isFinite(savesPerMonth) ? Math.max(0, Math.round(savesPerMonth)) : 0;
+  return count * ESTIMATED_MINUTES_PER_SCHEDULED_RUN;
+}
+
+export function remainingSaveCount(clockMinutes: number, saveMinutes = 0): number {
+  const leftover =
+    Math.round((PUBLISH_CHECK_QUOTA_MINUTES * QUOTA_CAUTION_PERCENT) / 100) - clockMinutes - saveMinutes;
+  return Math.max(0, Math.floor(leftover / ESTIMATED_MINUTES_PER_SCHEDULED_RUN));
 }
 
 export interface OtherPublishCheck {
@@ -110,7 +114,7 @@ export interface OtherPublishCheck {
 export interface QuotaProjection {
   thisMinutes: number;
   otherMinutes: number;
-  writingMinutes: number;
+  saveMinutes: number;
   totalMinutes: number;
   percent: number;
   reasons: string[];
@@ -130,14 +134,14 @@ export function projectQuotaUsage(options: {
   interval: PublishCheckIntervalId | null;
   isPrivate: boolean;
   otherMinutes: number;
-  writingMinutes: number;
+  saveMinutes?: number;
   otherChecks?: OtherPublishCheck[];
   accountUsedMinutes?: number | null;
 }): QuotaProjection {
   const thisMinutes = thisCheckMinutes(options.enabled, options.interval, options.isPrivate);
   const otherMinutes = Math.max(0, options.otherMinutes);
-  const writingMinutes = Math.max(0, options.writingMinutes);
-  const totalMinutes = thisMinutes + otherMinutes + writingMinutes;
+  const saveMinutes = Math.max(0, options.saveMinutes ?? 0);
+  const totalMinutes = thisMinutes + otherMinutes + saveMinutes;
   const percent = Math.round((totalMinutes / PUBLISH_CHECK_QUOTA_MINUTES) * 100);
   const reasons: string[] = [];
   const others = options.otherChecks ?? [];
@@ -153,13 +157,13 @@ export function projectQuotaUsage(options: {
   if (options.accountUsedMinutes != null && options.accountUsedMinutes >= PUBLISH_CHECK_QUOTA_MINUTES * 0.4) {
     reasons.push(`这个帐户本月已经用了约 ${Math.round(options.accountUsedMinutes)} 分钟`);
   }
-  if (writingMinutes >= 80) {
-    reasons.push("按填写的写作量，保存文章本身也会占掉一部分时长");
+  if (saveMinutes >= 80) {
+    reasons.push("按填写的保存次数，点保存本身也会占掉一部分时长");
   }
   if (reasons.length === 0 && percent >= QUOTA_CAUTION_PERCENT) {
     reasons.push("预计占用已经偏高");
   }
-  return { thisMinutes, otherMinutes, writingMinutes, totalMinutes, percent, reasons };
+  return { thisMinutes, otherMinutes, saveMinutes, totalMinutes, percent, reasons };
 }
 
 export function publishCheckConfirmKey(
@@ -170,17 +174,17 @@ export function publishCheckConfirmKey(
 }
 
 /**
- * Tightest practical interval that keeps stacked usage under the caution line.
- * Includes 1h when the account still has room; never auto-picks 15/30 minutes.
+ * Tightest practical interval that keeps checks + optional save budget
+ * under the caution line. Empty save count only subtracts other sites' clocks.
  */
 export function recommendPublishCheckInterval(
-  postsPerMonth: number,
+  savesPerMonth: number | null,
   otherMinutes = 0,
 ): PublishCheckIntervalId {
-  const writeMin = estimateWritingMinutes(postsPerMonth);
+  const saveMin = savesPerMonth == null ? 0 : estimateSaveMinutes(savesPerMonth);
   const clockBudget = Math.max(
     0,
-    Math.round((PUBLISH_CHECK_QUOTA_MINUTES * QUOTA_CAUTION_PERCENT) / 100) - writeMin - otherMinutes,
+    Math.round((PUBLISH_CHECK_QUOTA_MINUTES * QUOTA_CAUTION_PERCENT) / 100) - saveMin - otherMinutes,
   );
   const preferred: PublishCheckIntervalId[] = ["1h", "2h", "3h", "6h", "12h", "24h"];
   for (const id of preferred) {

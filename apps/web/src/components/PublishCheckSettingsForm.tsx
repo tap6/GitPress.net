@@ -5,12 +5,10 @@ import Link from "next/link";
 import { savePublishCheckAction, type SavePublishCheckState } from "@/lib/actions";
 import { ProgressButton } from "@/components/ProgressButton";
 import {
-  DEFAULT_ESTIMATE_POSTS_PER_MONTH,
   DEFAULT_PUBLISH_CHECK_INTERVAL,
   ESTIMATED_MINUTES_PER_SCHEDULED_RUN,
-  ESTIMATED_SAVES_PER_POST,
   estimatePublishCheck,
-  estimateWritingMinutes,
+  estimateSaveMinutes,
   getPublishCheckInterval,
   PUBLISH_CHECK_INTERVALS,
   PUBLISH_CHECK_QUOTA_MINUTES,
@@ -18,6 +16,7 @@ import {
   publishCheckConfirmKey,
   QUOTA_CAUTION_PERCENT,
   recommendPublishCheckInterval,
+  remainingSaveCount,
   SUGGESTED_PUBLISH_CHECK_INTERVAL,
   type OtherPublishCheck,
   type PublishCheckIntervalId,
@@ -70,12 +69,13 @@ export function PublishCheckSettingsForm({
     interval ?? DEFAULT_PUBLISH_CHECK_INTERVAL,
   );
   const [estimatorOpen, setEstimatorOpen] = useState(otherChecks.length > 0);
-  const [postsPerMonth, setPostsPerMonth] = useState(DEFAULT_ESTIMATE_POSTS_PER_MONTH);
+  const [savesInput, setSavesInput] = useState("");
   const [state, formAction] = useActionState<SavePublishCheckState, FormData>(
     savePublishCheckAction,
     {},
   );
-  const writingMinutes = estimateWritingMinutes(postsPerMonth);
+  const savesPerMonth = savesInput.trim() === "" ? null : Math.max(0, Math.round(Number(savesInput) || 0));
+  const saveMinutes = savesPerMonth == null ? 0 : estimateSaveMinutes(savesPerMonth);
   const projection = useMemo(
     () =>
       projectQuotaUsage({
@@ -83,18 +83,21 @@ export function PublishCheckSettingsForm({
         interval: choice,
         isPrivate: dataRepoPrivate,
         otherMinutes: otherPrivateMinutes,
-        writingMinutes,
+        saveMinutes,
         otherChecks,
         accountUsedMinutes,
       }),
-    [accountUsedMinutes, choice, dataRepoPrivate, on, otherChecks, otherPrivateMinutes, writingMinutes],
+    [accountUsedMinutes, choice, dataRepoPrivate, on, otherChecks, otherPrivateMinutes, saveMinutes],
   );
-  const recommended = recommendPublishCheckInterval(postsPerMonth, otherPrivateMinutes);
+  const recommended = recommendPublishCheckInterval(savesPerMonth, otherPrivateMinutes);
+  const clockMinutes = projection.thisMinutes + projection.otherMinutes;
+  const clockPercent = Math.round((clockMinutes / PUBLISH_CHECK_QUOTA_MINUTES) * 100);
+  const savesLeft = remainingSaveCount(clockMinutes);
   const recommendedLabel = intervalLabel(recommended);
   const selectedMeta = PUBLISH_CHECK_INTERVALS.find((item) => item.id === choice);
   const multiSite = sameAccountSiteCount > 1;
   const showQuota = dataRepoPrivate;
-  const overCaution = showQuota && on && projection.percent >= QUOTA_CAUTION_PERCENT;
+  const overCaution = showQuota && on && clockPercent >= QUOTA_CAUTION_PERCENT;
   const currentConfirmKey = publishCheckConfirmKey(on, on ? choice : null);
   const showConfirm = Boolean(state.needsConfirm && state.confirmKey === currentConfirmKey);
 
@@ -184,19 +187,19 @@ export function PublishCheckSettingsForm({
             </li>
             <li>
               <span className="font-medium text-neutral-800">检查会一直跑。</span>
-              打开后按间隔构建，不随这个月写几篇变少。
+              打开后按间隔构建。打字不耗时长，点保存才耗。
             </li>
             <li>
               <span className="font-medium text-neutral-800">
-                每次约 {ESTIMATED_MINUTES_PER_SCHEDULED_RUN} 分钟
+                每次构建约 {ESTIMATED_MINUTES_PER_SCHEDULED_RUN} 分钟
               </span>
-              ，多站共用同一帐户额度。能接受更粗的延迟，就能给写文章留更多时长。
+              ，多站共用同一帐户额度。能接受更粗的延迟，就能给点保存留更多时长。
             </li>
           </ul>
 
           {showQuota && (
             <div>
-              <p className="text-[11px] font-medium text-neutral-600">帐户合计（本站检查 + 其他站 + 写作预估）</p>
+              <p className="text-[11px] font-medium text-neutral-600">帐户检查合计（本站 + 其他站）</p>
               <div className="mt-1.5 h-2.5 overflow-hidden rounded-full bg-neutral-200/80">
                 <div className="flex h-full">
                   {projection.otherMinutes > 0 && (
@@ -218,17 +221,6 @@ export function PublishCheckSettingsForm({
                       }}
                     />
                   )}
-                  {projection.writingMinutes > 0 && (
-                    <span
-                      className="h-full bg-sky-400"
-                      style={{
-                        width: `${Math.min(
-                          8,
-                          (projection.writingMinutes / PUBLISH_CHECK_QUOTA_MINUTES) * 100,
-                        )}%`,
-                      }}
-                    />
-                  )}
                 </div>
               </div>
               <p
@@ -236,10 +228,11 @@ export function PublishCheckSettingsForm({
                   overCaution ? "text-amber-800" : "text-neutral-500"
                 }`}
               >
-                约 {formatMinutes(projection.totalMinutes)} / {PUBLISH_CHECK_QUOTA_MINUTES}，占{" "}
-                <span className="font-medium">{projection.percent}%</span>
-                {projection.otherMinutes > 0 ? "（灰=其他站，强调色=本站，蓝=写作）" : "（强调色=本站检查，蓝=写作）"}
-                {overCaution ? `。已超过 ${QUOTA_CAUTION_PERCENT}%，保存前会请你确认。` : "。"}
+                检查约 {formatMinutes(clockMinutes)} / {PUBLISH_CHECK_QUOTA_MINUTES}，占{" "}
+                <span className="font-medium">{clockPercent}%</span>
+                {projection.otherMinutes > 0 ? "（灰=其他站，强调色=本站）" : ""}
+                。按 80% 留一点给点保存，大约还能再保存 {savesLeft} 次。
+                {overCaution ? ` 已超过 ${QUOTA_CAUTION_PERCENT}%，保存设置前会请你确认。` : ""}
               </p>
             </div>
           )}
@@ -256,7 +249,6 @@ export function PublishCheckSettingsForm({
                   interval: item.id,
                   isPrivate: dataRepoPrivate,
                   otherMinutes: otherPrivateMinutes,
-                  writingMinutes,
                   otherChecks,
                 });
                 const selected = item.id === choice;
@@ -309,46 +301,63 @@ export function PublishCheckSettingsForm({
               className="flex w-full items-center justify-between px-3 py-2 text-left text-xs font-medium text-neutral-700"
               aria-expanded={estimatorOpen}
             >
-              <span>按写作量和其它站点估一下</span>
+              <span>按保存次数估一下还剩多少</span>
               <span className="text-neutral-400">{estimatorOpen ? "收起" : "展开"}</span>
             </button>
             {estimatorOpen && (
               <div className="space-y-3 border-t border-neutral-100 px-3 py-3 text-xs leading-relaxed text-neutral-600">
                 <label className="block">
-                  <span className="text-neutral-500">这个站每月大约写几篇</span>
+                  <span className="text-neutral-500">
+                    这个站每月大概会点多少次保存？（改稿再存也算。打字、本地底稿不算。可留空。）
+                  </span>
                   <input
                     type="number"
                     min={0}
-                    max={999}
-                    value={postsPerMonth}
-                    onChange={(event) => setPostsPerMonth(Number(event.target.value) || 0)}
+                    max={9999}
+                    value={savesInput}
+                    onChange={(event) => setSavesInput(event.target.value)}
+                    placeholder="例如 20"
                     className="mt-1 w-28 rounded border border-neutral-300 px-2 py-1.5"
                   />
                 </label>
                 <p>
-                  保存大约{" "}
-                  <span className="font-medium text-neutral-800">{formatMinutes(writingMinutes)}</span>
-                  （每篇按 {ESTIMATED_SAVES_PER_POST} 次、每次约 {ESTIMATED_MINUTES_PER_SCHEDULED_RUN}{" "}
-                  分钟）。篇数几乎只影响保存，检查是固定开销。
+                  日常保存
+                  {savesPerMonth == null ? (
+                    <>：没填次数就不估这一笔。打字不耗 Actions。</>
+                  ) : (
+                    <>
+                      ：{savesPerMonth} 次 × 约 {ESTIMATED_MINUTES_PER_SCHEDULED_RUN} 分钟 ≈{" "}
+                      <span className="font-medium text-neutral-800">{formatMinutes(saveMinutes)}</span>
+                    </>
+                  )}
                 </p>
                 <p>
-                  本站检查 {formatMinutes(projection.thisMinutes)}
+                  各站检查：本站 {formatMinutes(projection.thisMinutes)}
                   {projection.otherMinutes > 0
                     ? ` + 其他站 ${formatMinutes(projection.otherMinutes)}`
                     : ""}
-                  {` + 写作 ${formatMinutes(projection.writingMinutes)} ≈ `}
-                  <span className="font-medium text-neutral-800">
-                    {formatMinutes(projection.totalMinutes)}
-                  </span>
-                  {showQuota ? `，约占 ${projection.percent}%。` : "。"}
+                  {` = ${formatMinutes(clockMinutes)}`}
+                  {showQuota
+                    ? `，约占 ${Math.round((clockMinutes / PUBLISH_CHECK_QUOTA_MINUTES) * 100)}%。`
+                    : "。"}
+                </p>
+                <p>
+                  按 80% 给点保存留余量，当前检查档大约还能再保存{" "}
+                  <span className="font-medium text-neutral-800">{savesLeft} 次</span>。
+                  {savesPerMonth != null && savesPerMonth > savesLeft
+                    ? " 你填的次数已经多于这个余量，建议换更宽的间隔。"
+                    : ""}
                   {accountUsedMinutes != null
-                    ? ` 帐户本月已用约 ${Math.round(accountUsedMinutes)} 分钟（和上面的整月预估不是同一笔账）。`
+                    ? ` 帐户本月已用约 ${Math.round(accountUsedMinutes)} 分钟（和整月预估不是同一笔账）。`
                     : ""}
                 </p>
                 <p>
-                  按这个帐户池，建议选{" "}
-                  <span className="font-medium text-neutral-800">{recommendedLabel}</span>
-                  。有余量就会建议到 1 小时；其他站已经占了很多时，会自动放宽，把时长留给写文章。
+                  {savesPerMonth == null
+                    ? "没填保存次数时，只按各站检查来建议。"
+                    : "建议会先扣掉你填的保存次数，再看检查还能开多密。"}{" "}
+                  有余量可以到 1 小时；其他站已经占了很多，或你保存很勤，就会放宽。
+                  当前建议{" "}
+                  <span className="font-medium text-neutral-800">{recommendedLabel}</span>。
                 </p>
                 {recommended !== choice && (
                   <button
