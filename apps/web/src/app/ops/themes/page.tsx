@@ -7,6 +7,7 @@ import {
 } from "@/lib/opsActions";
 import { listingStatusLabel, listAllThemeListings } from "@/lib/themeCatalog";
 import { githubThemePageUrl, parseGithubThemeSource } from "@/lib/themeSource";
+import { ThemePreviewImage } from "@/components/ThemePreviewImage";
 import { BUILTIN_THEMES } from "@/lib/themes";
 
 export const metadata = { title: "主题商店" };
@@ -25,10 +26,13 @@ export default async function OpsThemesPage() {
         <h2 className="text-sm font-semibold text-slate-800">内置主题</h2>
         <ul className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {BUILTIN_THEMES.map((theme) => (
-            <li key={theme.name} className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-              <p className="font-medium">{theme.displayName}</p>
-              <p className="mt-1 font-mono text-[11px] text-slate-400">{theme.name}</p>
-              <p className="mt-2 text-xs text-slate-500">{theme.description}</p>
+            <li key={theme.name} className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+              <ThemePreviewImage src={theme.previewSrc} alt={`${theme.displayName} 预览`} className="h-24" />
+              <div className="p-4">
+                <p className="font-medium">{theme.displayName}</p>
+                <p className="mt-1 font-mono text-[11px] text-slate-400">{theme.name}</p>
+                <p className="mt-2 text-xs text-slate-500">{theme.description}</p>
+              </div>
             </li>
           ))}
         </ul>

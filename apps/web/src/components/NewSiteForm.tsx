@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react";
 import { createSiteAction, type CreateSiteState } from "@/lib/actions";
 import { ProgressButton } from "@/components/ProgressButton";
+import { ThemePreviewImage } from "@/components/ThemePreviewImage";
 import type { BuiltinTheme } from "@/lib/themes";
 
 interface Props {
@@ -106,30 +107,7 @@ export function NewSiteForm({ installations, themes, connectMoreUrl }: Props) {
                   : "border-neutral-200 hover:border-neutral-300"
               }`}
             >
-              {/* mini preview */}
-              <div
-                className="h-32 p-4"
-                style={{ backgroundColor: theme.palette.bg, color: theme.palette.fg }}
-              >
-                <p
-                  className={`text-sm font-bold ${theme.serif ? "font-serif" : ""}`}
-                  style={{ color: theme.palette.fg }}
-                >
-                  {theme.displayName} Blog
-                </p>
-                <div
-                  className="mt-2 h-1.5 w-3/4 rounded"
-                  style={{ backgroundColor: theme.palette.accent }}
-                />
-                <div
-                  className="mt-2 h-1.5 w-full rounded opacity-40"
-                  style={{ backgroundColor: theme.palette.muted }}
-                />
-                <div
-                  className="mt-1.5 h-1.5 w-5/6 rounded opacity-40"
-                  style={{ backgroundColor: theme.palette.muted }}
-                />
-              </div>
+              <ThemePreviewImage src={theme.previewSrc} alt={`${theme.displayName} 预览`} className="h-32" />
               <div className="border-t border-neutral-100 bg-white p-3">
                 <p className="text-sm font-semibold">{theme.displayName}</p>
                 <p className="mt-0.5 text-xs text-neutral-400">{theme.description}</p>

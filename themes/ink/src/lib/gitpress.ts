@@ -103,6 +103,8 @@ export const themeConfig = {
   showTitle: true,
   showTagline: true,
   showSearch: true,
+  showListTime: false,
+  showPostTime: true,
   ...(gitpress.theme?.config ?? {}),
 } as {
   accentColor: string;
@@ -112,6 +114,8 @@ export const themeConfig = {
   showTitle: boolean;
   showTagline: boolean;
   showSearch: boolean;
+  showListTime: boolean;
+  showPostTime: boolean;
 } & Record<string, unknown>;
 
 export type Post = CollectionEntry<"posts">;
@@ -152,17 +156,24 @@ export function postSlug(post: Post | Page): string {
   return post.data.slug ?? post.id;
 }
 
-export function formatDate(date: Date | undefined): string {
+export function formatDate(date: Date | undefined, withTime = false): string {
   if (!date) return "";
   return new Intl.DateTimeFormat(gitpress.site.language ?? "en", {
     year: "numeric",
     month: "long",
     day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false,
+    ...(withTime
+      ? { hour: "2-digit" as const, minute: "2-digit" as const, second: "2-digit" as const, hour12: false }
+      : {}),
   }).format(date);
+}
+
+export function formatListDate(date: Date | undefined): string {
+  return formatDate(date, themeConfig.showListTime === true);
+}
+
+export function formatPostDate(date: Date | undefined): string {
+  return formatDate(date, themeConfig.showPostTime !== false);
 }
 
 /** Prefix a root-relative path with the site base path. */

@@ -1,9 +1,10 @@
 import { applyCatalogThemeAction, saveThemeOptionsAction, switchThemeAction } from "@/lib/actions";
 import { ProgressButton } from "@/components/ProgressButton";
 import { ThemeImportForm } from "@/components/ThemeImportForm";
+import { ThemePreviewImage } from "@/components/ThemePreviewImage";
 import { cachedSiteConfig } from "@/lib/siteDataCache";
 import { listListedThemeCatalog } from "@/lib/themeCatalog";
-import { fetchGithubThemeManifest } from "@/lib/themeSource";
+import { fetchGithubThemeManifest, githubThemePreviewUrl } from "@/lib/themeSource";
 import { BUILTIN_THEMES, getBuiltinTheme, themeOptionLabel } from "@/lib/themes";
 import { requireSite } from "@/lib/sites";
 
@@ -54,26 +55,7 @@ export default async function AppearancePage({
                 active ? "border-wp-accent" : "border-neutral-200"
               }`}
             >
-              <div
-                className="h-36 p-4"
-                style={{ backgroundColor: theme.palette.bg, color: theme.palette.fg }}
-              >
-                <p className={`text-sm font-bold ${theme.serif ? "font-serif" : ""}`}>
-                  {theme.displayName} Blog
-                </p>
-                <div
-                  className="mt-2 h-1.5 w-3/4 rounded"
-                  style={{ backgroundColor: theme.palette.accent }}
-                />
-                <div
-                  className="mt-2 h-1.5 w-full rounded opacity-40"
-                  style={{ backgroundColor: theme.palette.muted }}
-                />
-                <div
-                  className="mt-1.5 h-1.5 w-5/6 rounded opacity-40"
-                  style={{ backgroundColor: theme.palette.muted }}
-                />
-              </div>
+              <ThemePreviewImage src={theme.previewSrc} alt={`${theme.displayName} 预览`} />
               <div className="border-t border-neutral-100 p-4">
                 <p className="text-sm font-semibold">{theme.displayName}</p>
                 <p className="mt-0.5 text-xs text-neutral-400">{theme.description}</p>
@@ -115,12 +97,14 @@ export default async function AppearancePage({
                     active ? "border-wp-accent" : "border-neutral-200"
                   }`}
                 >
-                  <div className="border-b border-neutral-100 bg-neutral-50 px-4 py-3">
+                  <ThemePreviewImage
+                    src={githubThemePreviewUrl(listing.source)}
+                    alt={`${listing.displayName} 预览`}
+                  />
+                  <div className="border-t border-neutral-100 p-4">
                     <p className="text-sm font-semibold">{listing.displayName}</p>
                     <p className="mt-0.5 font-mono text-[11px] text-neutral-400">{listing.name}</p>
-                  </div>
-                  <div className="p-4">
-                    <p className="text-xs text-neutral-500">{listing.description || "社区主题"}</p>
+                    <p className="mt-0.5 text-xs text-neutral-500">{listing.description || "社区主题"}</p>
                     <p className="mt-2 truncate font-mono text-[10px] text-neutral-400" title={listing.source}>
                       {listing.source}
                     </p>

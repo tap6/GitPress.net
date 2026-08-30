@@ -2,7 +2,7 @@
 import type { GetStaticPaths, Page } from "astro";
 import Base from "../layouts/Base.astro";
 import Pagination from "../components/Pagination.astro";
-import { getPublishedPosts, postSlug, themeConfig, withBase, postsPerPage, type Post } from "../lib/gitpress";
+import { formatListDate, getPublishedPosts, postSlug, themeConfig, withBase, postsPerPage, type Post } from "../lib/gitpress";
 
 // A rest parameter (`[...page]`) matches both `/` (page undefined -> page 1)
 // and `/2`, `/3`, ... — this is Astro's documented pattern for making the
@@ -17,11 +17,6 @@ interface Props {
 }
 
 const { page } = Astro.props;
-
-function shortDate(date: Date | undefined): string {
-  if (!date) return "";
-  return date.toISOString().slice(0, 10);
-}
 ---
 
 <Base>
@@ -29,7 +24,7 @@ function shortDate(date: Date | undefined): string {
   {
     page.data.map((post) => (
       <article class="post-item">
-        <p class="post-meta">{shortDate(post.data.date)}</p>
+        <p class="post-meta">{formatListDate(post.data.date)}</p>
         <h2>
           <a href={withBase(`/posts/${postSlug(post)}/`)}>{post.data.title}</a>
         </h2>

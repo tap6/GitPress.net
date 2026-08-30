@@ -6,6 +6,14 @@ const nextConfig: NextConfig = {
     ignoreDuringBuilds: true,
   },
   outputFileTracingRoot: path.join(__dirname, "../.."),
+  outputFileTracingIncludes: {
+    "/theme-previews/[name]": [
+      "../../themes/classic/preview.svg",
+      "../../themes/minimal/preview.svg",
+      "../../themes/ink/preview.svg",
+      "../../themes/quill/preview.svg",
+    ],
+  },
   experimental: {
     // Client navigations reuse RSC payloads for 3 minutes so admin tab
     // switches don't re-hit GitHub. Mutations still call revalidateTag.

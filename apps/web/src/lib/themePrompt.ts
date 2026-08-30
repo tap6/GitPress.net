@@ -9,7 +9,7 @@ GitPress 是 Git 原生博客平台:内容在用户的 GitHub 数据仓库,主�
 
 ## 你必须遵守的约定
 
-1. 主题根目录有 theme.json: specVersion 为 1, engine 为 "astro", name 为小写短标识(如 "aurora"), version 为主题自身的 semver。推荐提供 configSchema(JSON Schema),后台「外观」页会按它生成表单;不是硬性必填,但没有就无法在后台调选项。
+1. 主题根目录有 theme.json: specVersion 为 1, engine 为 "astro", name 为小写短标识(如 "aurora"), version 为主题自身的 semver。推荐提供 configSchema(JSON Schema),后台「外观」页会按它生成表单;不是硬性必填,但没有就无法在后台调选项。推荐提供 preview 指向包内预览图(通常是 preview.svg),GitPress.net 外观页和创建站点时会显示。
 2. 普通 Astro 项目,可通过 \`npx astro build\` 构建。astro.config 的 site / base 必须读取 gitpress.config.json 里的 site.url 与 site.basePath(GitHub Pages 项目站 base 是 "/仓库名/")。
 3. 构建时这些挂载点不可改、也不要在文档里让我手动复制:
    - 数据仓库 gitpress.json → 主题内 gitpress.config.json
@@ -47,6 +47,7 @@ slug 缺省由文件名推导。未知 frontmatter 键用 .passthrough() 原样�
 - 若存在 site.nav,顶栏必须严格按该数组渲染(type: home | rss | category | page | link),用每项可选的 label 覆盖显示名;不要再额外拼接分类或页面。
 - 若没有 site.nav,隐式顶栏 = 首页 + inNav 不为 false 的分类 + 全部独立页面(按 title 字母序)。首页缺省文案随 site.language:中文「首页」、日文「ホーム」、其它 "Home"。
 - 顶栏末尾加一项「搜索」,链到 /search/;由 theme.config.showSearch 控制,缺省 true。不要把它做成 site.nav 的一种 type。缺省文案:中文「搜索」、日文「検索」、其它 "Search"。/search/ 页始终生成,关掉的只是顶栏入口。
+- 日期显示年月日必须有。时分秒用 theme.config.showListTime(列表,默认关)和 showPostTime(文章页,默认开)。JSON-LD / article:published_time 仍用 ISO。
 - 不要把 RSS 放进默认顶栏。<head> 始终保留 <link rel="alternate" type="application/rss+xml" href="…/rss.xml">,/rss.xml 始终生成。
 - 若存在 site.footer,页脚必须严格按该数组渲染(type: copyright | gitpress | theme | rss | page | link | text)。copyright 默认「© {year} 站点名」,不要用 GitHub 用户名;{year} 构建时替换。gitpress 链到 https://gitpress.net(rel=generator)。theme 链到本主题 theme.json 的 homepage(没有 homepage 则跳过该槽)。rss 链到 /rss.xml。自定义只有 page / link / text。不认识的 type:有 url+label 当外链,只有 label 当纯文本,否则跳过。
 - 若没有 site.footer,默认页脚 = 版权 + GitPress + 主题署名(有 homepage 时) + RSS。每一项站长都可以关掉。
@@ -79,6 +80,8 @@ JSON Schema 会出现在 GitPress 后台「外观」页。请提供并在布局�
 - showTitle (boolean, 默认 true)
 - showTagline (boolean, 默认 true)
 - showSearch (boolean, 默认 true)
+- showListTime (boolean, 默认 false;列表只保证年月日,打开才带时分秒)
+- showPostTime (boolean, 默认 true;文章页年月日必须有,打开才带时分秒)
 - 再加上这个主题真正需要的选项(如 accentColor format:color、showExcerpts、暗色模式等)
 
 有 logo 且 showLogo 时显示图片;showTitle 为 true(或没有 logo)时显示站点名。没有对应文件就不要渲染空 img。

@@ -1,6 +1,6 @@
 ---
 import Base from "../../layouts/Base.astro";
-import { getPublishedPosts, postSlug, formatDate, withBase } from "../../lib/gitpress";
+import { getPublishedPosts, postSlug, formatListDate, withBase } from "../../lib/gitpress";
 
 const posts = await getPublishedPosts();
 const byYear = new Map<string, typeof posts>();
@@ -23,7 +23,7 @@ const years = [...byYear.entries()];
         <ul>
           {yearPosts.map((post) => (
             <li>
-              <span class="archive-date">{formatDate(post.data.date)}</span>
+              <span class="archive-date">{formatListDate(post.data.date)}</span>
               <a href={withBase(`/posts/${postSlug(post)}/`)}>{post.data.title}</a>
             </li>
           ))}

@@ -1,5 +1,5 @@
 ---
-import { formatDate, postSlug, readingTime, themeConfig, withBase, type Post } from "../lib/gitpress";
+import { formatListDate, postSlug, readingTime, themeConfig, withBase, type Post } from "../lib/gitpress";
 
 interface Props {
   post: Post;
@@ -13,7 +13,7 @@ const minutes = readingTime(post.body ?? "");
   {post.data.cover && <img class="post-card-cover" src={withBase(post.data.cover)} alt="" loading="lazy" />}
   <div class="post-card-body">
     <p class="post-meta">
-      {formatDate(post.data.date)}
+      {formatListDate(post.data.date)}
       {themeConfig.showReadingTime && <span> · {minutes} min read</span>}
     </p>
     <h2>

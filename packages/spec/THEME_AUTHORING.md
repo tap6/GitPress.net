@@ -4,7 +4,7 @@
 
 ## 最低要求
 
-1. 根目录有 `theme.json`(见 `schemas/theme.schema.json`):`specVersion` 为 `1`,`engine` 为 `"astro"`,`name` 为小写短标识,`version` 为主题自身的 semver。`configSchema` 推荐提供(后台「外观」页按它生成表单),但不是硬性必填。
+1. 根目录有 `theme.json`(见 `schemas/theme.schema.json`):`specVersion` 为 `1`,`engine` 为 `"astro"`,`name` 为小写短标识,`version` 为主题自身的 semver。`configSchema` 推荐提供(后台「外观」页按它生成表单),但不是硬性必填。`preview` 指向包内预览图(推荐 `preview.svg`),GitPress.net 外观页和创建站点时会显示。
 2. 普通 Astro 项目:`package.json` 能 `npx astro build`。
 3. 构建时 GitPress Action 会把数据仓库挂进主题项目,路径不可改:
 
@@ -66,6 +66,8 @@
 
 顶栏末尾加一项「搜索」,链到 `/search/`,由 `theme.config.showSearch` 控制,缺省 true。不要把它做成 `site.nav` 的一种 type。缺省文案随语言:中文「搜索」、日文「検索」、其它 “Search”。`/search/` 页始终生成,关掉的只是顶栏入口。
 
+日期显示年月日必须有。时分秒做成主题选项:`showListTime` 管列表(首页/分类/标签/归档,默认关),`showPostTime` 管文章页(默认开)。JSON-LD 和 `article:published_time` 仍用 ISO,不要跟这两个开关走。
+
 `site.nav` 里每一项都可以有 `label` 覆盖显示名。首页缺省文案:中文「首页」、日文「ホーム」、其它 “Home”。菜单里指向已改名/删除的页面时跳过该项。
 
 页脚系统槽:`copyright`(默认 `© {year} {site.title}`,不要用 GitHub 用户名)、`gitpress`(链到 https://gitpress.net,`rel="generator"`)、`theme`(链到本主题 `theme.json` 的 `homepage`,没有 homepage 则跳过)、`rss`。自定义只有 `page` / `link` / `text`。不认识的 type:有 url+label 当外链,只有 label 当纯文本。`theme.json` 请提供 `homepage`(开源仓库或介绍页)。公安备案用盾牌图标,文案「公网安备 {号}号」,查询链 `https://beian.mps.gov.cn/#/query/webSearch?recordcode={号}`;ICP 链 `https://beian.miit.gov.cn/`。`{year}` 在 copyright **和** text 槽都要替换。
@@ -99,6 +101,8 @@
 - `showTitle`(boolean,默认 true)
 - `showTagline`(boolean,默认 true)
 - `showSearch`(boolean,默认 true)
+- `showListTime`(boolean,默认 false;列表年月日必有,时分秒可关)
+- `showPostTime`(boolean,默认 true;文章页年月日必有,时分秒可关)
 - 以及主题自己真正在用的东西(`accentColor`、`showExcerpts`、暗色模式等)
 
 boolean 渲染为开关,`format: "color"` 渲染为取色器,带 `enum` 的字符串渲染为下拉框。

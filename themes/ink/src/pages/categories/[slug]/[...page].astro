@@ -5,7 +5,7 @@ import Pagination from "../../../components/Pagination.astro";
 import {
   getPostsByCategory,
   postSlug,
-  formatDate,
+  formatListDate,
   withBase,
   postsPerPage,
   siteCategories,
@@ -37,7 +37,7 @@ const { page } = Astro.props;
   {
     page.data.map((post) => (
       <article class="post-item">
-        <p class="post-meta">{formatDate(post.data.date)}</p>
+        <p class="post-meta">{formatListDate(post.data.date)}</p>
         <h2>
           <a href={withBase(`/posts/${postSlug(post)}/`)}>{post.data.title}</a>
         </h2>

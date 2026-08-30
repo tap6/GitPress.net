@@ -55,6 +55,16 @@
         "type": "boolean",
         "default": true,
         "description": "Show a Search link in the header."
+      },
+      "showListTime": {
+        "type": "boolean",
+        "default": false,
+        "description": "Show hours, minutes and seconds next to the date in post lists."
+      },
+      "showPostTime": {
+        "type": "boolean",
+        "default": true,
+        "description": "Show hours, minutes and seconds next to the date on the post page."
       }
     },
     "additionalProperties": true

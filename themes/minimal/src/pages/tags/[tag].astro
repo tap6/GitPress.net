@@ -1,6 +1,6 @@
 ---
 import Base from "../../layouts/Base.astro";
-import { getPublishedPosts, postSlug, formatDate, withBase, type Post } from "../../lib/gitpress";
+import { getPublishedPosts, postSlug, formatListDate, withBase, type Post } from "../../lib/gitpress";
 
 export async function getStaticPaths() {
   const posts = await getPublishedPosts();
@@ -31,7 +31,7 @@ const { tag, posts } = Astro.props;
   {
     posts.map((post) => (
       <article class="post-item">
-        <p class="post-meta">{formatDate(post.data.date)}</p>
+        <p class="post-meta">{formatListDate(post.data.date)}</p>
         <h2>
           <a href={withBase(`/posts/${postSlug(post)}/`)}>{post.data.title}</a>
         </h2>

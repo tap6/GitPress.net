@@ -3,7 +3,7 @@ import { render } from "astro:content";
 import Base from "../../layouts/Base.astro";
 import {
   commentsEnabled,
-  formatDate,
+  formatPostDate,
   getPublishedPosts,
   giscusEmbed,
   gitpress,
@@ -58,7 +58,7 @@ const showComments = commentsEnabled();
     <div data-pagefind-body>
       <header class="article-header">
         <p class="post-meta">
-          {formatDate(post.data.date)}
+          {formatPostDate(post.data.date)}
           {themeConfig.showReadingTime && <span> · {minutes} min read</span>}
           {post.data.draft && " · DRAFT"}
         </p>

@@ -99,12 +99,31 @@ export interface RemoteThemeManifest {
   displayName?: string;
   description?: string;
   engine?: string;
+  preview?: string;
   configSchema?: ThemeConfigSchema;
 }
 
+function githubRawFileUrl(ref: GithubThemeRef, filePath: string): string | null {
+  const file = filePath.replace(/^\/+/, "").trim();
+  if (!file || file.includes("..") || file.includes("\\") || file.includes("\0")) return null;
+  const full = ref.subdir ? `${ref.subdir}/${file}` : file;
+  if (full.split("/").some((segment) => segment === "..")) return null;
+  return `https://raw.githubusercontent.com/${ref.owner}/${ref.repo}/${ref.ref}/${full}`;
+}
+
 function themeJsonUrl(ref: GithubThemeRef): string {
-  const path = ref.subdir ? `${ref.subdir}/theme.json` : "theme.json";
-  return `https://raw.githubusercontent.com/${ref.owner}/${ref.repo}/${ref.ref}/${path}`;
+  return githubRawFileUrl(ref, "theme.json") ?? "";
+}
+
+/** Public raw URL for a file inside a GitHub theme package (preview.svg, etc.). */
+export function githubThemeFileUrl(source: string, filePath: string): string | null {
+  const ref = parseGithubThemeSource(source);
+  if (!ref) return null;
+  return githubRawFileUrl(ref, filePath);
+}
+
+export function githubThemePreviewUrl(source: string, previewPath?: string): string | null {
+  return githubThemeFileUrl(source, previewPath?.trim() || "preview.svg");
 }
 
 export async function fetchGithubThemeManifest(source: string): Promise<RemoteThemeManifest | null> {

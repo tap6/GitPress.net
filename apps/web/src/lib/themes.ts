@@ -8,9 +8,9 @@
  * configSchema, including future community/AI-generated themes, without a
  * platform code change every time a theme adds an option.
  *
- * `palette`/`serif`/the Chinese `description` below are platform-only
- * presentation metadata (theme picker preview cards) that has no equivalent
- * in the open spec, so it stays hand-maintained here.
+ * The Chinese `description` below is platform-only presentation copy for the
+ * picker cards. The preview image itself comes from each theme's `preview`
+ * field (usually `preview.svg`).
  */
 import classicManifest from "../../../../themes/classic/theme.json";
 import minimalManifest from "../../../../themes/minimal/theme.json";
@@ -35,42 +35,25 @@ export interface BuiltinTheme {
   name: string;
   displayName: string;
   description: string;
-  /** Colors used to render the picker preview card. */
-  palette: { bg: string; fg: string; accent: string; muted: string };
-  serif: boolean;
+  /** Relative path inside the theme package, from theme.json `preview`. */
+  preview: string;
+  /** Admin picker URL served from /theme-previews/{name}. */
+  previewSrc: string;
   configSchema: ThemeConfigSchema;
 }
 
-const PRESENTATION: Record<
-  string,
-  { description: string; palette: BuiltinTheme["palette"]; serif: boolean }
-> = {
-  classic: {
-    description: "温暖的衬线字体、居中版式,经典博客气质。",
-    palette: { bg: "#faf8f5", fg: "#2c2620", accent: "#a85a2a", muted: "#8a7f72" },
-    serif: true,
-  },
-  minimal: {
-    description: "留白充分、以排版为先的极简风格。",
-    palette: { bg: "#ffffff", fg: "#1a1a1a", accent: "#2563eb", muted: "#9a9a9a" },
-    serif: false,
-  },
-  ink: {
-    description: "暗色卡片式杂志风,适合夜猫子。",
-    palette: { bg: "#0e1013", fg: "#e8e6e3", accent: "#f59e0b", muted: "#8b8f98" },
-    serif: false,
-  },
-  quill: {
-    description: "卡片式列表、标签、阅读时长,一键切换浅色/深色。",
-    palette: { bg: "#fafafa", fg: "#17171a", accent: "#5b5bd6", muted: "#6b6b76" },
-    serif: false,
-  },
+const PRESENTATION: Record<string, { description: string }> = {
+  classic: { description: "温暖的衬线字体、居中版式,经典博客气质。" },
+  minimal: { description: "留白充分、以排版为先的极简风格。" },
+  ink: { description: "暗色卡片式杂志风,适合夜猫子。" },
+  quill: { description: "卡片式列表、标签、阅读时长,一键切换浅色/深色。" },
 };
 
 /** Loosely-typed shape of theme.json — just enough for this registry. */
 interface ThemeManifestJson {
   displayName?: string;
   description?: string;
+  preview?: string;
   configSchema?: ThemeConfigSchema;
 }
 
@@ -87,8 +70,8 @@ export const BUILTIN_THEMES: BuiltinTheme[] = Object.entries(MANIFESTS).map(([na
     name,
     displayName: manifest.displayName ?? name,
     description: presentation?.description ?? manifest.description ?? "",
-    palette: presentation?.palette ?? { bg: "#ffffff", fg: "#1a1a1a", accent: "#2563eb", muted: "#9a9a9a" },
-    serif: presentation?.serif ?? false,
+    preview: manifest.preview?.trim() || "preview.svg",
+    previewSrc: `/theme-previews/${name}`,
     configSchema: manifest.configSchema ?? {},
   };
 });
@@ -113,6 +96,8 @@ const KNOWN_OPTION_LABELS: Record<string, string> = {
   showTitle: "显示站点名称",
   showTagline: "显示站点简介",
   showSearch: "显示搜索",
+  showListTime: "列表显示时分秒",
+  showPostTime: "文章页显示时分秒",
 };
 
 export function themeOptionLabel(key: string, property: ThemeConfigProperty): string {
