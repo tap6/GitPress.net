@@ -1,5 +1,5 @@
 import type { Octokit } from "octokit";
-import { defaultAboutTitle, languageBase } from "./locale";
+import { defaultAboutTitle, defaultTimeZone, languageBase } from "./locale";
 import {
   addDeployKey,
   createRepository,
@@ -99,6 +99,7 @@ export async function provisionSite(input: ProvisionInput): Promise<ProvisionRes
             title: site.name,
             description: site.description,
             language: site.language,
+            timezone: defaultTimeZone(site.language),
             url: pagesUrl,
             basePath,
             ...(site.author ? { author: site.author } : {}),

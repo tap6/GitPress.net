@@ -41,7 +41,7 @@ export default function DraftsAndBuildsHelpPage() {
           <div>
             <dt className="font-medium text-neutral-800">已发布</dt>
             <dd className="mt-1">
-              同样写入私有仓并触发构建。日期已到的文章会出现在公开网站。日期还在未来的,构建时仍会排除。
+              同样写入私有仓并触发构建。日期已到的文章会出现在公开网站。日期还在未来的,构建时仍会排除。比较用的是站点时区的墙钟(中文站是北京时间),不是 GitHub Actions 的 UTC。
             </dd>
           </div>
         </dl>
