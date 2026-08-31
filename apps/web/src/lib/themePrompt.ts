@@ -51,7 +51,7 @@ slug 缺省由文件名推导。未知 frontmatter 键用 .passthrough() 原样�
 - 不要把 RSS 放进默认顶栏。<head> 始终保留 <link rel="alternate" type="application/rss+xml" href="…/rss.xml">,/rss.xml 始终生成。
 - 若存在 site.footer,页脚必须严格按该数组渲染(type: copyright | gitpress | theme | rss | page | link | text)。copyright 默认「© {year} 站点名」,不要用 GitHub 用户名;{year} 构建时替换。gitpress 链到 https://gitpress.net(rel=generator)。theme 链到本主题 theme.json 的 homepage(没有 homepage 则跳过该槽)。rss 链到 /rss.xml。自定义只有 page / link / text。不认识的 type:有 url+label 当外链,只有 label 当纯文本,否则跳过。
 - 若没有 site.footer,默认页脚 = 版权 + GitPress + 主题署名(有 homepage 时) + RSS。每一项站长都可以关掉。
-- 若存在 site.beian.icp / site.beian.gongan,追加在页脚末尾。ICP 链 https://beian.miit.gov.cn/;公安备案显示盾牌,文案「公网安备 {号}号」,链 https://beian.mps.gov.cn/#/query/webSearch?recordcode={号}。不要把备案写进 theme.config。
+- 若存在 site.beian.icp / site.beian.gongan,追加在页脚末尾。ICP 链 https://beian.miit.gov.cn/;公安备案用官方网安徽章(内嵌 PNG data URI 的 <img>,宽 15 高 16,常量见内置主题 src/lib/gonganBadge.ts),文案「公网安备 {号}号」,链 https://beian.mps.gov.cn/#/query/webSearch?recordcode={号}。不要画蓝色抽象盾牌,不要把备案写进 theme.config。
 - theme.json 请提供 homepage(开源仓库或介绍页)。
 - 原样插入 site.analyticsSnippet 到 </head> 前。不要解析 site.analytics(那是平台配置,构建器会把已开启的项编译进 snippet)。
 - 评论区只出现在文章页(独立页面默认不渲染)。site.comments.enabled 为关则不渲染。enabled 缺省时:有 comments.giscus 或 commentsSnippet 则视为开。有 comments.giscus 时按字段拼 giscus 脚本(data-repo / data-repo-id / data-category / data-category-id,mapping 用 pathname);否则若存在 site.commentsSnippet 再原样渲染。

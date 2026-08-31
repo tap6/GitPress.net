@@ -255,8 +255,10 @@ a:hover {
   align-items: center;
 }
 
-.site-footer-gongan svg {
+.site-footer-gongan img {
   display: block;
+  width: 15px;
+  height: 16px;
   margin-right: 0.3em;
   flex-shrink: 0;
 }

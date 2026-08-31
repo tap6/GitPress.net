@@ -70,7 +70,7 @@
 
 `site.nav` 里每一项都可以有 `label` 覆盖显示名。首页缺省文案:中文「首页」、日文「ホーム」、其它 “Home”。菜单里指向已改名/删除的页面时跳过该项。
 
-页脚系统槽:`copyright`(默认 `© {year} {site.title}`,不要用 GitHub 用户名)、`gitpress`(链到 https://gitpress.net,`rel="generator"`)、`theme`(链到本主题 `theme.json` 的 `homepage`,没有 homepage 则跳过)、`rss`。自定义只有 `page` / `link` / `text`。不认识的 type:有 url+label 当外链,只有 label 当纯文本。`theme.json` 请提供 `homepage`(开源仓库或介绍页)。公安备案用盾牌图标,文案「公网安备 {号}号」,查询链 `https://beian.mps.gov.cn/#/query/webSearch?recordcode={号}`;ICP 链 `https://beian.miit.gov.cn/`。`{year}` 在 copyright **和** text 槽都要替换。
+页脚系统槽:`copyright`(默认 `© {year} {site.title}`,不要用 GitHub 用户名)、`gitpress`(链到 https://gitpress.net,`rel="generator"`)、`theme`(链到本主题 `theme.json` 的 `homepage`,没有 homepage 则跳过)、`rss`。自定义只有 `page` / `link` / `text`。不认识的 type:有 url+label 当外链,只有 label 当纯文本。`theme.json` 请提供 `homepage`(开源仓库或介绍页)。公安备案用官方网安徽章(内嵌 PNG,见内置主题 `src/lib/gonganBadge.ts`),不要用蓝色抽象盾牌;文案「公网安备 {号}号」,查询链 `https://beian.mps.gov.cn/#/query/webSearch?recordcode={号}`;ICP 链 `https://beian.miit.gov.cn/`。`{year}` 在 copyright **和** text 槽都要替换。
 
 ## SEO 与构建 Action 注入的文件
 
