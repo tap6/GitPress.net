@@ -23,7 +23,7 @@ export function HelpSearch({ articles }: { articles: HelpArticleMeta[] }) {
           type="search"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="搜索：草稿、构建、主题、域名…"
+          placeholder="搜索：这是什么、隐私、草稿、构建、主题…"
           className="w-full rounded-lg border border-neutral-300 bg-white px-4 py-2.5 text-sm shadow-sm focus:border-gp-brand focus:outline-none"
         />
       </label>

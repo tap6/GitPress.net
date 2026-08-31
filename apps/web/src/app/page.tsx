@@ -3,6 +3,18 @@ import { auth } from "@/auth";
 import { QqGroupFloat } from "@/components/QqGroupFloat";
 import { formatStatCount, getPublicPlatformStats } from "@/lib/publicStats";
 
+const PLATFORM_REPO = "https://github.com/tap6/GitPress.net";
+const GITPRESS_REPO = "https://github.com/tap6/gitpress";
+const BUILD_ACTION_REPO = "https://github.com/tap6/build-action";
+
+function GitHubMark({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 16 16" fill="currentColor" className={className} aria-hidden>
+      <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z" />
+    </svg>
+  );
+}
+
 const FEATURES = [
   {
     title: "内容永远是你的",
@@ -47,22 +59,15 @@ export default async function LandingPage() {
           Git<span className="text-gp-brand">Press</span>
         </p>
         <nav className="flex items-center gap-4 text-sm">
-          <a href="#privacy" className="text-neutral-500 hover:text-neutral-900">
+          <Link href="/privacy" className="text-neutral-500 hover:text-neutral-900">
             隐私
-          </a>
+          </Link>
           <Link href="/help" className="text-neutral-500 hover:text-neutral-900">
             帮助
           </Link>
-          <Link href="/make-theme" className="text-neutral-500 hover:text-neutral-900">
-            做主题
-          </Link>
-          <a
-            href="https://github.com/tap6/gitpress"
-            className="text-neutral-500 hover:text-neutral-900"
-            target="_blank"
-            rel="noreferrer"
-          >
-            开源主题
+          <a href="#open-source" className="inline-flex items-center gap-1.5 text-neutral-500 hover:text-neutral-900">
+            <GitHubMark className="h-4 w-4" />
+            开源
           </a>
           {session?.user ? (
             <Link
@@ -104,83 +109,122 @@ export default async function LandingPage() {
             >
               创建我的博客
             </Link>
-            <a
-              href="#privacy"
+            <Link
+              href="/help/what-is-gitpress"
               className="rounded-md border border-neutral-300 px-6 py-3 font-semibold text-neutral-700 hover:bg-neutral-50"
             >
-              我们留了什么、没留什么
+              这是什么项目？
+            </Link>
+            <a
+              href="#open-source"
+              className="inline-flex items-center gap-2 rounded-md border border-neutral-300 px-6 py-3 font-semibold text-neutral-700 hover:bg-neutral-50"
+            >
+              <GitHubMark className="h-4 w-4" />
+              开源怎么保证
             </a>
           </div>
+          <p className="mt-12 text-sm text-neutral-500">
+            平台公开统计 · 每 5 分钟更新 · 仅展示汇总数字,不含任何个人信息
+          </p>
+          <dl className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
+            {[
+              { label: "注册用户", value: stats.users },
+              { label: "已创建站点", value: stats.sites },
+              { label: "GitHub 已连接", value: stats.githubConnections },
+              { label: "内置主题", value: stats.themes },
+            ].map((item) => (
+              <div
+                key={item.label}
+                className="rounded-xl border border-neutral-200 bg-white px-4 py-5 text-center shadow-sm"
+              >
+                <dt className="text-xs text-neutral-400">{item.label}</dt>
+                <dd className="mt-2 text-3xl font-light tabular-nums text-neutral-900">
+                  {formatStatCount(item.value)}
+                </dd>
+              </div>
+            ))}
+          </dl>
         </section>
 
-        <section id="privacy" className="scroll-mt-8 border-y border-neutral-800 bg-neutral-950 py-16 text-neutral-100">
+        <section
+          id="open-source"
+          className="scroll-mt-8 border-y border-neutral-200 bg-neutral-50 py-16 sm:py-20"
+        >
           <div className="mx-auto max-w-6xl px-6">
-            <p className="text-sm font-medium uppercase tracking-[0.2em] text-gp-brand">隐私 · 重中之重</p>
-            <h2 className="mt-3 text-2xl font-semibold sm:text-3xl">GitPress.net 不托管你的博客内容</h2>
-            <p className="mt-4 max-w-3xl text-base leading-relaxed text-neutral-400">
-              打开后台时,平台用你授权的 GitHub App
-              <strong className="font-medium text-neutral-200">向你的仓库读取</strong>
-              ;点保存则<strong className="font-medium text-neutral-200">写回同一仓库</strong>
-              。这是云工具在替你操作 GitHub,不是把文章上传到 GitPress 再分发。
-              正文的唯一来源是你的 GitHub,不是我们的 Postgres。
+            <p className="text-sm font-medium uppercase tracking-[0.2em] text-gp-brand">开源 · 退出权</p>
+            <h2 className="mt-4 text-3xl font-extrabold tracking-tight sm:text-5xl">
+              即便 GitPress.net 关停，
+              <br />
+              博客仍在你的仓库里。
+            </h2>
+            <p className="mt-6 max-w-3xl text-lg leading-relaxed text-neutral-600">
+              文章、图片、草稿从来没进我们的数据库。主题和构建工具 MIT 开源，编译跑在 GitHub
+              Actions 上，不经过我们的机器。平台哪天不在了，用同一份仓库、同一套 Action
+              继续编、继续挂。不是搬家，是本来就在你这边。
             </p>
-
-            <div className="mt-10 grid gap-6 lg:grid-cols-2">
-              <div className="rounded-xl border border-white/10 bg-white/5 p-6">
-                <h3 className="text-sm font-semibold tracking-wide text-emerald-400">我们只保留(控制面)</h3>
-                <ul className="mt-4 space-y-3 text-sm leading-relaxed text-neutral-300">
-                  <li>登录账号:邮箱、显示名、头像(Auth 登录用)。</li>
-                  <li>GitHub App 安装映射:好让后台代表你读写仓库。</li>
-                  <li>站点指针:站点名、主题名、两个仓库地址、公开 URL 等元数据。</li>
-                  <li>若你配置了 AI:密钥加密存放,数据库里看不到明文。</li>
-                </ul>
-              </div>
-              <div className="rounded-xl border border-white/10 bg-white/5 p-6">
-                <h3 className="text-sm font-semibold tracking-wide text-gp-brand">我们不保存(内容)</h3>
-                <ul className="mt-4 space-y-3 text-sm leading-relaxed text-neutral-300">
-                  <li>文章、页面的 Markdown 正文与草稿。</li>
-                  <li>图片、视频等媒体文件。</li>
-                  <li>公开站点的 HTML——那在你的网站仓库 / Pages 上,读者不经过 gitpress.net。</li>
-                  <li>卸载 GitHub App 或删掉仓库之后,我们再也读不到你的内容。</li>
-                </ul>
-              </div>
-            </div>
-
-            <div className="mt-8 rounded-xl border border-white/10 bg-black/40 p-6 font-mono text-xs leading-7 text-neutral-300 sm:text-sm">
-              <p className="text-neutral-500"># 数据走哪</p>
-              <p>你在后台写作 → GitPress.net 调用 GitHub API → 私有数据仓(正文、媒体、草稿)</p>
-              <p>保存触发 Actions → 公开网站仓(只有编译结果) → GitHub Pages / 你的域名</p>
-              <p className="mt-3 text-neutral-500">
-                后台为了打开更快,会把刚从 GitHub 读到的列表在边缘缓存几十秒,保存后立刻作废。
-                这不是内容库,也不能在你撤回授权后继续用。
-              </p>
-            </div>
-          </div>
-        </section>
-
-        <section className="border-y border-neutral-100 bg-neutral-50 py-10">
-          <div className="mx-auto max-w-6xl px-6">
-            <p className="text-center text-sm text-neutral-500">
-              平台公开统计 · 每 5 分钟更新 · 仅展示汇总数字,不含任何个人信息
-            </p>
-            <dl className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-              {[
-                { label: "注册用户", value: stats.users },
-                { label: "已创建站点", value: stats.sites },
-                { label: "GitHub 已连接", value: stats.githubConnections },
-                { label: "内置主题", value: stats.themes },
-              ].map((item) => (
-                <div
-                  key={item.label}
-                  className="rounded-xl border border-neutral-200 bg-white px-4 py-5 text-center shadow-sm"
+            <div className="mt-10 grid gap-4">
+              <a
+                href={PLATFORM_REPO}
+                className="group rounded-2xl bg-gp-brand p-7 text-white shadow-md hover:opacity-95 sm:p-8"
+                target="_blank"
+                rel="noreferrer"
+              >
+                <p className="text-xs font-semibold uppercase tracking-wide text-white/80">主仓库 · 你每天点的网站</p>
+                <p className="mt-3 inline-flex items-center gap-2 text-2xl font-extrabold tracking-tight sm:text-3xl">
+                  <GitHubMark className="h-7 w-7" />
+                  tap6/GitPress.net
+                </p>
+                <p className="mt-3 max-w-2xl text-base leading-relaxed text-white/90">
+                  WordPress 式后台：登录、建仓、写稿、点保存。这是控制面本身，不是你的文章库。
+                </p>
+                <p className="mt-5 text-sm font-semibold text-white group-hover:underline">在 GitHub 打开 →</p>
+              </a>
+              <div className="grid gap-4 md:grid-cols-2">
+                <a
+                  href={GITPRESS_REPO}
+                  className="group rounded-2xl border border-sky-200 bg-white p-6 shadow-sm hover:border-sky-300"
+                  target="_blank"
+                  rel="noreferrer"
                 >
-                  <dt className="text-xs text-neutral-400">{item.label}</dt>
-                  <dd className="mt-2 text-3xl font-light tabular-nums text-neutral-900">
-                    {formatStatCount(item.value)}
-                  </dd>
-                </div>
-              ))}
-            </dl>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-sky-700">主题与约定</p>
+                  <p className="mt-2 inline-flex items-center gap-2 text-xl font-semibold text-neutral-900">
+                    <GitHubMark className="h-5 w-5" />
+                    tap6/gitpress
+                  </p>
+                  <p className="mt-2 text-sm leading-relaxed text-neutral-500">
+                    博客长什么样、Markdown 怎么写、数据仓模板。换主题或自己做主题，都认这份 spec。
+                  </p>
+                  <p className="mt-4 text-sm font-medium text-sky-800 group-hover:underline">在 GitHub 打开 →</p>
+                </a>
+                <a
+                  href={BUILD_ACTION_REPO}
+                  className="group rounded-2xl border border-violet-200 bg-white p-6 shadow-sm hover:border-violet-300"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <p className="text-xs font-semibold uppercase tracking-wide text-violet-700">编译</p>
+                  <p className="mt-2 inline-flex items-center gap-2 text-xl font-semibold text-neutral-900">
+                    <GitHubMark className="h-5 w-5" />
+                    tap6/build-action
+                  </p>
+                  <p className="mt-2 text-sm leading-relaxed text-neutral-500">
+                    从私有数据仓读内容，编成静态站，推进公开网站仓。你自己的 Actions 里也能跑同一份。
+                  </p>
+                  <p className="mt-4 text-sm font-medium text-violet-800 group-hover:underline">在 GitHub 打开 →</p>
+                </a>
+              </div>
+            </div>
+            <p className="mt-8 text-sm text-neutral-500">
+              三块分别干什么，见{" "}
+              <Link href="/help/what-is-gitpress" className="font-medium text-neutral-800 underline hover:text-neutral-950">
+                这是什么项目？
+              </Link>
+              。控制面留了什么，见{" "}
+              <Link href="/privacy" className="font-medium text-neutral-800 underline hover:text-neutral-950">
+                隐私
+              </Link>
+              。
+            </p>
           </div>
         </section>
 
@@ -269,7 +313,7 @@ export default async function LandingPage() {
             </div>
             <div className="mt-8 grid gap-6 md:grid-cols-3">
               {[
-                { title: "复制提示词", body: "打开「做主题」页,把完整提示词作为和 AI 的第一条消息发出去。" },
+                { title: "复制提示词", body: "打开帮助里的「用 AI 做主题」，把完整提示词作为和 AI 的第一条消息发出去。" },
                 { title: "回答问题", body: "AI 会问风格、布局、Logo、要暴露哪些选项。你答完它才开始写代码。" },
                 { title: "导入使用", body: "把主题推到公开 GitHub 仓库,在后台「外观」粘贴 URL 即可启用。商店即将上线。" },
               ].map((item) => (
@@ -280,7 +324,7 @@ export default async function LandingPage() {
               ))}
             </div>
             <Link
-              href="/make-theme"
+              href="/help/make-theme"
               className="mt-8 inline-block rounded-md border border-neutral-300 px-5 py-2.5 text-sm font-semibold text-neutral-800 hover:bg-neutral-50"
             >
               查看教程与提示词
@@ -308,27 +352,21 @@ export default async function LandingPage() {
       <footer className="border-t border-neutral-100 py-10 text-center text-sm text-neutral-400">
         <p>© {new Date().getFullYear()} GitPress.net</p>
         <p className="mt-1">
-            <a href="#privacy" className="text-neutral-500 hover:text-neutral-800">
+            <Link href="/privacy" className="text-neutral-500 hover:text-neutral-800">
               隐私
-            </a>
+            </Link>
             {" · "}
             <Link href="/help" className="text-neutral-500 hover:text-neutral-800">
               帮助
             </Link>
             {" · "}
-            <Link href="/make-theme" className="text-neutral-500 hover:text-neutral-800">
-              做主题
+            <Link href="/help/what-is-gitpress" className="text-neutral-500 hover:text-neutral-800">
+              这是什么项目？
             </Link>
             {" · "}
-            主题与构建工具{" "}
-          <a
-            href="https://github.com/tap6/gitpress"
-            className="text-neutral-500 hover:text-neutral-800"
-            target="_blank"
-            rel="noreferrer"
-          >
-            开源(MIT)
-          </a>
+            <a href="#open-source" className="text-neutral-500 hover:text-neutral-800">
+              开源（MIT）
+            </a>
         </p>
       </footer>
       <QqGroupFloat />

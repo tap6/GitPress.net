@@ -18,20 +18,29 @@ export interface PublicPlatformStats {
 }
 
 async function queryPublicStats(): Promise<PublicPlatformStats> {
-  const [userRow] = await db.select({ value: count() }).from(users);
-  const [siteRow] = await db.select({ value: count() }).from(sites);
-  const [installRow] = await db.select({ value: count() }).from(githubInstallations);
-  const [listedRow] = await db
-    .select({ value: count() })
-    .from(themeListings)
-    .where(eq(themeListings.status, "listed"));
+  try {
+    const [userRow] = await db.select({ value: count() }).from(users);
+    const [siteRow] = await db.select({ value: count() }).from(sites);
+    const [installRow] = await db.select({ value: count() }).from(githubInstallations);
+    const [listedRow] = await db
+      .select({ value: count() })
+      .from(themeListings)
+      .where(eq(themeListings.status, "listed"));
 
-  return {
-    users: userRow?.value ?? 0,
-    sites: siteRow?.value ?? 0,
-    githubConnections: installRow?.value ?? 0,
-    themes: BUILTIN_THEMES.length + (listedRow?.value ?? 0),
-  };
+    return {
+      users: userRow?.value ?? 0,
+      sites: siteRow?.value ?? 0,
+      githubConnections: installRow?.value ?? 0,
+      themes: BUILTIN_THEMES.length + (listedRow?.value ?? 0),
+    };
+  } catch {
+    return {
+      users: 0,
+      sites: 0,
+      githubConnections: 0,
+      themes: BUILTIN_THEMES.length,
+    };
+  }
 }
 
 /** Aggregate, non-identifying counters safe to show on the public landing page. */

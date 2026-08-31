@@ -193,7 +193,7 @@ export default async function AppearancePage({
       <p className="mt-6 text-xs text-neutral-400">
         已收录主题由运营在后台维护。也可以从任意公开 GitHub 仓库添加到本站列表。
         想自己做一份?看{" "}
-        <a href="/make-theme" className="underline hover:text-neutral-600">
+        <a href="/help/make-theme" className="underline hover:text-neutral-600">
           DIY 主题教程
         </a>
         ,里面有给 AI 的完整第一条提示词。

@@ -7,6 +7,42 @@ export interface HelpArticleMeta {
 
 export const HELP_ARTICLES: HelpArticleMeta[] = [
   {
+    href: "/help/what-is-gitpress",
+    title: "这是什么项目？",
+    summary:
+      "先讲为什么会做：WordPress 博客丢过几年稿。再讲后台、主题约定、构建 Action 各管什么，关停了怎么办。",
+    keywords: [
+      "介绍",
+      "是什么",
+      "开源",
+      "gitpress",
+      "build-action",
+      "GitPress.net",
+      "关停",
+      "仓库",
+      "数据",
+      "退出",
+      "WordPress",
+      "Hugo",
+      "Gridea",
+      "SSG",
+      "服务器",
+      "遗失",
+    ],
+  },
+  {
+    href: "/privacy",
+    title: "隐私：我们留了什么",
+    summary: "账号和站点指针在控制面。正文、媒体、公开 HTML 只在你的 GitHub。卸载 App 之后我们读不到内容。",
+    keywords: ["隐私", "不保存", "正文", "服务器", "Postgres", "授权", "缓存"],
+  },
+  {
+    href: "/help/make-theme",
+    title: "用 AI 做主题",
+    summary: "复制第一条提示词，让你的 AI 先提问再生成 Astro 主题，推到公开仓库后在外观里导入。",
+    keywords: ["主题", "AI", "提示词", "theme.json", "做主题", "DIY", "Astro"],
+  },
+  {
     href: "/help/drafts-and-builds",
     title: "底稿、草稿和已发布",
     summary: "本地底稿只在这台浏览器。草稿会写入私有仓库并触发构建，但不会出现在公开网站。定时发布要先在设置里打开检查。",

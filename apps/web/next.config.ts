@@ -5,6 +5,9 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  async redirects() {
+    return [{ source: "/make-theme", destination: "/help/make-theme", permanent: true }];
+  },
   outputFileTracingRoot: path.join(__dirname, "../.."),
   outputFileTracingIncludes: {
     "/theme-previews/[name]": [

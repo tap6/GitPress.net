@@ -127,7 +127,7 @@ export default function ImportThemeHelpPage() {
 
         <p className="mt-10 text-sm text-neutral-500">
           还没有主题?可以{" "}
-          <Link href="/make-theme" className="underline hover:text-neutral-800">
+          <Link href="/help/make-theme" className="underline hover:text-neutral-800">
             用 AI 做一份
           </Link>
           ,或先用外观页上的内置主题。规范说明见{" "}
