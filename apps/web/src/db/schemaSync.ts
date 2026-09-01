@@ -165,14 +165,3 @@ export async function syncSchemaAdditive(client: Sql): Promise<void> {
     }
   }
 }
-
-/** Statements drizzle-kit would DROP / rewrite. We never auto-apply those. */
-export function isDestructiveSchemaSql(sql: string): boolean {
-  const normalized = sql.replace(/\s+/g, " ").trim();
-  if (/\bDROP\b/i.test(normalized)) return true;
-  if (/\bTRUNCATE\b/i.test(normalized)) return true;
-  if (/\bRENAME\b/i.test(normalized)) return true;
-  if (/\bALTER COLUMN\b/i.test(normalized) && /\bTYPE\b/i.test(normalized)) return true;
-  if (/\bSET NOT NULL\b/i.test(normalized)) return true;
-  return false;
-}
