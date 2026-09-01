@@ -3,6 +3,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { Link, redirect } from "@/i18n/navigation";
 import { auth } from "@/auth";
 import { LocaleSwitcher } from "@/components/LocaleSwitcher";
+import { LandingDashboardPreview } from "@/components/LandingDashboardPreview";
 import { QqGroupFloat } from "@/components/QqGroupFloat";
 import { localeAlternates } from "@/i18n/alternates";
 import type { AppLocale } from "@/i18n/routing";
@@ -124,6 +125,9 @@ export default async function LandingPage() {
               {t("ctaSource")}
             </a>
           </div>
+          <LandingDashboardPreview
+            src={locale === "en" ? "/landing/dashboard-en.jpg" : "/landing/dashboard-zh.jpg"}
+          />
           <p className="mt-12 text-sm text-neutral-500">
             {t("statsNote")}
           </p>
