@@ -169,6 +169,11 @@
             "additionalProperties": true
           }
         },
+        "convertUploadsToWebp": {
+          "type": "boolean",
+          "default": true,
+          "description": "Admin-only. When not false, the GitPress UI converts JPEG/PNG to WebP in the browser before writing media/. GIF, SVG, WebP, and AVIF are skipped; conversion failure or a larger result keeps the original file. Themes and builders must ignore this field."
+        },
         "beian": {
           "type": "object",
           "description": "Mainland China ICP / public-security filing. Themes append this after footer items when set. Not a footer list entry (cannot be hidden except by clearing the fields).",

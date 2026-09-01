@@ -4,7 +4,8 @@ import { PostEditor } from "@/components/PostEditor";
 import { getPost } from "@/lib/content";
 import { getInstallationOctokit, listRepoCommits, splitRepo } from "@/lib/github";
 import { loadPublishCheck } from "@/lib/publishCheckRepo";
-import { cachedSiteCategories } from "@/lib/siteDataCache";
+import { cachedSiteCategories, cachedSiteConfig } from "@/lib/siteDataCache";
+import { convertUploadsToWebpEnabled } from "@/lib/convertUploadWebp";
 import { requireSite } from "@/lib/sites";
 
 export async function generateMetadata() {
@@ -31,10 +32,11 @@ export default async function EditPostPage({
   const octokit = await getInstallationOctokit(installation.installationId);
   const post = await getPost(octokit, site.dataRepo, path);
   if (!post) return await redirectTo(`/sites/${siteId}/posts`);
-  const [categories, history, publishCheck] = await Promise.all([
+  const [categories, history, publishCheck, config] = await Promise.all([
     cachedSiteCategories(installation.installationId, site.dataRepo),
     listRepoCommits(octokit, splitRepo(site.dataRepo), { path: post.path, perPage: 30 }),
     loadPublishCheck(octokit, site.dataRepo, site.siteRepo),
+    cachedSiteConfig(installation.installationId, site.dataRepo),
   ]);
 
   return (
@@ -47,6 +49,7 @@ export default async function EditPostPage({
         gitCommits={history.commits}
         gitError={history.error}
         publishCheckEnabled={publishCheck.enabled}
+        convertUploadsToWebp={convertUploadsToWebpEnabled(config?.site)}
         initial={{
           title: post.title,
           date: post.date,

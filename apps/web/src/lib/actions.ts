@@ -838,6 +838,7 @@ export async function saveSettingsAction(
         if (timezone) config.site.timezone = timezone;
         if (author) config.site.author = author;
         else delete config.site.author;
+        config.site.convertUploadsToWebp = formData.get("convertUploadsToWebp") === "on";
       },
       "Update site settings",
     );
@@ -846,7 +847,11 @@ export async function saveSettingsAction(
   }
 
   await db.update(sites).set({ name, description, language }).where(eq(sites.id, siteId));
-  revalidateSiteData(site.dataRepo, [`/sites/${siteId}/settings`, `/sites/${siteId}`]);
+  revalidateSiteData(site.dataRepo, [
+    `/sites/${siteId}/settings`,
+    `/sites/${siteId}`,
+    `/sites/${siteId}/media`,
+  ]);
   return { saved: true };
 }
 

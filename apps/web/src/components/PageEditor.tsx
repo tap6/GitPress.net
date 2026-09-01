@@ -59,6 +59,7 @@ interface Props {
   hasCustomNav?: boolean;
   gitCommits?: EditorGitCommit[];
   gitError?: string | null;
+  convertUploadsToWebp?: boolean;
   initial?: {
     title: string;
     description: string;
@@ -73,6 +74,7 @@ export function PageEditor({
   hasCustomNav = false,
   gitCommits = [],
   gitError = null,
+  convertUploadsToWebp = true,
   initial,
 }: Props) {
   const t = useTranslations("editor");
@@ -262,6 +264,7 @@ export function PageEditor({
           placeholder={t("startWriting")}
           fill={fillEditor}
           onToggleFill={toggleFillEditor}
+          convertUploadsToWebp={convertUploadsToWebp}
         />
       </div>
 

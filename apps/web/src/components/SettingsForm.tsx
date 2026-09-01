@@ -16,6 +16,7 @@ interface Props {
     language: string;
     author: string;
     timezone: string;
+    convertUploadsToWebp: boolean;
   };
 }
 
@@ -65,6 +66,11 @@ export function SettingsForm({ siteId, initial }: Props) {
     const detected = Intl.DateTimeFormat().resolvedOptions().timeZone;
     if (detected) setTimezone(detected);
   }, [initial.timezone]);
+
+  useEffect(() => {
+    if (window.location.hash !== "#media") return;
+    document.getElementById("media")?.scrollIntoView({ block: "nearest" });
+  }, []);
 
   return (
     <form action={formAction} onSubmit={onFormStampAuthorNow} className="space-y-4 p-5 text-sm">
@@ -127,6 +133,19 @@ export function SettingsForm({ siteId, initial }: Props) {
           })}
         </select>
         <span className="mt-1 block text-xs text-neutral-400">{t("timezoneHint")}</span>
+      </label>
+      <label id="media" className="flex scroll-mt-16 items-start gap-3">
+        <input
+          type="checkbox"
+          name="convertUploadsToWebp"
+          value="on"
+          defaultChecked={initial.convertUploadsToWebp}
+          className="mt-0.5 accent-wp-accent"
+        />
+        <span>
+          <span className="font-medium">{t("convertUploadsToWebp")}</span>
+          <span className="mt-1 block text-xs text-neutral-400">{t("convertUploadsToWebpHint")}</span>
+        </span>
       </label>
       <FormError error={state.error} />
       {state.saved && (

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useMediaBlob } from "@/hooks/useMediaBlob";
+import { canvasToBrandDataUrl } from "@/lib/convertUploadWebp";
 
 const VIEW_WIDTH = 280;
 
@@ -16,6 +17,7 @@ interface Props {
   removeField: string;
   currentPreviewUrl?: string | null;
   aspectChoices?: Array<{ id: string; label: string; value: number }>;
+  outputWebp?: boolean;
 }
 
 export function ImageCropper({
@@ -27,6 +29,7 @@ export function ImageCropper({
   removeField,
   currentPreviewUrl,
   aspectChoices,
+  outputWebp = true,
 }: Props) {
   const t = useTranslations("media");
   const [aspect, setAspect] = useState(initialAspect);
@@ -87,13 +90,13 @@ export function ImageCropper({
       const sx = (natural.w - VIEW_WIDTH / scale) / 2 - pan.x / scale;
       const sy = (natural.h - viewH / scale) / 2 - pan.y / scale;
       ctx.drawImage(image, sx, sy, VIEW_WIDTH / scale, viewH / scale, 0, 0, canvas.width, canvas.height);
-      setDataUrl(canvas.toDataURL("image/jpeg", 0.92));
+      setDataUrl(canvasToBrandDataUrl(canvas, outputWebp));
     };
     image.src = fileUrl;
     return () => {
       cancelled = true;
     };
-  }, [fileUrl, natural, zoom, pan, aspect, viewH]);
+  }, [fileUrl, natural, zoom, pan, aspect, viewH, outputWebp]);
 
   function onFile(file: File | undefined) {
     if (!file) return;

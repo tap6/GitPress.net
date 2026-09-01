@@ -230,6 +230,22 @@ export interface SiteInfo {
    * means nothing is shown (typical for sites outside mainland China).
    */
   beian?: SiteBeian;
+  /**
+   * Admin-only: convert JPEG/PNG to WebP in the browser before writing the
+   * data repo. Themes and builders must ignore this and serve media as stored.
+   * Absent or any value other than false means on.
+   */
+  convertUploadsToWebp?: boolean;
+}
+
+/**
+ * Whether the GitPress admin should convert JPEG/PNG uploads to WebP.
+ * Absent or non-false is on so existing sites pick up the default.
+ */
+export function convertUploadsToWebpEnabled(
+  site: Pick<SiteInfo, "convertUploadsToWebp"> | null | undefined,
+): boolean {
+  return site?.convertUploadsToWebp !== false;
 }
 
 export interface ThemeRef {

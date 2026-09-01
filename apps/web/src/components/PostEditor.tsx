@@ -63,6 +63,7 @@ interface Props {
   gitCommits?: EditorGitCommit[];
   gitError?: string | null;
   publishCheckEnabled?: boolean;
+  convertUploadsToWebp?: boolean;
   initial?: {
     title: string;
     date: string | null;
@@ -82,6 +83,7 @@ export function PostEditor({
   gitCommits = [],
   gitError = null,
   publishCheckEnabled = false,
+  convertUploadsToWebp = true,
   initial,
 }: Props) {
   const t = useTranslations("editor");
@@ -301,6 +303,7 @@ export function PostEditor({
           placeholder={t("startWriting")}
           fill={fillEditor}
           onToggleFill={toggleFillEditor}
+          convertUploadsToWebp={convertUploadsToWebp}
         />
       </div>
 

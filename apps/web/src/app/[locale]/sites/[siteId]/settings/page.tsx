@@ -26,6 +26,7 @@ import {
   cachedSiteConfig,
   cachedSiteFooter,
 } from "@/lib/siteDataCache";
+import { convertUploadsToWebpEnabled } from "@/lib/convertUploadWebp";
 import { requireSite } from "@/lib/sites";
 import { getBuiltinTheme } from "@/lib/themes";
 
@@ -103,10 +104,11 @@ export default async function SettingsPage({
             initial={{
               name: site.name,
               description: site.description ?? "",
-            language: site.language,
-            author,
-            timezone: typeof config?.site.timezone === "string" ? config.site.timezone : "",
-          }}
+              language: site.language,
+              author,
+              timezone: typeof config?.site.timezone === "string" ? config.site.timezone : "",
+              convertUploadsToWebp: convertUploadsToWebpEnabled(config?.site),
+            }}
           />
         </section>
       </SettingsPanel>
@@ -131,7 +133,12 @@ export default async function SettingsPage({
       <SettingsPanel id="brand">
         <section className="w-full max-w-3xl rounded border border-neutral-200 bg-white shadow-sm">
           <h2 className="border-b border-neutral-100 px-5 py-3 text-sm font-semibold">{t("logoAvatar")}</h2>
-          <BrandMediaForm siteId={site.id} logo={logo} avatar={avatar} />
+          <BrandMediaForm
+            siteId={site.id}
+            logo={logo}
+            avatar={avatar}
+            convertUploadsToWebp={convertUploadsToWebpEnabled(config?.site)}
+          />
         </section>
       </SettingsPanel>
 

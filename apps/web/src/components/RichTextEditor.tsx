@@ -18,6 +18,7 @@ import {
   MAX_IMAGE_BYTES,
   uniqueMediaFileName,
 } from "@/lib/mediaName";
+import { convertJpegPngToWebp } from "@/lib/convertUploadWebp";
 import { mediaPreviewUrl } from "@/lib/mediaUrl";
 import { readPendingMedia, writePendingMedia } from "@/lib/pendingMedia";
 
@@ -35,6 +36,8 @@ interface Props {
   /** Stretch the writing surface into leftover admin canvas. */
   fill?: boolean;
   onToggleFill?: () => void;
+  /** Default true: convert JPEG/PNG to WebP in the browser before queueing. */
+  convertUploadsToWebp?: boolean;
 }
 
 function createGitPressImage(siteId: string, previews: Map<string, string>) {
@@ -98,6 +101,7 @@ export function RichTextEditor({
   onPendingMediaChange,
   fill = false,
   onToggleFill,
+  convertUploadsToWebp = true,
 }: Props) {
   const t = useTranslations("editor");
   const errorText = useFormErrorText();
@@ -116,6 +120,9 @@ export function RichTextEditor({
   onPendingRef.current = onPendingMediaChange;
   const skipInitialUpdate = useRef(true);
   const uploadFilesRef = useRef<(files: File[]) => void>(() => {});
+  const convertUploadsRef = useRef(convertUploadsToWebp);
+  convertUploadsRef.current = convertUploadsToWebp;
+  const queueChainRef = useRef(Promise.resolve());
 
   function emitPending() {
     onPendingRef.current?.([...pendingFiles.current.values()]);
@@ -227,13 +234,10 @@ export function RichTextEditor({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [siteId, draftKey]);
 
-  function queueImages(files: File[]) {
-    const current = editorRef.current;
-    if (!current || files.length === 0) return;
+  async function queueImages(files: File[]) {
+    if (files.length === 0 || !editorRef.current) return;
 
-    let queuedBytes = [...pendingFiles.current.values()].reduce((sum, file) => sum + file.size, 0);
-    let queuedCount = pendingFiles.current.size;
-
+    const accepted: File[] = [];
     for (const file of files) {
       if (file.size > MAX_IMAGE_BYTES) {
         setTasks((prev) => [
@@ -248,6 +252,18 @@ export function RichTextEditor({
         ]);
         continue;
       }
+      accepted.push(file);
+    }
+    const prepared = convertUploadsRef.current
+      ? await Promise.all(accepted.map((file) => convertJpegPngToWebp(file)))
+      : accepted;
+    const editor = editorRef.current;
+    if (!editor) return;
+
+    let queuedBytes = [...pendingFiles.current.values()].reduce((sum, file) => sum + file.size, 0);
+    let queuedCount = pendingFiles.current.size;
+
+    for (const file of prepared) {
       if (queuedCount >= MAX_BATCH_IMAGES) {
         setTasks((prev) => [
           ...prev,
@@ -287,14 +303,14 @@ export function RichTextEditor({
         ...prev,
         { id: fileName, name: file.name, preview: blobUrl, status: "queued" },
       ]);
-      current.chain().focus().setImage({ src, alt: file.name.replace(/\.[^.]+$/, "") }).run();
+      editor.chain().focus().setImage({ src, alt: file.name.replace(/\.[^.]+$/, "") }).run();
     }
     emitPending();
     persistPending();
   }
 
   uploadFilesRef.current = (files) => {
-    queueImages(files);
+    queueChainRef.current = queueChainRef.current.then(() => queueImages(files)).catch(() => {});
   };
 
   function switchToSource() {

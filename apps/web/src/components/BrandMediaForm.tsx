@@ -12,6 +12,7 @@ interface Props {
   siteId: string;
   logo?: string;
   avatar?: string;
+  convertUploadsToWebp?: boolean;
 }
 
 function previewFor(siteId: string, path?: string): string | null {
@@ -21,7 +22,7 @@ function previewFor(siteId: string, path?: string): string | null {
   return null;
 }
 
-export function BrandMediaForm({ siteId, logo, avatar }: Props) {
+export function BrandMediaForm({ siteId, logo, avatar, convertUploadsToWebp = true }: Props) {
   const t = useTranslations("media");
   const tc = useTranslations("common");
   const [state, formAction] = useActionState<SaveBrandState, FormData>(saveBrandAction, {});
@@ -36,6 +37,7 @@ export function BrandMediaForm({ siteId, logo, avatar }: Props) {
         dataField="logoDataUrl"
         removeField="removeLogo"
         currentPreviewUrl={previewFor(siteId, logo)}
+        outputWebp={convertUploadsToWebp}
         aspectChoices={[
           { id: "wide", label: t("aspectWide"), value: 2 },
           { id: "square", label: t("aspectSquare"), value: 1 },
@@ -50,6 +52,7 @@ export function BrandMediaForm({ siteId, logo, avatar }: Props) {
         dataField="avatarDataUrl"
         removeField="removeAvatar"
         currentPreviewUrl={previewFor(siteId, avatar)}
+        outputWebp={convertUploadsToWebp}
       />
       <FormError error={state.error} />
       {state.saved && (

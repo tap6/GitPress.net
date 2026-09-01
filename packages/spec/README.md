@@ -86,6 +86,7 @@ GitPress 生态的共同契约:平台、构建 Action、所有主题(包括 AI �
 - `nav`:站长显式维护的顶部导航菜单——出现哪些项、顺序如何、叫什么名字,包括「首页」「RSS」是否显示,都由这个数组决定。存在时,它是导航的唯一依据;主题不得在此之外自行拼接分类或页面。**缺省时**,主题回退到隐式导航(首页 + `inNav` 分类 + 全部页面);RSS 默认放在页脚,只有菜单里显式加入才会出现在顶栏。每项的 `type` 为 `home` / `rss` / `category` / `page` / `link` 之一;`category`/`page` 需要对应的 `slug`,`link` 需要 `url` 与 `label`;其余类型的 `label` 均可选,缺省时由主题按 `site.language` 给出默认文案(如「首页」/ “Home”)。
 - `footer`:站长显式维护的页脚。**缺省时**主题显示版权(默认用站点名,不用 GitHub 登录名)、GitPress 署名、当前主题开源页(若 `theme.json` 有 `homepage`)、RSS。保存过之后,列表即真相:不在列表里的槽就是关了。系统槽 `copyright` / `gitpress` / `theme` / `rss` 只增不删(新槽必须 `defaultEnabled: false`);站长自定义永远只有 `page` / `link` / `text`。不认识的 `type`:有 `url`+`label` 当外链,只有 `label` 当纯文本,否则跳过。`{year}` 在构建时替换。`theme` 不存 URL,由当前主题的 `theme.json` 解析。关掉页脚 RSS **不影响** `/rss.xml` 与 `<head>` 里的 `rel="alternate"`。
 - `beian`:中国大陆备案。`icp` 链到工信部查询页,`gongan` 为公安备案号(数字)并配官方网安徽章。填了就出现在页脚**末尾**,不进可删列表;海外站点留空即可。
+- `convertUploadsToWebp`:仅控制面使用。不为 `false` 时,后台在写入 `media/` 前把 JPEG/PNG 转成 WebP(GIF / SVG / 已是 WebP 或 AVIF 不转;失败或转完不更小则保留原文件)。主题和构建器必须忽略此字段,按仓库里的文件原样发布。缺省视为开启。
 
 以上字段均为新增的可选字段,不涉及 `schemaVersion` 变更。
 

@@ -2,7 +2,8 @@ import { redirectTo } from "@/i18n/redirect";
 import { PageEditor } from "@/components/PageEditor";
 import { getPage, isPagePath } from "@/lib/content";
 import { getInstallationOctokit, listRepoCommits, splitRepo } from "@/lib/github";
-import { cachedListPages } from "@/lib/siteDataCache";
+import { cachedListPages, cachedSiteConfig } from "@/lib/siteDataCache";
+import { convertUploadsToWebpEnabled } from "@/lib/convertUploadWebp";
 import { requireSite } from "@/lib/sites";
 import { getTranslations } from "next-intl/server";
 
@@ -28,15 +29,16 @@ export default async function EditPagePage({
   }
 
   const octokit = await getInstallationOctokit(installation.installationId);
-  const listed = (await cachedListPages(installation.installationId, site.dataRepo, site.language)).find(
-    (item) => item.path === path,
-  );
-  const page = listed ?? (await getPage(octokit, site.dataRepo, path));
+  const [listed, history, config] = await Promise.all([
+    cachedListPages(installation.installationId, site.dataRepo, site.language),
+    listRepoCommits(octokit, splitRepo(site.dataRepo), {
+      path,
+      perPage: 30,
+    }),
+    cachedSiteConfig(installation.installationId, site.dataRepo),
+  ]);
+  const page = listed.find((item) => item.path === path) ?? (await getPage(octokit, site.dataRepo, path));
   if (!page) return await redirectTo(`/sites/${siteId}/pages`);
-  const history = await listRepoCommits(octokit, splitRepo(site.dataRepo), {
-    path: page.path,
-    perPage: 30,
-  });
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -46,6 +48,7 @@ export default async function EditPagePage({
         path={page.path}
         gitCommits={history.commits}
         gitError={history.error}
+        convertUploadsToWebp={convertUploadsToWebpEnabled(config?.site)}
         initial={{
           title: page.title,
           description: page.description,
