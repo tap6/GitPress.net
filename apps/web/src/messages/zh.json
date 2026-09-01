@@ -274,6 +274,7 @@
     "previewAlt": "GitPress 后台仪表盘：左侧菜单，右侧随手记、文章数、主题和 GitHub Actions 用量",
     "previewHint": "点击查看大图",
     "previewEnlarge": "放大查看后台截图",
+    "previewShrink": "点击缩小",
     "statsNote": "平台公开统计 · 每 5 分钟更新 · 仅展示汇总数字,不含任何个人信息",
     "statUsers": "注册用户",
     "statSites": "已创建站点",

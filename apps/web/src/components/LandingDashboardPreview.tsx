@@ -44,10 +44,11 @@ export function LandingDashboardPreview({ src }: { src: string }) {
       </figure>
       {open ? (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-[80] flex cursor-zoom-out items-center justify-center bg-black/75 p-4 backdrop-blur-sm"
           role="dialog"
           aria-modal="true"
           aria-labelledby={titleId}
+          aria-label={t("previewShrink")}
           onClick={() => setOpen(false)}
         >
           <p id={titleId} className="sr-only">
@@ -59,8 +60,7 @@ export function LandingDashboardPreview({ src }: { src: string }) {
             alt=""
             width={2776}
             height={2026}
-            className="max-h-[92vh] max-w-full rounded-lg object-contain shadow-2xl"
-            onClick={(event) => event.stopPropagation()}
+            className="pointer-events-none max-h-[92vh] max-w-full rounded-lg object-contain shadow-2xl"
           />
         </div>
       ) : null}

@@ -274,6 +274,7 @@
     "previewAlt": "GitPress admin dashboard: sidebar, scratch notes, post counts, theme, and GitHub Actions usage",
     "previewHint": "Click to enlarge",
     "previewEnlarge": "Enlarge the admin screenshot",
+    "previewShrink": "Click to shrink",
     "statsNote": "Public platform stats · refresh every 5 minutes · totals only, no personal data",
     "statUsers": "Users",
     "statSites": "Sites",
