@@ -4,6 +4,8 @@
  * only needs site.url + site.basePath so the build emits the right links.
  */
 
+import { actionError } from "./actionError";
+
 export const GITHUB_PAGES_IPV4 = [
   "185.199.108.153",
   "185.199.109.153",
@@ -38,9 +40,9 @@ export function parseHostname(raw: string): { host: string } | { error: string }
   host = host.replace(/^https?:\/\//, "");
   host = host.replace(/\/.*$/, "");
   host = host.replace(/\.$/, "");
-  if (!host) return { error: "请填写域名或网址。" };
-  if (host.includes(" ") || host.includes(":")) return { error: "请只填主机名，不要带端口或路径。" };
-  if (!HOST_RE.test(host)) return { error: "请填写有效域名，例如 example.com。" };
+  if (!host) return { error: "needHostname" };
+  if (host.includes(" ") || host.includes(":")) return { error: "hostnameNoPort" };
+  if (!HOST_RE.test(host)) return { error: "invalidHostname" };
   return { host };
 }
 
@@ -49,7 +51,7 @@ export function parseCustomDomain(raw: string): { host: string } | { error: stri
   const parsed = parseHostname(raw);
   if ("error" in parsed) return parsed;
   if (parsed.host.endsWith(".github.io") || parsed.host === "github.io") {
-    return { error: "这是 GitHub Pages 自带地址，请改用你自己的域名，或填回默认的 github.io 网址。" };
+    return { error: "githubIoNotCustom" };
   }
   return parsed;
 }
@@ -119,7 +121,7 @@ export function resolvePublicOrigin(raw: string, siteRepo: string): PublicOrigin
   const defaultHost = `${owner.toLowerCase()}.github.io`;
   const defaultPath = `/${repo}`.toLowerCase();
   const trimmed = raw.trim();
-  if (!trimmed) return { error: "请填写访客打开的地址。" };
+  if (!trimmed) return { error: "needVisitorUrl" };
 
   const withoutProto = trimmed.replace(/^https?:\/\//i, "").replace(/\/+$/, "");
   const slash = withoutProto.indexOf("/");
@@ -138,7 +140,7 @@ export function resolvePublicOrigin(raw: string, siteRepo: string): PublicOrigin
   const parsed = parseHostname(hostPart);
   if ("error" in parsed) return parsed;
   if (parsed.host.endsWith(".github.io") || parsed.host === "github.io") {
-    return { error: `默认 Pages 地址是 ${defaultUrl}。自己的域名请填 hostname，不要填别人的 github.io。` };
+    return { error: actionError("defaultPagesWrongHost", { url: defaultUrl }) };
   }
   return {
     url: customDomainUrl(parsed.host),
@@ -164,13 +166,13 @@ export function dnsRecordsForDomain(host: string, pagesHost: string): DnsRecord[
   return [{ type: "CNAME", name: dnsHostRecordName(host), value: pagesHost }];
 }
 
-export function describePagesCertificate(state: string | null): string | null {
+export function pagesCertificateKind(
+  state: string | null,
+): "ready" | "error" | "pending" | null {
   if (!state) return null;
-  if (state === "issued" || state === "uploaded" || state === "approved") {
-    return "GitHub Pages 的 HTTPS 已就绪";
-  }
-  if (state === "errored") return "Pages 证书申请失败，先核对是否把 DNS 指到 GitHub";
-  return "Pages 正在申请证书，等 DNS 生效即可";
+  if (state === "issued" || state === "uploaded" || state === "approved") return "ready";
+  if (state === "errored") return "error";
+  return "pending";
 }
 
 function splitOwnerRepo(siteRepo: string): { owner: string; repo: string } {

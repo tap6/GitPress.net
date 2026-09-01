@@ -1,7 +1,7 @@
 /**
- * Turns GitPress-generated git commit messages into short Chinese labels
- * the dashboard and Git-history page can share. Unknown messages fall back
- * to the first line as-is, so a hand-written commit never disappears.
+ * Turns GitPress-generated git commit messages into structured labels.
+ * Parsing still matches the existing Chinese/English machine commit format.
+ * Display copy lives in messages `buildHistory.*`.
  */
 
 export type GitChangeKind =
@@ -16,22 +16,11 @@ export type GitChangeKind =
   | "other";
 
 export interface GitChangeDescription {
-  label: string;
   kind: GitChangeKind;
-  kindLabel: string;
+  key: string;
+  values?: Record<string, string | number>;
+  fallback: string;
 }
-
-const KIND_LABELS: Record<GitChangeKind, string> = {
-  post: "文章",
-  page: "页面",
-  media: "媒体",
-  theme: "外观",
-  settings: "设置",
-  nav: "菜单",
-  build: "构建",
-  init: "初始化",
-  other: "其他",
-};
 
 function baseName(path: string): string {
   return path.split("/").pop()?.replace(/\.md$/, "") ?? path;
@@ -43,109 +32,122 @@ function stripImageSuffix(rest: string): { title: string; images: number } {
   return { title: match[1], images: Number(match[2]) };
 }
 
-function postLabel(verb: string, rest: string): string {
-  const { title, images } = stripImageSuffix(rest);
-  if (images > 0) return `${verb}文章「${title}」（含 ${images} 张图）`;
-  return `${verb}文章「${title}」`;
-}
-
-function pageLabel(verb: string, rest: string): string {
-  const { title, images } = stripImageSuffix(rest);
-  if (images > 0) return `${verb}页面「${title}」（含 ${images} 张图）`;
-  return `${verb}页面「${title}」`;
-}
-
-function described(kind: GitChangeKind, label: string): GitChangeDescription {
-  return { label, kind, kindLabel: KIND_LABELS[kind] };
+function described(
+  kind: GitChangeKind,
+  key: string,
+  fallback: string,
+  values?: Record<string, string | number>,
+): GitChangeDescription {
+  return { kind, key, values, fallback };
 }
 
 export function describeGitChange(commitMessage: string | null): GitChangeDescription {
-  if (!commitMessage) return described("other", "一次改动");
+  if (!commitMessage) return described("other", "changeNone", "");
   const first = commitMessage.split("\n")[0]?.trim() || commitMessage;
 
   const addPost = first.match(/^Add post: (.+)$/);
-  if (addPost) return described("post", postLabel("发布了", addPost[1]));
+  if (addPost) {
+    const { title, images } = stripImageSuffix(addPost[1]);
+    if (images > 0) return described("post", "addPostImages", first, { title, n: images });
+    return described("post", "addPost", first, { title });
+  }
 
   const updatePost = first.match(/^Update post: (.+)$/);
-  if (updatePost) return described("post", postLabel("保存了", updatePost[1]));
+  if (updatePost) {
+    const { title, images } = stripImageSuffix(updatePost[1]);
+    if (images > 0) return described("post", "savePostImages", first, { title, n: images });
+    return described("post", "savePost", first, { title });
+  }
 
   const meta = first.match(/^Update post meta: (.+)$/);
-  if (meta) return described("post", `更新了文章信息「${meta[1]}」`);
+  if (meta) return described("post", "updatePostMeta", first, { title: meta[1] });
 
   const deletePost = first.match(/^Delete post: (.+)$/);
-  if (deletePost) return described("post", `删除了文章「${baseName(deletePost[1])}」`);
+  if (deletePost) return described("post", "deletePost", first, { title: baseName(deletePost[1]) });
 
   const addPage = first.match(/^Add page: (.+)$/);
-  if (addPage) return described("page", pageLabel("发布了", addPage[1]));
+  if (addPage) {
+    const { title, images } = stripImageSuffix(addPage[1]);
+    if (images > 0) return described("page", "addPageImages", first, { title, n: images });
+    return described("page", "addPage", first, { title });
+  }
 
   const updatePage = first.match(/^Update page: (.+)$/);
-  if (updatePage) return described("page", pageLabel("保存了", updatePage[1]));
+  if (updatePage) {
+    const { title, images } = stripImageSuffix(updatePage[1]);
+    if (images > 0) return described("page", "savePageImages", first, { title, n: images });
+    return described("page", "savePage", first, { title });
+  }
 
   const deletePage = first.match(/^Delete page: (.+)$/);
-  if (deletePage) return described("page", `删除了页面「${baseName(deletePage[1])}」`);
+  if (deletePage) return described("page", "deletePage", first, { title: baseName(deletePage[1]) });
 
   const upload = first.match(/^Upload media: (.+)$/);
-  if (upload) return described("media", `上传了媒体「${upload[1]}」`);
+  if (upload) return described("media", "uploadMedia", first, { name: upload[1] });
 
   const deleteMedia = first.match(/^Delete media: (.+)$/);
-  if (deleteMedia) return described("media", `删除了媒体「${baseName(deleteMedia[1])}」`);
+  if (deleteMedia) return described("media", "deleteMedia", first, { name: baseName(deleteMedia[1]) });
 
   const theme = first.match(/^Switch theme to (.+)$/);
   if (theme) {
     const name = theme[1].replace(/\s+from\s+\S+$/, "").trim();
-    return described("theme", `把主题换成了「${name}」`);
+    return described("theme", "switchTheme", first, { name });
   }
 
-  if (first === "Update theme options") return described("theme", "调整了主题选项");
+  if (first === "Update theme options") return described("theme", "themeOptions", first);
 
   const imported = first.match(/^Import theme (.+) from (.+)$/);
-  if (imported) return described("theme", `导入了主题「${imported[1]}」`);
+  if (imported) return described("theme", "importTheme", first, { name: imported[1] });
 
-  if (first === "Update site settings") return described("settings", "更新了站点设置");
+  if (first === "Update site settings") return described("settings", "siteSettings", first);
   if (first === "Update site analytics" || first.startsWith("Update site analytics ")) {
-    return described("settings", "更新了统计");
+    return described("settings", "analytics", first);
   }
   const setDomain = first.match(/^Set custom domain: (.+)$/);
-  if (setDomain) return described("settings", `在 GitHub Pages 登记了「${setDomain[1]}」`);
+  if (setDomain) return described("settings", "setDomain", first, { domain: setDomain[1] });
   const siteUrl = first.match(/^Update site URL: (.+)$/);
-  if (siteUrl) return described("settings", `更新了站点地址「${siteUrl[1]}」`);
-  if (first === "Remove custom domain") return described("settings", "恢复了默认 Pages 地址");
-  if (first === "Remove Pages custom domain") return described("settings", "取消了 Pages 域名登记");
-  if (first.startsWith("Set custom domain")) return described("settings", "在 GitHub Pages 登记了域名");
-  if (first.startsWith("Update site URL")) return described("settings", "更新了站点地址");
-  if (first === "Update site logo and avatar") return described("settings", "更新了站点标志与头像");
-  if (first === "Update categories") return described("settings", "更新了分类");
-  if (first === "Connect giscus comments") return described("settings", "连接了评论区");
-  if (first === "Enable comments") return described("settings", "开启了评论");
-  if (first === "Disable comments") return described("settings", "关闭了评论");
-  if (first === "Disconnect giscus comments") return described("settings", "断开了评论区");
-  if (first === "Update comments snippet") return described("settings", "更新了评论嵌入代码");
-  if (first === "Update footer") return described("settings", "更新了页脚");
-  if (first === "Update beian") return described("settings", "更新了备案信息");
-  if (first === "Update menu") return described("nav", "更新了导航菜单");
-  if (first === "Trigger rebuild") return described("build", "手动触发了重建");
+  if (siteUrl) return described("settings", "siteUrl", first, { url: siteUrl[1] });
+  if (first === "Remove custom domain") return described("settings", "removeDomain", first);
+  if (first === "Remove Pages custom domain") return described("settings", "removePagesDomain", first);
+  if (first.startsWith("Set custom domain")) return described("settings", "setDomainGeneric", first);
+  if (first.startsWith("Update site URL")) return described("settings", "siteUrlGeneric", first);
+  if (first === "Update site logo and avatar") return described("settings", "logoAvatar", first);
+  if (first === "Update categories") return described("settings", "categories", first);
+  if (first === "Connect giscus comments") return described("settings", "connectComments", first);
+  if (first === "Enable comments") return described("settings", "enableComments", first);
+  if (first === "Disable comments") return described("settings", "disableComments", first);
+  if (first === "Disconnect giscus comments") return described("settings", "disconnectComments", first);
+  if (first === "Update comments snippet") return described("settings", "commentsSnippet", first);
+  if (first === "Update footer") return described("settings", "footer", first);
+  if (first === "Update beian") return described("settings", "beian", first);
+  if (first === "Update menu") return described("nav", "menu", first);
+  if (first === "Trigger rebuild") return described("build", "rebuild", first);
   if (first.startsWith("Initialize ")) {
     const file = first.slice("Initialize ".length);
-    return described("init", `初始化了「${baseName(file)}」`);
+    return described("init", "initFile", first, { name: baseName(file) });
   }
 
-  return described("other", first);
+  return described("other", "raw", first, { text: first });
 }
 
 export function describeBuildTrigger(
   commitMessage: string | null,
   event?: string | null,
-): string {
-  if (event === "schedule") return "定时发布检查";
-  if (!commitMessage) return "构建";
-  return describeGitChange(commitMessage).label;
+): GitChangeDescription {
+  if (event === "schedule") return described("build", "schedule", "schedule");
+  if (!commitMessage) return described("build", "build", "build");
+  return describeGitChange(commitMessage);
 }
 
-export function describeCommitAuthor(login: string | null, name: string | null): string {
-  if (login?.endsWith("[bot]")) return "GitPress 代为提交";
-  if (login) return `@${login}`;
-  if (name) return name;
-  return "未知作者";
+export function describeCommitAuthorKey(login: string | null, name: string | null): {
+  key: string;
+  values?: Record<string, string>;
+  fallback: string;
+} {
+  if (login?.endsWith("[bot]")) return { key: "botAuthor", fallback: login };
+  if (login) return { key: "githubLogin", values: { login }, fallback: `@${login}` };
+  if (name) return { key: "rawName", values: { name }, fallback: name };
+  return { key: "unknownAuthor", fallback: "" };
 }
 
 const SHANGHAI = "Asia/Shanghai";
@@ -169,22 +171,26 @@ export function shanghaiDayKey(iso: string): string {
   return shanghaiYmd(new Date(iso));
 }
 
-export function shanghaiDayHeading(iso: string, now = new Date()): string {
+export function shanghaiDayHeading(iso: string, locale: string, now = new Date()): { key?: "today" | "yesterday"; formatted: string } {
   const day = shanghaiYmd(new Date(iso));
   const today = shanghaiYmd(now);
-  if (day === today) return "今天";
-  if (day === shiftYmd(today, -1)) return "昨天";
-  return new Intl.DateTimeFormat("zh-CN", {
-    timeZone: SHANGHAI,
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    weekday: "short",
-  }).format(new Date(iso));
+  if (day === today) return { key: "today", formatted: day };
+  if (day === shiftYmd(today, -1)) return { key: "yesterday", formatted: day };
+  const bcp = locale === "zh" ? "zh-CN" : "en";
+  return {
+    formatted: new Intl.DateTimeFormat(bcp, {
+      timeZone: SHANGHAI,
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      weekday: "short",
+    }).format(new Date(iso)),
+  };
 }
 
-export function formatShanghaiDateTime(iso: string): string {
-  return new Intl.DateTimeFormat("zh-CN", {
+export function formatShanghaiDateTime(iso: string, locale: string): string {
+  const bcp = locale === "zh" ? "zh-CN" : "en";
+  return new Intl.DateTimeFormat(bcp, {
     timeZone: SHANGHAI,
     hour: "2-digit",
     minute: "2-digit",
@@ -192,10 +198,50 @@ export function formatShanghaiDateTime(iso: string): string {
   }).format(new Date(iso));
 }
 
-export function formatDuration(seconds: number | null): string | null {
-  if (seconds == null) return null;
-  if (seconds < 60) return `${seconds}s`;
-  const minutes = Math.floor(seconds / 60);
-  const rest = seconds % 60;
-  return `${minutes}分${rest}秒`;
+export function formatGitChange(
+  desc: GitChangeDescription,
+  t: (key: string, values?: Record<string, string | number>) => string,
+): string {
+  if (desc.key === "raw") return String(desc.values?.text ?? desc.fallback);
+  return t(desc.key, desc.values);
+}
+
+export function formatCommitAuthor(
+  login: string | null,
+  name: string | null,
+  t: (key: string, values?: Record<string, string>) => string,
+): string {
+  const author = describeCommitAuthorKey(login, name);
+  if (author.key === "githubLogin") return `@${author.values!.login}`;
+  if (author.key === "rawName") return author.values!.name;
+  return t(author.key);
+}
+
+export function formatDayHeading(
+  iso: string,
+  locale: string,
+  t: (key: string) => string,
+): string {
+  const day = shanghaiDayHeading(iso, locale);
+  if (day.key === "today" || day.key === "yesterday") return t(day.key);
+  return day.formatted;
+}
+
+function formatDurationParts(
+  seconds: number | null,
+): { seconds: number } | { m: number; s: number } | null {
+  if (seconds == null || !Number.isFinite(seconds) || seconds < 0) return null;
+  const whole = Math.round(seconds);
+  if (whole < 60) return { seconds: whole };
+  return { m: Math.floor(whole / 60), s: whole % 60 };
+}
+
+export function formatDurationLabel(
+  seconds: number | null,
+  t: (key: string, values?: Record<string, number>) => string,
+): string | null {
+  const parts = formatDurationParts(seconds);
+  if (!parts) return null;
+  if ("seconds" in parts) return t("durationSeconds", { s: parts.seconds });
+  return t("duration", { m: parts.m, s: parts.s });
 }

@@ -1,8 +1,10 @@
 "use client";
 
 import { useActionState, useMemo, useState } from "react";
-import Link from "next/link";
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import { savePublishCheckAction, type SavePublishCheckState } from "@/lib/actions";
+import { FormError, useFormErrorText } from "@/components/FormError";
 import { ProgressButton } from "@/components/ProgressButton";
 import { onFormStampAuthorNow } from "@/lib/browserWallClock";
 import {
@@ -10,7 +12,6 @@ import {
   ESTIMATED_MINUTES_PER_SCHEDULED_RUN,
   estimatePublishCheck,
   estimateSaveMinutes,
-  getPublishCheckInterval,
   PUBLISH_CHECK_INTERVALS,
   PUBLISH_CHECK_QUOTA_MINUTES,
   projectQuotaUsage,
@@ -23,20 +24,16 @@ import {
   type PublishCheckIntervalId,
 } from "@/lib/publishCheck";
 
-function delayHint(minutes: number): string {
-  if (minutes < 60) return `最多再等约 ${minutes} 分钟`;
-  if (minutes === 60) return "最多再等约 1 小时";
-  if (minutes < 1440) return `最多再等约 ${minutes / 60} 小时`;
-  return "最多再等约 1 天";
-}
-
-function intervalLabel(id: PublishCheckIntervalId): string {
-  return getPublishCheckInterval(id).label;
-}
-
-function formatMinutes(value: number): string {
-  return `${value} 分钟`;
-}
+const INTERVAL_KEYS: Record<PublishCheckIntervalId, string> = {
+  "15m": "interval15m",
+  "30m": "interval30m",
+  "1h": "interval1h",
+  "2h": "interval2h",
+  "3h": "interval3h",
+  "6h": "interval6h",
+  "12h": "interval12h",
+  "24h": "interval24h",
+};
 
 function stackedBarTone(percent: number, selected: boolean): string {
   if (percent >= 100) return selected ? "bg-red-600" : "bg-red-200";
@@ -65,6 +62,9 @@ export function PublishCheckSettingsForm({
   otherPrivateMinutes: number;
   accountUsedMinutes: number | null;
 }) {
+  const t = useTranslations("publish");
+  const tc = useTranslations("common");
+  const errorText = useFormErrorText();
   const [on, setOn] = useState(enabled);
   const [choice, setChoice] = useState<PublishCheckIntervalId>(
     interval ?? DEFAULT_PUBLISH_CHECK_INTERVAL,
@@ -94,13 +94,22 @@ export function PublishCheckSettingsForm({
   const clockMinutes = projection.thisMinutes + projection.otherMinutes;
   const clockPercent = Math.round((clockMinutes / PUBLISH_CHECK_QUOTA_MINUTES) * 100);
   const savesLeft = remainingSaveCount(clockMinutes);
-  const recommendedLabel = intervalLabel(recommended);
+  const intervalName = (id: PublishCheckIntervalId) => t(INTERVAL_KEYS[id]);
+  const recommendedLabel = intervalName(recommended);
   const selectedMeta = PUBLISH_CHECK_INTERVALS.find((item) => item.id === choice);
   const multiSite = sameAccountSiteCount > 1;
   const showQuota = dataRepoPrivate;
   const overCaution = showQuota && on && clockPercent >= QUOTA_CAUTION_PERCENT;
   const currentConfirmKey = publishCheckConfirmKey(on, on ? choice : null);
   const showConfirm = Boolean(state.needsConfirm && state.confirmKey === currentConfirmKey);
+  const minutesText = (value: number) => tc("minutes", { n: value });
+
+  function delayHint(minutes: number): string {
+    if (minutes < 60) return t("delayMinutes", { n: minutes });
+    if (minutes === 60) return t("delayHour");
+    if (minutes < 1440) return t("delayHours", { n: minutes / 60 });
+    return t("delayDay");
+  }
 
   return (
     <form action={formAction} onSubmit={onFormStampAuthorNow} className="space-y-4 p-5 text-sm">
@@ -118,38 +127,37 @@ export function PublishCheckSettingsForm({
           className="mt-0.5 accent-wp-accent"
         />
         <span>
-          <span className="font-medium text-neutral-800">定时发布检查</span>
-          <span className="mt-0.5 block text-xs leading-relaxed text-neutral-500">
-            关闭时不能把文章日期选到现在之后。打开后按间隔检查到期稿，不是对准那一分钟。
-          </span>
+          <span className="font-medium text-neutral-800">{t("title")}</span>
+          <span className="mt-0.5 block text-xs leading-relaxed text-neutral-500">{t("lead")}</span>
         </span>
       </label>
 
       {multiSite && (
         <p className="rounded border border-neutral-200 bg-neutral-50 px-3 py-2 text-xs leading-relaxed text-neutral-600">
-          GitHub 帐户 <span className="font-medium text-neutral-800">{accountLogin}</span>{" "}
-          下还有 {sameAccountSiteCount - 1} 个站，私有仓的 Actions
-          免费时长是同一池。
+          {t("otherSites", { account: accountLogin, n: sameAccountSiteCount - 1 })}
           {otherChecks.length > 0 ? (
             <>
               {" "}
-              已开启检查的有
+              {t("othersOn")}
               {otherChecks.map((site, index) => (
                 <span key={site.siteId}>
-                  {index > 0 ? "、" : ""}
+                  {index > 0 ? " · " : " "}
                   <Link
                     href={`/sites/${site.siteId}/settings#publish`}
                     className="text-wp-accent hover:underline"
                   >
                     {site.name}
                   </Link>
-                  （{intervalLabel(site.interval)}，约 {formatMinutes(site.minutesPerMonth)}）
+                  {t("otherSiteMeta", {
+                    interval: intervalName(site.interval),
+                    minutes: minutesText(site.minutesPerMonth),
+                  })}
                 </span>
               ))}
-              ，和这边加在一起会叠上去。
+              {t("othersStack")}
             </>
           ) : (
-            <> 这边打开后，其他站再开检查也会叠加上去。</>
+            t("othersLater")
           )}
         </p>
       )}
@@ -158,12 +166,8 @@ export function PublishCheckSettingsForm({
         <div className="space-y-4 rounded border border-neutral-100 bg-neutral-50 p-4">
           <label className="block">
             <span className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-              <span className="font-medium">检查间隔</span>
-              <span className="text-[11px] text-neutral-500">
-                单站默认建议
-                <span className="font-medium text-neutral-800"> 每 2 小时</span>
-                。额度还宽时，预估工具也可能建议 1 小时。
-              </span>
+              <span className="font-medium">{t("interval")}</span>
+              <span className="text-[11px] text-neutral-500">{t("intervalHint")}</span>
             </span>
             <select
               name="interval"
@@ -173,8 +177,8 @@ export function PublishCheckSettingsForm({
             >
               {PUBLISH_CHECK_INTERVALS.map((item) => (
                 <option key={item.id} value={item.id}>
-                  {item.label}
-                  {item.id === SUGGESTED_PUBLISH_CHECK_INTERVAL ? "（建议）" : ""}
+                  {intervalName(item.id)}
+                  {item.id === SUGGESTED_PUBLISH_CHECK_INTERVAL ? t("suggestedMark") : ""}
                   {` · ${delayHint(item.minutes)}`}
                 </option>
               ))}
@@ -183,24 +187,24 @@ export function PublishCheckSettingsForm({
 
           <ul className="space-y-1 text-xs leading-relaxed text-neutral-500">
             <li>
-              <span className="font-medium text-neutral-800">不是准时到点。</span>
-              到点后最多再等这一个间隔（当前：{delayHint(selectedMeta?.minutes ?? 120)}）。
+              <span className="font-medium text-neutral-800">{t("notExact")}</span>
+              {t("notExactBody", { hint: delayHint(selectedMeta?.minutes ?? 120) })}
             </li>
             <li>
-              <span className="font-medium text-neutral-800">检查会一直跑。</span>
-              打开后按间隔构建。打字不耗时长，点保存才耗。
+              <span className="font-medium text-neutral-800">{t("alwaysRuns")}</span>
+              {t("alwaysRunsBody")}
             </li>
             <li>
               <span className="font-medium text-neutral-800">
-                每次构建约 {ESTIMATED_MINUTES_PER_SCHEDULED_RUN} 分钟
+                {t("eachRun", { n: ESTIMATED_MINUTES_PER_SCHEDULED_RUN })}
               </span>
-              ，多站共用同一帐户额度。能接受更粗的延迟，就能给点保存留更多时长。
+              {t("eachRunBody")}
             </li>
           </ul>
 
           {showQuota && (
             <div>
-              <p className="text-[11px] font-medium text-neutral-600">帐户检查合计（本站 + 其他站）</p>
+              <p className="text-[11px] font-medium text-neutral-600">{t("accountTotal")}</p>
               <div className="mt-1.5 h-2.5 overflow-hidden rounded-full bg-neutral-200/80">
                 <div className="flex h-full">
                   {projection.otherMinutes > 0 && (
@@ -229,18 +233,21 @@ export function PublishCheckSettingsForm({
                   overCaution ? "text-amber-800" : "text-neutral-500"
                 }`}
               >
-                检查约 {formatMinutes(clockMinutes)} / {PUBLISH_CHECK_QUOTA_MINUTES}，占{" "}
-                <span className="font-medium">{clockPercent}%</span>
-                {projection.otherMinutes > 0 ? "（灰=其他站，强调色=本站）" : ""}
-                。按 80% 留一点给点保存，大约还能再保存 {savesLeft} 次。
-                {overCaution ? ` 已超过 ${QUOTA_CAUTION_PERCENT}%，保存设置前会请你确认。` : ""}
+                {t("quotaLine", {
+                  used: minutesText(clockMinutes),
+                  cap: PUBLISH_CHECK_QUOTA_MINUTES,
+                  percent: clockPercent,
+                })}
+                {projection.otherMinutes > 0 ? t("quotaLegend") : ""}
+                {t("quotaSaves", { n: savesLeft })}
+                {overCaution ? t("overCaution", { percent: QUOTA_CAUTION_PERCENT }) : ""}
               </p>
             </div>
           )}
 
           <div>
             <p className="text-[11px] font-medium text-neutral-600">
-              {showQuota ? "各间隔叠上其他站后约占额度" : "各间隔预计检查次数（公开仓通常不占这 2000）"}
+              {showQuota ? t("chartPrivate") : t("chartPublic")}
             </p>
             <ul className="mt-2 space-y-1.5">
               {PUBLISH_CHECK_INTERVALS.map((item) => {
@@ -266,8 +273,8 @@ export function PublishCheckSettingsForm({
                       }`}
                     >
                       <span className={selected ? "font-medium text-neutral-800" : "text-neutral-600"}>
-                        {item.label}
-                        {suggested ? <span className="text-neutral-400"> · 建议</span> : null}
+                        {intervalName(item.id)}
+                        {suggested ? <span className="text-neutral-400"> · {tc("suggested")}</span> : null}
                       </span>
                       <span className="h-2 overflow-hidden rounded-full bg-neutral-200/80">
                         <span
@@ -286,7 +293,7 @@ export function PublishCheckSettingsForm({
                                 : "text-neutral-500"
                         }`}
                       >
-                        {showQuota ? `${shownPercent}%` : `${row.runsPerMonth} 次`}
+                        {showQuota ? `${shownPercent}%` : t("runsCount", { n: row.runsPerMonth })}
                       </span>
                     </button>
                   </li>
@@ -302,63 +309,55 @@ export function PublishCheckSettingsForm({
               className="flex w-full items-center justify-between px-3 py-2 text-left text-xs font-medium text-neutral-700"
               aria-expanded={estimatorOpen}
             >
-              <span>按保存次数估一下还剩多少</span>
-              <span className="text-neutral-400">{estimatorOpen ? "收起" : "展开"}</span>
+              <span>{t("estimator")}</span>
+              <span className="text-neutral-400">{estimatorOpen ? tc("collapse") : tc("expand")}</span>
             </button>
             {estimatorOpen && (
               <div className="space-y-3 border-t border-neutral-100 px-3 py-3 text-xs leading-relaxed text-neutral-600">
                 <label className="block">
-                  <span className="text-neutral-500">
-                    这个站每月大概会点多少次保存？（改稿再存也算。打字、本地底稿不算。可留空。）
-                  </span>
+                  <span className="text-neutral-500">{t("savesAsk")}</span>
                   <input
                     type="number"
                     min={0}
                     max={9999}
                     value={savesInput}
                     onChange={(event) => setSavesInput(event.target.value)}
-                    placeholder="例如 20"
+                    placeholder={t("savesPlaceholder")}
                     className="mt-1 w-28 rounded border border-neutral-300 px-2 py-1.5"
                   />
                 </label>
                 <p>
-                  日常保存
-                  {savesPerMonth == null ? (
-                    <>：没填次数就不估这一笔。打字不耗 Actions。</>
-                  ) : (
-                    <>
-                      ：{savesPerMonth} 次 × 约 {ESTIMATED_MINUTES_PER_SCHEDULED_RUN} 分钟 ≈{" "}
-                      <span className="font-medium text-neutral-800">{formatMinutes(saveMinutes)}</span>
-                    </>
-                  )}
-                </p>
-                <p>
-                  各站检查：本站 {formatMinutes(projection.thisMinutes)}
-                  {projection.otherMinutes > 0
-                    ? ` + 其他站 ${formatMinutes(projection.otherMinutes)}`
-                    : ""}
-                  {` = ${formatMinutes(clockMinutes)}`}
-                  {showQuota
-                    ? `，约占 ${Math.round((clockMinutes / PUBLISH_CHECK_QUOTA_MINUTES) * 100)}%。`
-                    : "。"}
-                </p>
-                <p>
-                  按 80% 给点保存留余量，当前检查档大约还能再保存{" "}
-                  <span className="font-medium text-neutral-800">{savesLeft} 次</span>。
-                  {savesPerMonth != null && savesPerMonth > savesLeft
-                    ? " 你填的次数已经多于这个余量，建议换更宽的间隔。"
-                    : ""}
-                  {accountUsedMinutes != null
-                    ? ` 帐户本月已用约 ${Math.round(accountUsedMinutes)} 分钟（和整月预估不是同一笔账）。`
-                    : ""}
-                </p>
-                <p>
+                  {t("dailySaves")}
                   {savesPerMonth == null
-                    ? "没填保存次数时，只按各站检查来建议。"
-                    : "建议会先扣掉你填的保存次数，再看检查还能开多密。"}{" "}
-                  有余量可以到 1 小时；其他站已经占了很多，或你保存很勤，就会放宽。
-                  当前建议{" "}
-                  <span className="font-medium text-neutral-800">{recommendedLabel}</span>。
+                    ? t("dailySavesEmpty")
+                    : t("dailySavesCalc", {
+                        n: savesPerMonth,
+                        mins: ESTIMATED_MINUTES_PER_SCHEDULED_RUN,
+                        total: minutesText(saveMinutes),
+                      })}
+                </p>
+                <p>
+                  {t("checksLine", { this: minutesText(projection.thisMinutes) })}
+                  {projection.otherMinutes > 0
+                    ? t("plusOthers", { other: minutesText(projection.otherMinutes) })
+                    : ""}
+                  {t("equals", { total: minutesText(clockMinutes) })}
+                  {showQuota
+                    ? t("aboutPercent", {
+                        percent: Math.round((clockMinutes / PUBLISH_CHECK_QUOTA_MINUTES) * 100),
+                      })
+                    : "."}
+                </p>
+                <p>
+                  {t("savesLeft", { n: savesLeft })}
+                  {savesPerMonth != null && savesPerMonth > savesLeft ? t("savesOver") : ""}
+                  {accountUsedMinutes != null
+                    ? t("accountUsed", { n: Math.round(accountUsedMinutes) })
+                    : ""}
+                </p>
+                <p>
+                  {savesPerMonth == null ? t("recommendEmpty") : t("recommendFilled")}{" "}
+                  {t("recommendHint", { label: recommendedLabel })}
                 </p>
                 {recommended !== choice && (
                   <button
@@ -366,7 +365,7 @@ export function PublishCheckSettingsForm({
                     onClick={() => setChoice(recommended)}
                     className="rounded border border-neutral-300 px-3 py-1.5 font-medium text-neutral-800 hover:bg-neutral-50"
                   >
-                    采用建议「{recommendedLabel}」
+                    {t("useRecommend", { label: recommendedLabel })}
                   </button>
                 )}
               </div>
@@ -377,18 +376,18 @@ export function PublishCheckSettingsForm({
 
       <p className="text-xs text-neutral-400">
         <Link href="/help/drafts-and-builds" className="text-wp-accent hover:underline" target="_blank">
-          定时发布说明
+          {t("help")}
         </Link>
       </p>
 
       {showConfirm && state.warning && (
         <div className="space-y-2 rounded border border-amber-300 bg-amber-50 px-3 py-3 text-xs leading-relaxed text-amber-950">
-          <p className="font-medium">请谨慎选择</p>
-          <p>{state.warning}</p>
+          <p className="font-medium">{t("cautionTitle")}</p>
+          <p>{errorText(state.warning)}</p>
           {state.reasons && state.reasons.length > 0 && (
             <ul className="list-disc space-y-1 pl-4">
               {state.reasons.map((reason) => (
-                <li key={reason}>{reason}</li>
+                <li key={reason}>{errorText(reason)}</li>
               ))}
             </ul>
           )}
@@ -397,7 +396,7 @@ export function PublishCheckSettingsForm({
 
       {state.error && (
         <div className="space-y-2 text-xs text-red-600">
-          <p>{state.error}</p>
+          <FormError error={state.error} className="p-0 bg-transparent text-xs text-red-600" />
           {state.blockedPosts && state.blockedPosts.length > 0 && (
             <ul className="list-disc space-y-1 pl-4">
               {state.blockedPosts.map((post) => (
@@ -417,10 +416,10 @@ export function PublishCheckSettingsForm({
 
       <ProgressButton
         expectedSeconds={4}
-        pendingLabel="保存中"
+        pendingLabel={tc("saving")}
         className="rounded border border-neutral-300 px-4 py-2 text-sm font-medium hover:bg-neutral-50"
       >
-        {showConfirm ? "确认仍要保存" : "保存"}
+        {showConfirm ? t("confirmSave") : tc("save")}
       </ProgressButton>
     </form>
   );

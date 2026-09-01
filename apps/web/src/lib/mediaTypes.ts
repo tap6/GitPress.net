@@ -48,6 +48,6 @@ export const MEDIA_LIBRARY_ACCEPT =
 export function assertAllowedMediaUpload(file: File): void {
   const kind = mediaKind(file.name);
   if (kind === "other") {
-    throw new Error("仅支持常见图片(jpg/png/gif/webp/svg 等)与视频(mp4/webm/mov 等)格式。");
+    throw new Error("mediaType");
   }
 }

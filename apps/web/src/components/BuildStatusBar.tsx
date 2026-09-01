@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import { getBuildStatusAction, type BuildStatusSnapshot } from "@/lib/actions";
 import { isScheduledBuildEvent } from "@/lib/recentBuilds";
 import { BUILD_TRIGGER_EVENT, type BuildTriggerDetail } from "./buildTriggerEvent";
@@ -31,6 +33,8 @@ function repoName(full: string): string {
  * second and leaving no trace that anything is happening.
  */
 export function BuildStatusBar({ siteId, dataRepo, siteRepo }: Props) {
+  const t = useTranslations("buildBar");
+  const tc = useTranslations("common");
   const [phase, setPhase] = useState<Phase>("hidden");
   const [snapshot, setSnapshot] = useState<BuildStatusSnapshot | null>(null);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
@@ -143,11 +147,7 @@ export function BuildStatusBar({ siteId, dataRepo, siteRepo }: Props) {
 
   const dataLabel = repoName(dataRepo);
   const siteLabel = repoName(siteRepo);
-  const pipeline = (
-    <>
-      从私有数据仓「<span title={dataRepo}>{dataLabel}</span>」构建并推送到「<span title={siteRepo}>{siteLabel}</span>」
-    </>
-  );
+  const pipeline = t("pipeline", { data: dataLabel, site: siteLabel });
   const scheduled = isScheduledBuildEvent(snapshot?.event);
   const progress = Math.min(96, (elapsedSeconds / EXPECTED_BUILD_SECONDS) * 96);
   const tone =
@@ -163,38 +163,30 @@ export function BuildStatusBar({ siteId, dataRepo, siteRepo }: Props) {
     <div className={`sticky top-0 z-20 border-b px-4 py-2 text-sm sm:px-8 ${tone}`}>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-          {phase === "submitting" && (
-            <span>GitHub 已收到数据，正在等待开始构建。可离开本页。</span>
-          )}
+          {phase === "submitting" && <span>{t("submitting")}</span>}
           {phase === "building" && (
             <span>
-              ⏳ {scheduled ? "定时检查：" : ""}正在{pipeline} · {elapsedSeconds}s
-              <span className="ml-1 font-normal text-sky-600/80">
-                （大约 1–2 分钟，可离开。再保存会改跑最新一次）
-              </span>
+              {t("building", {
+                prefix: scheduled ? t("scheduled") : "",
+                pipeline,
+                seconds: elapsedSeconds,
+              })}
+              <span className="ml-1 font-normal text-sky-600/80">{t("buildingHint")}</span>
             </span>
           )}
-          {phase === "success" && (
-            <span>✓ 已{pipeline}</span>
-          )}
-          {phase === "failure" && (
-            <span>✗ 未能{pipeline}</span>
-          )}
-          {phase === "unknown" && (
-            <span>
-              GitHub 已收到数据，但 App 缺少「Actions」权限，这里看不到实时进度（构建仍会进行）。
-            </span>
-          )}
+          {phase === "success" && <span>{t("success", { pipeline })}</span>}
+          {phase === "failure" && <span>{t("failure", { pipeline })}</span>}
+          {phase === "unknown" && <span>{t("unknown")}</span>}
           {(phase === "building" || phase === "success" || phase === "failure") &&
             snapshot?.htmlUrl && (
               <a href={snapshot.htmlUrl} target="_blank" rel="noreferrer" className="underline">
-                在 GitHub 查看
+                {t("viewGithub")}
               </a>
             )}
           {(phase === "submitting" || phase === "building") && (
-            <a href="/help/builds" target="_blank" rel="noreferrer" className="underline">
-              说明
-            </a>
+            <Link href="/help/builds" target="_blank" rel="noreferrer" className="underline">
+              {t("help")}
+            </Link>
           )}
           {phase === "unknown" && (
             <a
@@ -203,7 +195,7 @@ export function BuildStatusBar({ siteId, dataRepo, siteRepo }: Props) {
               rel="noreferrer"
               className="underline"
             >
-              GitHub Actions 页面
+              {t("actionsPage")}
             </a>
           )}
         </div>
@@ -212,7 +204,7 @@ export function BuildStatusBar({ siteId, dataRepo, siteRepo }: Props) {
             type="button"
             onClick={() => setPhase("hidden")}
             className="text-xs opacity-60 hover:opacity-100"
-            aria-label="关闭"
+            aria-label={tc("close")}
           >
             ✕
           </button>

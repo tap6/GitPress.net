@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
+import { useTranslations } from "next-intl";
 import { BUILD_TRIGGER_EVENT, type BuildTriggerDetail } from "./buildTriggerEvent";
 
 interface Props {
@@ -47,6 +48,7 @@ export function ProgressButton({
   announceBuild = true,
 }: Props) {
   const { pending } = useFormStatus();
+  const tc = useTranslations("common");
   const [elapsedMs, setElapsedMs] = useState(0);
   const [justSubmitted, setJustSubmitted] = useState(false);
   const wasPending = useRef(false);
@@ -92,9 +94,9 @@ export function ProgressButton({
     <span className="inline-flex flex-col items-stretch gap-1">
       <button type="submit" disabled={pending || disabled} className={className}>
         {pending
-          ? `${pendingLabel ?? "处理中"}…(${elapsedSeconds.toFixed(0)}s)`
+          ? `${pendingLabel ?? tc("processing")}…(${elapsedSeconds.toFixed(0)}s)`
           : justSubmitted
-            ? "✓ 已写入 GitHub"
+            ? tc("writtenGithub")
             : children}
       </button>
       {pending && (
@@ -112,7 +114,7 @@ export function ProgressButton({
         </span>
       )}
       {justSubmitted && buildSiteId && (
-        <span className="text-[11px] text-neutral-400">GitHub 已收到数据，正在构建，可离开本页</span>
+        <span className="text-[11px] text-neutral-400">{tc("buildStarted")}</span>
       )}
     </span>
   );

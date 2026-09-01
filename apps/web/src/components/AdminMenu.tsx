@@ -1,7 +1,7 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { Link, usePathname } from "@/i18n/navigation";
+import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState, type PointerEvent } from "react";
 import {
   parseSettingsSection,
@@ -90,6 +90,8 @@ export function adminNavHrefs(siteId: string): string[] {
 
 export function AdminMenu({ siteId }: { siteId: string }) {
   const pathname = usePathname();
+  const t = useTranslations("nav");
+  const ts = useTranslations("settings");
   const base = `/sites/${siteId}`;
   const settingsHref = `${base}/settings`;
   const onSettings = pathname === settingsHref;
@@ -154,16 +156,16 @@ export function AdminMenu({ siteId }: { siteId: string }) {
   }, [pathname]);
 
   const items = [
-    { href: base, key: "dashboard", label: "仪表盘", exact: true },
-    { href: `${base}/analytics`, key: "analytics", label: "统计" },
-    { href: `${base}/posts`, key: "posts", label: "文章" },
-    { href: `${base}/pages`, key: "pages", label: "页面" },
-    { href: `${base}/categories`, key: "categories", label: "分类" },
-    { href: `${base}/menu`, key: "menu", label: "菜单" },
-    { href: `${base}/media`, key: "media", label: "媒体" },
-    { href: `${base}/appearance`, key: "appearance", label: "外观" },
-    { href: settingsHref, key: "settings", label: "设置" },
-    { href: `${base}/history`, key: "history", label: "Git 记录" },
+    { href: base, key: "dashboard", label: t("dashboard"), exact: true },
+    { href: `${base}/analytics`, key: "analytics", label: t("analytics") },
+    { href: `${base}/posts`, key: "posts", label: t("posts") },
+    { href: `${base}/pages`, key: "pages", label: t("pages") },
+    { href: `${base}/categories`, key: "categories", label: t("categories") },
+    { href: `${base}/menu`, key: "menu", label: t("menu") },
+    { href: `${base}/media`, key: "media", label: t("media") },
+    { href: `${base}/appearance`, key: "appearance", label: t("appearance") },
+    { href: settingsHref, key: "settings", label: t("settings") },
+    { href: `${base}/history`, key: "history", label: t("history") },
   ];
 
   return (
@@ -218,7 +220,7 @@ export function AdminMenu({ siteId }: { siteId: string }) {
                     id="admin-settings-submenu"
                     className="mb-1 bg-black/20 py-1"
                     role="group"
-                    aria-label="设置分组"
+                    aria-label={t("settingsGroup")}
                     aria-hidden={!settingsExpanded}
                     inert={!settingsExpanded || undefined}
                   >
@@ -243,7 +245,7 @@ export function AdminMenu({ siteId }: { siteId: string }) {
                               : "text-wp-sidebar-text hover:bg-wp-base-dark hover:text-[#72aee6]"
                           }`}
                         >
-                          {section.label}
+                          {ts(section.id)}
                         </Link>
                       );
                     })}

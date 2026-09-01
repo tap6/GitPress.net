@@ -1,7 +1,8 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { Link, usePathname } from "@/i18n/navigation";
+import { useTranslations } from "next-intl";
+import { LocaleSwitcher } from "@/components/LocaleSwitcher";
 import { Suspense, useEffect, useState } from "react";
 import { AdminMenu } from "@/components/AdminMenu";
 import { BuildStatusBar } from "@/components/BuildStatusBar";
@@ -39,6 +40,7 @@ export function SiteAdminShell({
   permissionGap,
   children,
 }: Props) {
+  const t = useTranslations("nav");
   const [mobileOpen, setMobileOpen] = useState(false);
   const pathname = usePathname();
 
@@ -71,7 +73,7 @@ export function SiteAdminShell({
           type="button"
           onClick={() => setMobileOpen(true)}
           className="-ml-1.5 rounded p-1.5 text-white hover:bg-white/10"
-          aria-label="打开菜单"
+          aria-label={t("openMenu")}
         >
           <svg viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5">
             <path
@@ -88,7 +90,7 @@ export function SiteAdminShell({
           href="/dashboard"
           className="shrink-0 text-xs text-wp-sidebar-text hover:text-white"
         >
-          全部站点
+          {t("allSites")}
         </Link>
       </div>
 
@@ -115,7 +117,7 @@ export function SiteAdminShell({
             type="button"
             onClick={() => setMobileOpen(false)}
             className="rounded p-1 text-wp-sidebar-text hover:text-white lg:hidden"
-            aria-label="关闭菜单"
+            aria-label={t("closeMenu")}
           >
             ✕
           </button>
@@ -124,7 +126,7 @@ export function SiteAdminShell({
         <IdleRoutePrefetch siteId={siteId} />
         <div className="mt-6 border-t border-white/10 px-4 py-3">
           <Link href="/dashboard" className="text-xs text-wp-sidebar-text hover:text-white">
-            ← 全部站点
+            ← {t("allSites")}
           </Link>
         </div>
       </aside>
@@ -142,11 +144,14 @@ export function SiteAdminShell({
                 rel="noreferrer"
                 className="shrink-0 hover:text-[#72aee6]"
               >
-                访问站点 ↗
+                {t("visitSite")}
               </a>
             )}
           </div>
-          <span className="shrink-0">你好,{userName}</span>
+          <div className="flex shrink-0 items-center gap-3">
+            <LocaleSwitcher className="text-wp-sidebar-text [&_a]:text-wp-sidebar-text [&_a.font-semibold]:text-white" />
+            <span className="shrink-0">{t("hello", { name: userName })}</span>
+          </div>
         </div>
         <Suspense fallback={null}>
           <RouteLoadingBar />

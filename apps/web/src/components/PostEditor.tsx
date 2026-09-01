@@ -1,9 +1,11 @@
 "use client";
 
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { useActionState, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useLocale, useTranslations } from "next-intl";
 import { generateSummaryAction, savePostAction, type SavePostState } from "@/lib/actions";
 import { EditorGitHistory, type EditorGitCommit } from "@/components/EditorGitHistory";
+import { FormError, isNeedAiConfig, useFormErrorText } from "@/components/FormError";
 import { ProgressButton } from "@/components/ProgressButton";
 import { RichTextEditor } from "@/components/RichTextEditor";
 import type { SiteCategory } from "@/lib/content";
@@ -82,6 +84,11 @@ export function PostEditor({
   publishCheckEnabled = false,
   initial,
 }: Props) {
+  const t = useTranslations("editor");
+  const tc = useTranslations("common");
+  const locale = useLocale();
+  const dateLoc = locale === "en" ? "en" : "zh-CN";
+  const errorText = useFormErrorText();
   const [title, setTitle] = useState(initial?.title ?? "");
   const [slug, setSlug] = useState(initial?.slug ?? "");
   const [date, setDate] = useState(() => datetimeLocalValue(initial?.date, nowLocalDateTime()));
@@ -190,7 +197,7 @@ export function PostEditor({
     const result = await generateSummaryAction(siteId, body);
     setSummarizing(false);
     if (result.error || !result.summary) {
-      setSummaryError(result.error ?? "生成失败");
+      setSummaryError(result.error ?? "generateFailed");
       return;
     }
     setDescription(result.summary);
@@ -199,7 +206,13 @@ export function PostEditor({
   const settingsHref = `/sites/${siteId}/settings#account-ai`;
   const savedLabel =
     local.lastSavedAt != null
-      ? `本地底稿 ${new Date(local.lastSavedAt).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}`
+      ? t("localDraft", {
+          time: new Date(local.lastSavedAt).toLocaleTimeString(dateLoc, {
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+          }),
+        })
       : null;
   const showLocalDraftHint = local.dirty && !isEmptyDraft(fields);
 
@@ -217,11 +230,11 @@ export function PostEditor({
         {local.pending && (
           <div className="shrink-0 rounded border-l-4 border-sky-500 bg-sky-50 p-3 text-sm text-sky-900">
             <p>
-              这个浏览器里有一份未提交的底稿
+              {t("pendingTitle")}
               {local.pending.savedAt
-                ? `（${new Date(local.pending.savedAt).toLocaleString("zh-CN")}）`
+                ? t("pendingAt", { time: new Date(local.pending.savedAt).toLocaleString(dateLoc) })
                 : ""}
-              ,切换标签或刷新前写过的内容还在。
+              {t("pendingSuffix")}
             </p>
             <div className="mt-2 flex flex-wrap gap-3">
               <button
@@ -229,7 +242,7 @@ export function PostEditor({
                 onClick={local.restorePending}
                 className="rounded bg-sky-700 px-3 py-1 text-xs font-medium text-white hover:bg-sky-800"
               >
-                恢复底稿
+                {t("restoreDraft")}
               </button>
               <button
                 type="button"
@@ -239,7 +252,7 @@ export function PostEditor({
                 }}
                 className="text-xs text-sky-700 hover:underline"
               >
-                丢弃,用仓库里的版本
+                {t("discardDraft")}
               </button>
             </div>
           </div>
@@ -249,35 +262,31 @@ export function PostEditor({
           required
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          placeholder="在此输入标题"
+          placeholder={t("titlePlaceholder")}
           className="w-full shrink-0 rounded border border-neutral-300 bg-white px-4 py-3 text-lg shadow-sm focus:border-wp-accent focus:outline-none"
         />
         <input
           name="slug"
           value={slug}
           onChange={(e) => setSlug(e.target.value)}
-          placeholder="URL 标识(留空由标题自动生成,建议英文)"
+          placeholder={t("postSlugPlaceholder")}
           className="w-full shrink-0 rounded border border-neutral-300 bg-white px-4 py-2 text-sm shadow-sm focus:border-wp-accent focus:outline-none"
         />
         {path && (
           <p className="shrink-0 text-[11px] text-neutral-400">
-            修改后旧链接会自动生成跳转页。文件名不变,公开地址变成 /posts/新标识/。
+            {t("postSlugHint")}
           </p>
         )}
         {showLocalDraftHint && (
           <p className="shrink-0 text-[11px] text-neutral-400">
             {local.persistOk
               ? savedLabel
-                ? `${savedLabel} · 仅存在此浏览器,点保存才会写入仓库。`
-                : "正在写入本地底稿…"
-              : "本地底稿写入失败(可能是浏览器存储已满),请尽快点保存提交到 GitHub。"}
+                ? t("localDraftPostHint", { saved: savedLabel })
+                : t("localDraftWriting")
+              : t("localDraftFail")}
           </p>
         )}
-        {state.error && (
-          <p data-form-error className="shrink-0 rounded bg-red-50 p-3 text-sm text-red-600">
-            {state.error}
-          </p>
-        )}
+        <FormError error={state.error} className="shrink-0 rounded bg-red-50 p-3 text-sm text-red-600" />
         <RichTextEditor
           key={editorKey}
           name="body"
@@ -289,7 +298,7 @@ export function PostEditor({
             pendingFilesRef.current = files;
             setPendingCount(files.length);
           }}
-          placeholder="开始写作…"
+          placeholder={t("startWriting")}
           fill={fillEditor}
           onToggleFill={toggleFillEditor}
         />
@@ -298,39 +307,39 @@ export function PostEditor({
       {/* Sidebar: publish box */}
       <div className="flex w-full flex-col gap-4 lg:w-72 lg:shrink-0 lg:min-h-0">
         <div className="shrink-0 rounded border border-neutral-200 bg-white shadow-sm">
-          <h2 className="border-b border-neutral-100 px-4 py-2.5 text-sm font-semibold">发布</h2>
+          <h2 className="border-b border-neutral-100 px-4 py-2.5 text-sm font-semibold">{t("publishBox")}</h2>
           <div className="space-y-3 p-4 text-sm">
             <label className="block">
-              <span className="text-neutral-500">状态</span>
+              <span className="text-neutral-500">{t("status")}</span>
               <select
                 value={draft ? "draft" : "publish"}
                 onChange={(e) => setDraft(e.target.value === "draft")}
                 className="mt-1 w-full rounded border border-neutral-300 bg-white px-2 py-1.5"
               >
-                <option value="publish">已发布(公开站点可见)</option>
-                <option value="draft">草稿 · 不公开(写入私有仓库,公开站点不显示)</option>
+                <option value="publish">{t("statusPublish")}</option>
+                <option value="draft">{t("statusDraft")}</option>
               </select>
             </label>
             {draft && <input type="hidden" name="draft" value="on" />}
             <p className="text-[11px] leading-relaxed text-neutral-400">
               {draft ? (
                 <>
-                  保存会写入私有仓库并触发构建,但公开网站不会出现这篇。{" "}
+                  {t("draftHint")}{" "}
                   <Link href="/help/drafts-and-builds" className="text-wp-accent hover:underline" target="_blank">
-                    说明
+                    {t("howItWorks")}
                   </Link>
                 </>
               ) : (
                 <>
-                  保存后会出现在公开站点。{" "}
+                  {t("publishHint")}{" "}
                   <Link href="/help/drafts-and-builds" className="text-wp-accent hover:underline" target="_blank">
-                    底稿 / 草稿 / 已发布
+                    {t("draftsHelp")}
                   </Link>
                 </>
               )}
             </p>
             <label className="block">
-              <span className="text-neutral-500">日期时间</span>
+              <span className="text-neutral-500">{t("datetime")}</span>
               <input
                 type="datetime-local"
                 name="date"
@@ -343,43 +352,45 @@ export function PostEditor({
             </label>
             {!publishCheckEnabled && (
               <p className="text-[11px] leading-relaxed text-neutral-400">
-                定时发布已关闭，日期不能晚于现在。需要预约请到{" "}
-                <Link href={`/sites/${siteId}/settings#publish`} className="text-wp-accent hover:underline">
-                  设置 → 定时发布
-                </Link>
-                。
+                {t.rich("scheduleOff", {
+                  link: (chunks) => (
+                    <Link href={`/sites/${siteId}/settings#publish`} className="text-wp-accent hover:underline">
+                      {chunks}
+                    </Link>
+                  ),
+                })}
               </p>
             )}
             <ProgressButton
               expectedSeconds={5 + pendingCount * 2}
-              pendingLabel="提交中"
+              pendingLabel={tc("submitting")}
               buildSiteId={siteId}
               announceBuild={!state.error}
               className="w-full rounded bg-wp-accent px-4 py-2 font-medium text-white hover:bg-wp-accent-dark"
             >
-              {draft ? "保存到仓库" : path ? "更新" : "发布"}
+              {draft ? t("saveToRepo") : path ? tc("update") : tc("publish")}
             </ProgressButton>
             <Link
               href={`/sites/${siteId}/posts`}
               className="block text-center text-xs text-neutral-400 hover:text-neutral-600"
             >
-              返回列表
+              {t("backToList")}
             </Link>
           </div>
         </div>
 
         <div className="shrink-0 rounded border border-neutral-200 bg-white shadow-sm">
-          <h2 className="border-b border-neutral-100 px-4 py-2.5 text-sm font-semibold">元信息</h2>
+          <h2 className="border-b border-neutral-100 px-4 py-2.5 text-sm font-semibold">{t("metaBox")}</h2>
           <div className="space-y-3 p-4 text-sm">
             <label className="block">
-              <span className="text-neutral-500">分类</span>
+              <span className="text-neutral-500">{t("category")}</span>
               <select
                 name="category"
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
                 className="mt-1 w-full rounded border border-neutral-300 bg-white px-2 py-1.5"
               >
-                <option value="">未分类</option>
+                <option value="">{t("uncategorized")}</option>
                 {categories.map((item) => (
                   <option key={item.slug} value={item.slug}>
                     {item.label}
@@ -391,30 +402,30 @@ export function PostEditor({
                   href={`/sites/${siteId}/categories`}
                   className="mt-1 block text-xs text-wp-accent hover:underline"
                 >
-                  还没有分类,去创建一个 →
+                  {t("createCategory")}
                 </Link>
               )}
             </label>
             <label className="block">
-              <span className="text-neutral-500">标签(逗号分隔)</span>
+              <span className="text-neutral-500">{t("tags")}</span>
               <input
                 name="tags"
                 value={tags}
                 onChange={(e) => setTags(e.target.value)}
-                placeholder="随笔, 技术"
+                placeholder={t("tagsPlaceholder")}
                 className="mt-1 w-full rounded border border-neutral-300 px-2 py-1.5"
               />
             </label>
             <label className="block">
               <span className="flex items-center justify-between text-neutral-500">
-                摘要
+                {t("excerpt")}
                 <button
                   type="button"
                   onClick={handleGenerateSummary}
                   disabled={summarizing}
                   className="text-xs font-medium text-wp-accent hover:underline disabled:opacity-50"
                 >
-                  {summarizing ? "生成中…" : "✨ AI 生成摘要"}
+                  {summarizing ? t("summarizing") : t("aiSummary")}
                 </button>
               </span>
               <textarea
@@ -426,10 +437,10 @@ export function PostEditor({
               />
               {summaryError && (
                 <span className="mt-1 block text-xs text-amber-700">
-                  {summaryError}{" "}
-                  {summaryError.includes("AI 设置") && (
+                  {errorText(summaryError)}{" "}
+                  {isNeedAiConfig(summaryError) && (
                     <Link href={settingsHref} className="underline hover:text-amber-900">
-                      前往配置 →
+                      {t("goConfigure")}
                     </Link>
                   )}
                 </span>

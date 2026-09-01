@@ -40,4 +40,11 @@ export default defineConfig({
   markdown: {
     rehypePlugins: [rehypeBasePrefix],
   },
+  vite: {
+    server: {
+      fs: {
+        allow: [fileURLToPath(new URL("..", import.meta.url))],
+      },
+    },
+  },
 });

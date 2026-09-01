@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 
 /**
@@ -8,13 +9,14 @@ import { useRouter } from "next/navigation";
  * so the user sees time actually passing instead of a static "进行中…" label.
  */
 export function RunElapsed({ createdAt }: { createdAt: string }) {
+  const t = useTranslations("buildBar");
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(timer);
   }, []);
   const seconds = Math.max(0, Math.floor((now - new Date(createdAt).getTime()) / 1000));
-  return <span>运行中…{seconds}s</span>;
+  return <span>{t("running", { n: seconds })}</span>;
 }
 
 /**

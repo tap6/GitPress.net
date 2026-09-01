@@ -1,13 +1,12 @@
 "use client";
 
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import { disableScratchNoteAction, saveScratchNoteAction } from "@/lib/actions";
+import { useFormErrorText } from "@/components/FormError";
 import { SCRATCH_NOTE_MAX_CHARS } from "@/lib/scratchNoteLimits";
-
-const CLOSE_CONFIRM =
-  "关闭后会保持关闭。若要再打开，请到设置 → 小工具。";
 
 export function ScratchNoteWidget({
   siteId,
@@ -16,6 +15,9 @@ export function ScratchNoteWidget({
   siteId: string;
   initialBody: string;
 }) {
+  const t = useTranslations("widgets");
+  const tc = useTranslations("common");
+  const errorText = useFormErrorText();
   const router = useRouter();
   const [body, setBody] = useState(initialBody);
   const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
@@ -58,7 +60,7 @@ export function ScratchNoteWidget({
   }
 
   async function handleClose() {
-    if (!window.confirm(CLOSE_CONFIRM)) return;
+    if (!window.confirm(t("closeConfirm"))) return;
     setClosing(true);
     if (body !== savedBody.current) {
       await persist(body);
@@ -78,22 +80,22 @@ export function ScratchNoteWidget({
   return (
     <section className="mt-5 rounded border border-neutral-200 bg-white shadow-sm">
       <div className="flex items-center justify-between gap-3 border-b border-neutral-100 px-5 py-2.5">
-        <h2 className="text-sm font-semibold text-neutral-800">随手记</h2>
+        <h2 className="text-sm font-semibold text-neutral-800">{t("title")}</h2>
         <div className="flex items-center gap-3">
           <span className="text-[11px] text-neutral-400">
             {status === "saving"
-              ? "保存中…"
+              ? `${tc("saving")}…`
               : status === "saved"
-                ? "已保存"
+                ? tc("saved")
                 : status === "error"
-                  ? (error ?? "保存失败")
-                  : "只存在后台,不会写入仓库、也不会构建"}
+                  ? errorText(error) || t("saveFail")
+                  : t("localOnly")}
           </span>
           <button
             type="button"
             onClick={() => void handleClose()}
             disabled={closing}
-            aria-label="关闭随手记"
+            aria-label={t("closeAria")}
             className="rounded px-1.5 py-0.5 text-lg leading-none text-neutral-300 transition-colors hover:text-neutral-800 focus-visible:text-wp-accent focus-visible:outline-none disabled:opacity-50"
           >
             ×
@@ -105,13 +107,13 @@ export function ScratchNoteWidget({
           value={body}
           onChange={(event) => setBody(event.target.value.slice(0, SCRATCH_NOTE_MAX_CHARS))}
           rows={4}
-          placeholder="记下今天要写的、待改的、别忘了的…"
+          placeholder={t("placeholder")}
           className="w-full resize-y rounded border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm leading-relaxed text-neutral-800 placeholder:text-neutral-400 focus:border-wp-accent focus:bg-white focus:outline-none"
         />
         <p className="mt-2 flex flex-wrap items-center justify-between gap-2 text-[11px] text-neutral-400">
-          <span>还可写 {remaining} 字</span>
+          <span>{t("remaining", { n: remaining })}</span>
           <Link href={`/sites/${siteId}/settings#widgets`} className="hover:text-wp-accent hover:underline">
-            设置 · 小工具
+            {t("settingsLink")}
           </Link>
         </p>
       </div>

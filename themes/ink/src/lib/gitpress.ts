@@ -1,5 +1,10 @@
 import { existsSync, readFileSync } from "node:fs";
 import { getCollection, type CollectionEntry } from "astro:content";
+import {
+  chromeString,
+  pagefindUiTranslations as lookupPagefindUi,
+  type ChromeKey,
+} from "../../../_shared/chromeI18n";
 
 interface SiteCategory {
   slug: string;
@@ -78,6 +83,14 @@ function loadConfig(): GitPressConfig {
 }
 
 export const gitpress = loadConfig();
+
+export function t(key: ChromeKey, vars?: Record<string, string | number>): string {
+  return chromeString(gitpress.site.language, key, vars);
+}
+
+export function pagefindUiTranslations() {
+  return lookupPagefindUi(gitpress.site.language);
+}
 
 function loadThemeManifest(): { displayName?: string; name?: string; homepage?: string } {
   const path = new URL("../../theme.json", import.meta.url);
@@ -197,10 +210,7 @@ export function withBase(path: string): string {
 
 export function homeLabel(override?: string): string {
   if (override && override.trim()) return override.trim();
-  const lang = (gitpress.site.language ?? "en").toLowerCase();
-  if (lang.startsWith("zh")) return "首页";
-  if (lang.startsWith("ja")) return "ホーム";
-  return "Home";
+  return t("home");
 }
 
 export function mediaHref(path?: string): string | undefined {
@@ -237,10 +247,7 @@ export function giscusEmbed(): {
 
 export function searchLabel(override?: string): string {
   if (override && override.trim()) return override.trim();
-  const lang = (gitpress.site.language ?? "en").toLowerCase();
-  if (lang.startsWith("zh")) return "搜索";
-  if (lang.startsWith("ja")) return "検索";
-  return "Search";
+  return t("search");
 }
 
 function siteOrigin(): string | undefined {
@@ -305,7 +312,7 @@ export function buildNav(pages: Page[]): NavLink[] {
       ...navCategories.map((c) => ({ href: withBase(`/categories/${c.slug}/`), label: c.label })),
       ...pages
         .slice()
-        .sort((a, b) => a.data.title.localeCompare(b.data.title))
+        .sort((a, b) => a.data.title.localeCompare(b.data.title, gitpress.site.language ?? "en"))
         .map((p) => ({ href: withBase(`/${postSlug(p)}/`), label: p.data.title })),
     ]);
   }
@@ -345,10 +352,7 @@ function withYear(label: string): string {
 
 function gitpressCreditLabel(override?: string): string {
   if (override?.trim()) return override.trim();
-  const lang = (gitpress.site.language ?? "en").toLowerCase();
-  if (lang.startsWith("zh")) return "由 GitPress 驱动";
-  if (lang.startsWith("ja")) return "GitPress で構築";
-  return "Powered by GitPress";
+  return t("gitpressCredit");
 }
 
 function themeCreditLabel(override?: string): string | null {
@@ -356,10 +360,7 @@ function themeCreditLabel(override?: string): string | null {
   if (!homepage) return null;
   if (override?.trim()) return override.trim();
   const name = themeManifest.displayName || themeManifest.name || "theme";
-  const lang = (gitpress.site.language ?? "en").toLowerCase();
-  if (lang.startsWith("zh")) return `主题 ${name}`;
-  if (lang.startsWith("ja")) return `テーマ ${name}`;
-  return `Theme: ${name}`;
+  return t("themeCredit", { name });
 }
 
 function resolveFooterItem(item: FooterItem, pages: Page[]): FooterEntry | null {

@@ -8,6 +8,7 @@ import {
   postsPerPage,
   siteCategories,
   categoryLabel,
+  t,
   type Post,
 } from "../../../lib/gitpress";
 
@@ -31,7 +32,7 @@ const { page } = Astro.props;
 
 <Base title={categoryLabel(slug!)}>
   <h1 class="page-heading">{categoryLabel(slug!)}</h1>
-  {page.data.length === 0 && <p style="text-align:center">This category has no posts yet.</p>}
+  {page.data.length === 0 && <p style="text-align:center">{t("emptyCategory")}</p>}
   <div class="post-grid">
     {page.data.map((post) => <PostCard post={post} />)}
   </div>

@@ -23,10 +23,7 @@ export async function connectGiscus(
 ): Promise<GiscusConfig> {
   const gap = await getInstallationPermissionGap(options.installationId);
   if (gap?.missing.some((item) => item.name === "discussions")) {
-    throw new CommentsPermissionError(
-      "需要先在 GitHub 批准 Discussions 权限,才能读取评论分类。",
-      gap,
-    );
+    throw new CommentsPermissionError("needDiscussionsRead", gap);
   }
 
   const ref = splitRepo(options.siteRepo);
@@ -35,7 +32,7 @@ export async function connectGiscus(
   } catch (error) {
     const status = (error as { status?: number }).status;
     if (status === 403) {
-      throw new Error("没有权限打开该仓库的 Discussions。请确认站点仓库是公开的,且 GitPress App 仍装在这个仓库上。");
+      throw new Error("discussionsPerm");
     }
     throw error;
   }
@@ -45,17 +42,14 @@ export async function connectGiscus(
     info = await fetchDiscussionCategories(octokit, ref);
   } catch (error) {
     if ((error as { status?: number }).status === 403 || /Resource not accessible|discussions/i.test(String(error))) {
-      throw new CommentsPermissionError(
-        "读取 Discussions 分类失败。请先在 GitHub 为 GitPress App 批准「评论区(Discussions)」权限后再试。",
-        gap,
-      );
+      throw new CommentsPermissionError("discussionsReadFail", gap);
     }
     throw error;
   }
 
   const category = pickGiscusCategory(info.categories);
   if (!category) {
-    throw new Error("仓库还没有 Discussions 分类。请到 GitHub 打开 Discussions 后再连接。");
+    throw new Error("discussionsCategory");
   }
 
   return {

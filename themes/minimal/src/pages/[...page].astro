@@ -2,7 +2,7 @@
 import type { GetStaticPaths, Page } from "astro";
 import Base from "../layouts/Base.astro";
 import Pagination from "../components/Pagination.astro";
-import { formatListDate, getPublishedPosts, postSlug, themeConfig, withBase, postsPerPage, type Post } from "../lib/gitpress";
+import { formatListDate, getPublishedPosts, postSlug, themeConfig, withBase, postsPerPage, t, type Post } from "../lib/gitpress";
 
 // A rest parameter (`[...page]`) matches both `/` (page undefined -> page 1)
 // and `/2`, `/3`, ... — this is Astro's documented pattern for making the
@@ -20,7 +20,7 @@ const { page } = Astro.props;
 ---
 
 <Base>
-  {page.data.length === 0 && <p>No posts yet. Write your first one!</p>}
+  {page.data.length === 0 && <p>{t("emptyPosts")}</p>}
   {
     page.data.map((post) => (
       <article class="post-item">

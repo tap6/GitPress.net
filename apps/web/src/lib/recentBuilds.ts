@@ -50,10 +50,14 @@ export function groupRecentBuildRuns(
   return groups;
 }
 
-export function scheduledBuildSubtitle(group: BuildRunGroup, latestTime: string): string {
+export function scheduledBuildSubtitle(
+  group: BuildRunGroup,
+  latestTime: string,
+  t: (key: string, values?: Record<string, string | number>) => string,
+): string {
   if (group.count <= 1) return latestTime;
-  const parts = [`最近 ${group.count} 次`];
-  if (group.failedCount > 0) parts.push(`${group.failedCount} 次失败`);
-  parts.push(latestTime);
-  return parts.join(" · ");
+  if (group.failedCount > 0) {
+    return t("scheduleSummaryFailed", { n: group.count, failed: group.failedCount, time: latestTime });
+  }
+  return t("scheduleSummary", { n: group.count, time: latestTime });
 }

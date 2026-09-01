@@ -1,7 +1,9 @@
 "use client";
 
 import { useActionState } from "react";
+import { useTranslations } from "next-intl";
 import { clearAiSettingsAction, saveAiSettingsAction, type SaveAiSettingsState } from "@/lib/actions";
+import { FormError } from "@/components/FormError";
 
 interface Props {
   hasExisting: boolean;
@@ -11,6 +13,8 @@ interface Props {
 }
 
 export function AiSettingsForm({ hasExisting, initial, embedded = false }: Props) {
+  const t = useTranslations("settings");
+  const tc = useTranslations("common");
   const [state, formAction] = useActionState<SaveAiSettingsState, FormData>(
     saveAiSettingsAction,
     {},
@@ -35,12 +39,10 @@ export function AiSettingsForm({ hasExisting, initial, embedded = false }: Props
             placeholder="https://api.openai.com/v1"
             className="mt-1 w-full rounded border border-neutral-300 px-3 py-2 font-mono text-xs focus:border-wp-accent focus:outline-none"
           />
-          <span className="mt-1 block text-xs text-neutral-400">
-            任意 OpenAI 兼容接口:OpenAI、DeepSeek、月之暗面、Qwen、OpenRouter 等均可。
-          </span>
+          <span className="mt-1 block text-xs text-neutral-400">{t("aiBaseHint")}</span>
         </label>
         <label className="block">
-          <span className="font-medium">模型名称</span>
+          <span className="font-medium">{t("aiModel")}</span>
           <input
             name="model"
             required
@@ -55,29 +57,27 @@ export function AiSettingsForm({ hasExisting, initial, embedded = false }: Props
             name="apiKey"
             type="password"
             autoComplete="off"
-            placeholder={hasExisting ? "已配置,留空则保持不变" : "sk-..."}
+            placeholder={hasExisting ? t("aiKeyKeep") : "sk-..."}
             className="mt-1 w-full rounded border border-neutral-300 px-3 py-2 font-mono text-xs focus:border-wp-accent focus:outline-none"
           />
-          <span className="mt-1 block text-xs text-neutral-400">
-            加密后存储,任何人(包括我们)都无法在数据库里看到明文。
-          </span>
+          <span className="mt-1 block text-xs text-neutral-400">{t("aiKeyHint")}</span>
         </label>
 
-        {state.error && <p className="rounded bg-red-50 p-3 text-red-600">{state.error}</p>}
-        {state.saved && <p className="rounded bg-emerald-50 p-3 text-emerald-700">已保存。</p>}
+        <FormError error={state.error} />
+        {state.saved && <p className="rounded bg-emerald-50 p-3 text-emerald-700">{t("aiSaved")}</p>}
 
         <button
           type="submit"
           className="rounded bg-wp-accent px-4 py-2 font-medium text-white hover:bg-wp-accent-dark"
         >
-          保存
+          {tc("save")}
         </button>
       </form>
 
       {hasExisting && (
         <form action={clearAiSettingsAction}>
           <button type="submit" className="text-xs text-neutral-400 hover:text-red-600">
-            清除已保存的 AI 配置
+            {t("aiClear")}
           </button>
         </form>
       )}

@@ -116,10 +116,10 @@ export const ANALYTICS_CATALOG: AnalyticsCatalogItem[] = [
   },
   {
     type: "baidu",
-    label: "百度统计",
+    label: "Baidu",
     createUrl: "https://tongji.baidu.com/",
-    createLabel: "打开百度统计",
-    hint: "获取代码后，复制 hm.js? 后面那串站点 ID。",
+    createLabel: "Open Baidu Tongji",
+    hint: "After you get the code, copy the site ID after hm.js?.",
   },
   {
     type: "umami",
@@ -153,14 +153,14 @@ function trim(value: unknown): string {
 export function parseDashboardUrl(raw: string): { url: string } | { error: string } {
   const value = raw.trim();
   if (!value) return { url: "" };
-  if (value.length > MAX_DASHBOARD_URL) return { error: "看板链接过长。" };
+  if (value.length > MAX_DASHBOARD_URL) return { error: "analyticsDashboardTooLong" };
   let parsed: URL;
   try {
     parsed = new URL(value);
   } catch {
-    return { error: "看板链接不是有效网址。" };
+    return { error: "analyticsDashboardInvalid" };
   }
-  if (parsed.protocol !== "https:") return { error: "看板链接必须使用 https。" };
+  if (parsed.protocol !== "https:") return { error: "analyticsDashboardHttps" };
   return { url: parsed.toString() };
 }
 
@@ -320,7 +320,7 @@ const UMAMI_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0
 const LA51_ID = /^[A-Za-z0-9]{4,32}$/;
 
 export function analyticsProviderLabel(provider: AnalyticsProvider): string {
-  if (provider.type === "custom") return provider.label?.trim() || "自定义代码";
+  if (provider.type === "custom") return provider.label?.trim() || "Custom";
   return ANALYTICS_CATALOG.find((item) => item.type === provider.type)?.label ?? provider.type;
 }
 
@@ -328,65 +328,64 @@ export function validateEnabledProvider(provider: AnalyticsProvider): string | u
   if (!provider.enabled) {
     if (provider.dashboardUrl) {
       const parsed = parseDashboardUrl(provider.dashboardUrl);
-      if ("error" in parsed) return `${analyticsProviderLabel(provider)}：${parsed.error}`;
+      if ("error" in parsed) return parsed.error;
     }
     return undefined;
   }
-  const name = analyticsProviderLabel(provider);
   if (provider.dashboardUrl) {
     const parsed = parseDashboardUrl(provider.dashboardUrl);
-    if ("error" in parsed) return `${name}：${parsed.error}`;
+    if ("error" in parsed) return parsed.error;
   }
   switch (provider.type) {
     case "ga4":
       if (!provider.measurementId || !GA4_ID.test(provider.measurementId.trim())) {
-        return `${name}：请填写测量 ID（G- 开头）。`;
+        return "analyticsNeedGa4";
       }
       return undefined;
     case "clarity":
       if (!provider.projectId || !CLARITY_ID.test(provider.projectId.trim())) {
-        return `${name}：请填写项目 ID。`;
+        return "analyticsNeedClarity";
       }
       return undefined;
     case "cloudflare":
       if (!provider.token || !CF_TOKEN.test(provider.token.trim())) {
-        return `${name}：请填写 beacon token。`;
+        return "analyticsNeedCfToken";
       }
       return undefined;
     case "baidu":
       if (!provider.siteId || !BAIDU_ID.test(provider.siteId.trim())) {
-        return `${name}：请填写 hm.js 后面的站点 ID。`;
+        return "analyticsNeedBaidu";
       }
       return undefined;
     case "umami": {
       if (!provider.websiteId || !UMAMI_ID.test(provider.websiteId.trim())) {
-        return `${name}：请填写 website ID（UUID）。`;
+        return "analyticsNeedUmami";
       }
       const src = provider.src?.trim() || DEFAULT_UMAMI_SRC;
       const parsed = parseDashboardUrl(src);
       if ("error" in parsed || !("url" in parsed) || !parsed.url.toLowerCase().includes(".js")) {
-        return `${name}：脚本地址必须是 https 的 .js 链接。`;
+        return "analyticsNeedUmamiSrc";
       }
       return undefined;
     }
     case "51la":
       if (!provider.id || !LA51_ID.test(provider.id.trim())) {
-        return `${name}：请填写统计 ID。`;
+        return "analyticsNeed51la";
       }
       if (provider.ck && !LA51_ID.test(provider.ck.trim())) {
-        return `${name}：ck 格式不正确。`;
+        return "analyticsBad51laCk";
       }
       return undefined;
     case "custom":
-      if (!provider.html?.trim()) return `${name}：请粘贴要插入的代码。`;
-      if (provider.html.length > MAX_CUSTOM_HTML) return `${name}：自定义代码过长。`;
+      if (!provider.html?.trim()) return "analyticsNeedCustomHtml";
+      if (provider.html.length > MAX_CUSTOM_HTML) return "analyticsCustomTooLong";
       return undefined;
   }
 }
 
 export function validateAnalyticsProviders(providers: AnalyticsProvider[]): string | undefined {
   const customs = providers.filter((item) => item.type === "custom");
-  if (customs.length > MAX_CUSTOM_ITEMS) return "自定义代码最多 10 条。";
+  if (customs.length > MAX_CUSTOM_ITEMS) return "analyticsTooManyCustom";
   for (const provider of providers) {
     const error = validateEnabledProvider(provider);
     if (error) return error;
@@ -471,7 +470,7 @@ export function analyticsProvidersForEditor(
   if (!hasStructured) {
     const snippet = legacySnippet?.trim() ?? "";
     if (snippet) {
-      customs.push({ type: "custom", enabled: true, label: "自定义代码", html: snippet });
+      customs.push({ type: "custom", enabled: true, label: "Custom", html: snippet });
     }
   }
   return [...builtins, ...customs];

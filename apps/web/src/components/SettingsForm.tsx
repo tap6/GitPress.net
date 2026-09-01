@@ -1,7 +1,9 @@
 "use client";
 
 import { useActionState, useEffect, useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 import { saveSettingsAction, type SaveSettingsState } from "@/lib/actions";
+import { FormError } from "@/components/FormError";
 import { ProgressButton } from "@/components/ProgressButton";
 import { onFormStampAuthorNow } from "@/lib/browserWallClock";
 import { COMMON_TIME_ZONES } from "@/lib/timeZones";
@@ -17,7 +19,34 @@ interface Props {
   };
 }
 
+const TZ_KEYS: Record<string, string> = {
+  "Asia/Shanghai": "tzShanghai",
+  "Asia/Hong_Kong": "tzHongKong",
+  "Asia/Taipei": "tzTaipei",
+  "Asia/Tokyo": "tzTokyo",
+  "Asia/Seoul": "tzSeoul",
+  "Asia/Singapore": "tzSingapore",
+  "Asia/Kolkata": "tzKolkata",
+  "Asia/Dubai": "tzDubai",
+  "Australia/Sydney": "tzSydney",
+  "Pacific/Auckland": "tzAuckland",
+  "Europe/London": "tzLondon",
+  "Europe/Paris": "tzParis",
+  "Europe/Berlin": "tzBerlin",
+  "Europe/Moscow": "tzMoscow",
+  "America/New_York": "tzNewYork",
+  "America/Chicago": "tzChicago",
+  "America/Denver": "tzDenver",
+  "America/Los_Angeles": "tzLosAngeles",
+  "America/Toronto": "tzToronto",
+  "America/Sao_Paulo": "tzSaoPaulo",
+  "Africa/Johannesburg": "tzJohannesburg",
+  UTC: "tzUtc",
+};
+
 export function SettingsForm({ siteId, initial }: Props) {
+  const t = useTranslations("settings");
+  const tc = useTranslations("common");
   const [state, formAction] = useActionState<SaveSettingsState, FormData>(
     saveSettingsAction,
     {},
@@ -41,7 +70,7 @@ export function SettingsForm({ siteId, initial }: Props) {
     <form action={formAction} onSubmit={onFormStampAuthorNow} className="space-y-4 p-5 text-sm">
       <input type="hidden" name="siteId" value={siteId} />
       <label className="block">
-        <span className="font-medium">站点名称</span>
+        <span className="font-medium">{t("siteName")}</span>
         <input
           name="name"
           required
@@ -50,7 +79,7 @@ export function SettingsForm({ siteId, initial }: Props) {
         />
       </label>
       <label className="block">
-        <span className="font-medium">简介</span>
+        <span className="font-medium">{t("tagline")}</span>
         <input
           name="description"
           defaultValue={initial.description}
@@ -58,60 +87,58 @@ export function SettingsForm({ siteId, initial }: Props) {
         />
       </label>
       <label className="block">
-        <span className="font-medium">作者(可选)</span>
+        <span className="font-medium">{t("author")}</span>
         <input
           name="author"
           defaultValue={initial.author}
-          placeholder="用于版权等署名,不是 GitHub 用户名"
+          placeholder={t("authorPlaceholder")}
           className="mt-1 w-full rounded border border-neutral-300 px-3 py-2 focus:border-wp-accent focus:outline-none"
         />
-        <span className="mt-1 block text-xs text-neutral-400">
-          留空则页脚版权默认用站点名称。不希望公开 GitHub 账号时,请不要填登录名。
-        </span>
+        <span className="mt-1 block text-xs text-neutral-400">{t("authorHint")}</span>
       </label>
       <label className="block">
-        <span className="font-medium">语言</span>
+        <span className="font-medium">{t("language")}</span>
         <select
           name="language"
           defaultValue={initial.language}
           className="mt-1 w-full rounded border border-neutral-300 bg-white px-3 py-2"
         >
-          <option value="zh-CN">中文(简体)</option>
-          <option value="en">English</option>
-          <option value="ja">日本語</option>
+          <option value="zh-CN">{t("langZh")}</option>
+          <option value="en">{t("langEn")}</option>
+          <option value="ja">{t("langJa")}</option>
         </select>
       </label>
       <label className="block">
-        <span className="font-medium">时区</span>
+        <span className="font-medium">{t("timezone")}</span>
         <select
           name="timezone"
           value={timezone}
           onChange={(event) => setTimezone(event.target.value)}
           className="mt-1 w-full rounded border border-neutral-300 bg-white px-3 py-2"
         >
-          {zones.map((zone) => (
-            <option key={zone.id} value={zone.id}>
-              {zone.label === zone.id ? zone.id : `${zone.label} · ${zone.id}`}
-            </option>
-          ))}
+          {zones.map((zone) => {
+            const key = TZ_KEYS[zone.id];
+            const label = key && t.has(key) ? t(key) : zone.label;
+            return (
+              <option key={zone.id} value={zone.id}>
+                {label === zone.id ? zone.id : `${label} · ${zone.id}`}
+              </option>
+            );
+          })}
         </select>
-        <span className="mt-1 block text-xs text-neutral-400">
-          公开站点按此时区显示日期，无时区的旧文章也按此时区判断是否到期。编辑器里选的时间仍是你电脑上的当地时间。
-        </span>
+        <span className="mt-1 block text-xs text-neutral-400">{t("timezoneHint")}</span>
       </label>
-      {state.error && <p className="rounded bg-red-50 p-3 text-red-600">{state.error}</p>}
+      <FormError error={state.error} />
       {state.saved && (
-        <p className="rounded bg-emerald-50 p-3 text-emerald-700">
-          已保存,站点将在约 1 分钟后更新。
-        </p>
+        <p className="rounded bg-emerald-50 p-3 text-emerald-700">{tc("savedRebuild")}</p>
       )}
       <ProgressButton
         expectedSeconds={4}
-        pendingLabel="保存中"
+        pendingLabel={tc("saving")}
         buildSiteId={siteId}
         className="rounded bg-wp-accent px-4 py-2 font-medium text-white hover:bg-wp-accent-dark"
       >
-        保存更改
+        {t("saveChanges")}
       </ProgressButton>
     </form>
   );

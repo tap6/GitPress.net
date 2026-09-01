@@ -1,28 +1,31 @@
 ---
 import type { Page } from "astro";
+import { t } from "../lib/gitpress";
 
 interface Props {
   page: Page<unknown>;
 }
 
 const { page } = Astro.props;
+const prev = t("prevPage");
+const next = t("nextPage");
 ---
 
 {
   page.lastPage > 1 && (
-    <nav class="pagination" aria-label="分页导航">
+    <nav class="pagination" aria-label={t("paginationNav")}>
       {page.url.prev ? (
-        <a href={page.url.prev}>← 上一页</a>
+        <a href={page.url.prev}>← {prev}</a>
       ) : (
-        <span class="pagination-disabled">← 上一页</span>
+        <span class="pagination-disabled">← {prev}</span>
       )}
       <span class="pagination-status">
         {page.currentPage} / {page.lastPage}
       </span>
       {page.url.next ? (
-        <a href={page.url.next}>下一页 →</a>
+        <a href={page.url.next}>{next} →</a>
       ) : (
-        <span class="pagination-disabled">下一页 →</span>
+        <span class="pagination-disabled">{next} →</span>
       )}
     </nav>
   )

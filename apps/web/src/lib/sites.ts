@@ -1,5 +1,5 @@
 import { and, eq } from "drizzle-orm";
-import { redirect } from "next/navigation";
+import { redirectTo } from "@/i18n/redirect";
 import { auth } from "@/auth";
 import { db } from "@/db";
 import { githubInstallations, sites } from "@/db/schema";
@@ -9,7 +9,7 @@ export type InstallationRow = typeof githubInstallations.$inferSelect;
 
 export async function requireUser() {
   const session = await auth();
-  if (!session?.user?.id) redirect("/login");
+  if (!session?.user?.id) return await redirectTo("/login");
   return session.user as { id: string; name?: string | null; email?: string | null; image?: string | null };
 }
 
@@ -44,7 +44,7 @@ export async function requireSite(siteId: string): Promise<{
 }> {
   const user = await requireUser();
   const owned = await findOwnedSite(siteId);
-  if (!owned || owned.user.id !== user.id) redirect("/dashboard");
+  if (!owned || owned.user.id !== user.id) return await redirectTo("/dashboard");
   return owned;
 }
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { deleteMediaAction } from "@/lib/actions";
 import { MediaPreviewModal } from "@/components/MediaPreviewModal";
 import { MediaThumb } from "@/components/MediaThumb";
@@ -28,6 +29,7 @@ function formatSize(bytes: number): string {
 }
 
 export function MediaGrid({ siteId, items }: Props) {
+  const tc = useTranslations("common");
   const [previewPath, setPreviewPath] = useState<string | null>(null);
   const previewItem = items.find((item) => item.path === previewPath) ?? null;
   const keepKey = items.map((item) => item.sha).join(",");
@@ -69,7 +71,7 @@ export function MediaGrid({ siteId, items }: Props) {
                       onClick={() => setPreviewPath(item.path)}
                       className="text-wp-accent hover:underline"
                     >
-                      预览
+                      {tc("preview")}
                     </button>
                   )}
                   <form action={deleteMediaAction}>
@@ -77,11 +79,11 @@ export function MediaGrid({ siteId, items }: Props) {
                     <input type="hidden" name="path" value={item.path} />
                     <ProgressButton
                       expectedSeconds={3}
-                      pendingLabel="删除中"
+                      pendingLabel={tc("deleting")}
                       buildSiteId={siteId}
                       className="text-red-500 hover:underline"
                     >
-                      删除
+                      {tc("delete")}
                     </ProgressButton>
                   </form>
                 </div>

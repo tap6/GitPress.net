@@ -1,0 +1,156 @@
+import { Link } from "@/i18n/navigation";
+import {
+  BUILD_ACTION_REPO,
+  GITPRESS_REPO,
+  HELP_BODY as BODY,
+  HELP_BODY_MUTED as BODY_MUTED,
+  Mark,
+  PLATFORM_REPO,
+  RepoCard,
+} from "@/content/help/shared";
+
+export function WhatIsZh() {
+  return (
+    <>
+      <p className={`mt-4 ${BODY}`}>
+        GitPress 是一个<strong className="font-semibold text-neutral-900">博客后台</strong>。你像用
+        WordPress 一样登录、写文章；正文存在你自己的 GitHub
+        仓库里；保存后自动编成静态网页，挂在 GitHub Pages 上。gitpress.net
+        只是遥控器，读者打开的不是我们的服务器。
+      </p>
+      <p className={`mt-3 ${BODY}`}>
+        它不是又一个静态站点生成器。Hugo、VitePress 那样的工具是你自己安装、自己在命令行里编站；GitPress
+        把「写」放进网页后台，把「编」放进你的 GitHub Actions。
+      </p>
+
+      <p className="mt-6 rounded-lg bg-neutral-900 px-4 py-3 text-sm leading-relaxed text-white">
+        只想开一个站？{" "}
+        <Link href="/login" className="font-medium underline decoration-white/50 underline-offset-2 hover:decoration-white">
+          从创建我的博客开始
+        </Link>
+        。想搞清稿子会不会被平台扣住，往下看。
+      </p>
+
+      <section className="mt-10">
+        <h2 className="text-lg font-semibold">适合谁</h2>
+        <ul className={`mt-3 list-disc space-y-1.5 pl-5 ${BODY}`}>
+          <li>想写个人博客，不想每年续服务器、迁数据库、给域名重新解析。</li>
+          <li>不想把稿子存在某个平台的库里，哪天走还得「申请导出」。</li>
+          <li>能有一个 GitHub 账号就行，不必自己搭 Hugo 或 VitePress。</li>
+        </ul>
+      </section>
+
+      <section className="mt-10" id="compare">
+        <h2 className="text-lg font-semibold">和别的工具差在哪</h2>
+        <ul className={`mt-3 space-y-3 ${BODY}`}>
+          <li>
+            <strong className="font-semibold text-neutral-900">WordPress：</strong>
+            后台手感接近。差别是稿子和读者看到的网页都不住在我们服务器上，而在你的 GitHub。
+          </li>
+          <li>
+            <strong className="font-semibold text-neutral-900">Hugo / VitePress：</strong>
+            都是把 Markdown 编成静态站。它们是你本机或 CI 里跑的生成器；GitPress
+            是给你一个网页后台，生成器跑在你仓库的 Actions 里。
+          </li>
+          <li>
+            <strong className="font-semibold text-neutral-900">常见博客平台：</strong>
+            走的时候带走的是仓库，不是申请一份导出。平台关了，少的是这个后台，不是文章。
+          </li>
+        </ul>
+      </section>
+
+      <section className="mt-10 rounded-xl border border-neutral-200 bg-neutral-50 px-5 py-6 sm:px-6">
+        <h2 className="text-base font-semibold text-neutral-900">这个项目为什么会出现</h2>
+        <div className={`mt-4 space-y-3 ${BODY}`}>
+          <p>
+            我之前有一个 <strong className="font-semibold text-neutral-900">WordPress</strong> 个人博客，大概用了五六年。
+            <Mark>每年都要重新买服务器</Mark>（新购服务器在价格上会便宜很多）、做迁移、再给域名做解析。
+            累，而且会一再发生。
+          </p>
+          <p>
+            有一次忘了续服务器、也没做迁移。
+            <Mark>几年博客的数据全部遗失。</Mark>
+            如果没有更一劳永逸的办法，这种又累、又可能再来一次的事还会发生。于是我去找相关项目。
+          </p>
+          <p>
+            <strong className="font-semibold text-neutral-900">Hugo</strong> 以及一系列{" "}
+            <strong className="font-semibold text-neutral-900">SSG</strong>
+            （静态站点生成器）都能编出网站，但
+            <Mark>使用上的心智成本和操作成本都不低。</Mark>
+          </p>
+          <p>
+            后来遇到 <strong className="font-semibold text-neutral-900">Gridea</strong>
+            。数据保存在电脑上，必须坐在电脑前写，<Mark>不能随时随地写</Mark>
+            ，就弃用了。它后来出了网页版，但又收费、又有限制，还不如本地版。本质没变：
+            <Mark>文章数据依然不够安全。</Mark>
+          </p>
+          <p>
+            为了解决这个史诗级大难题——而现在市面上的开源工具已经够撑起这样一套——我开始做架构。
+            <Mark>用了单博客双仓库等设计。</Mark>
+            还有很多架构上的设计此处不展开细说，如果有需要可以把源码仓库 fork 下来让 AI 帮助你了解。
+          </p>
+          <p className="text-neutral-600">
+            首版用 <strong className="font-semibold text-neutral-900">Fable 5</strong> 写。仅第一次让 AI 跑 plan
+            就花了 <Mark>200 元</Mark>。有一说一，
+            <strong className="font-semibold text-neutral-900">Fable 5</strong>{" "}
+            是真贵。后面又多轮加功能、改问题，才有现在这版。
+          </p>
+        </div>
+      </section>
+
+      <p className={`mt-8 ${BODY}`}>
+        所以现在你每天用的是后台。真正撑起站点的，是你 GitHub 上的两个仓库，再加上源码公开的后台、以及 MIT
+        开源的主题和构建工具。后台只是遥控器。
+      </p>
+
+      <section className="mt-10">
+        <h2 className="text-lg font-semibold">三块分别管什么</h2>
+        <p className={`mt-2 ${BODY_MUTED}`}>对应三件事：稿子在哪、长什么样、点保存之后谁在编。不用先去读仓库 README。</p>
+        <div className="mt-4 space-y-3">
+          <RepoCard
+            featured
+            label="主仓库 · 你每天点的网站"
+            name="tap6/GitPress.net"
+            body="WordPress 式后台：登录、建仓、写稿、点保存。我们替你调 GitHub API，Postgres 里没有正文。源码公开（PolyForm Shield），可自用。关停了，你少的是这个后台，不是文章。"
+            href={PLATFORM_REPO}
+            openLabel="在 GitHub 打开 →"
+          />
+          <RepoCard
+            label="博客长什么样"
+            name="tap6/gitpress"
+            body="内置主题、文章 Markdown 怎么写、gitpress.json 是什么意思。换主题或自己做主题，都认这份约定。数据仓模板也在这里。"
+            href={GITPRESS_REPO}
+            openLabel="在 GitHub 打开 →"
+          />
+          <RepoCard
+            label="点保存之后谁在干活"
+            name="tap6/build-action"
+            body="从你的私有数据仓读内容，编成静态站，推进公开网站仓。跑在 GitHub 上，不跑在 gitpress.net 的机器上。"
+            href={BUILD_ACTION_REPO}
+            openLabel="在 GitHub 打开 →"
+          />
+        </div>
+      </section>
+
+      <section className="mt-10">
+        <h2 className="text-lg font-semibold">关停了怎么办</h2>
+        <p className={`mt-2 ${BODY}`}>
+          不是「导出再搬家」。正文、图片、草稿从来没进我们的库，本来就在你的私有数据仓；读者看到的 HTML
+          在你的公开网站仓。用同一份 gitpress 主题和 build-action，在 GitHub
+          上继续编即可。平台没了，少的是遥控器，不是稿子。
+        </p>
+        <p className={`mt-3 ${BODY}`}>
+          控制面具体留了什么、没留什么，见{" "}
+          <Link href="/privacy" className="text-neutral-900 underline hover:text-neutral-700">
+            隐私
+          </Link>
+          。想自己做皮肤，见{" "}
+          <Link href="/help/make-theme" className="text-neutral-900 underline hover:text-neutral-700">
+            用 AI 做主题
+          </Link>
+          。
+        </p>
+      </section>
+    </>
+  );
+}

@@ -28,6 +28,8 @@ export const users = pgTable("user", {
    * Access is `role = "ops"` **or** an email in `GITPRESS_OPS_EMAILS`.
    */
   role: text("role").$type<"ops" | null>(),
+  /** Product UI locale (`zh` | `en`). Independent of each site's `language`. */
+  preferredLocale: text("preferred_locale"),
 });
 
 export const accounts = pgTable(

@@ -1,4 +1,5 @@
 import type { ThemeConfigSchema } from "./themes";
+import { actionError } from "./actionError";
 
 /**
  * Parsed `github:<owner>/<repo>[/<subdir>]#<ref>` (see @gitpress/spec ThemeRef.source).
@@ -38,7 +39,7 @@ export function parseGithubThemeSource(source: string): GithubThemeRef | null {
  */
 export function parseGithubThemeInput(raw: string, subdirInput = "", refInput = ""): GithubThemeRef {
   let s = raw.trim();
-  if (!s) throw new Error("请填写 GitHub 仓库。");
+  if (!s) throw new Error(actionError("fillGithubRepo"));
   s = s.replace(/^https?:\/\//i, "");
   s = s.replace(/^(www\.)?github\.com\//i, "");
   s = s.replace(/\.git$/i, "");
@@ -76,7 +77,7 @@ export function parseGithubThemeInput(raw: string, subdirInput = "", refInput = 
   }
 
   const segments = s.split("/").filter(Boolean);
-  if (segments.length < 2) throw new Error("仓库格式应为 owner/repo,或完整的 GitHub 链接。");
+  if (segments.length < 2) throw new Error(actionError("repoFormat"));
   const fromUrlSubdir = segments.slice(2).join("/");
   const subdir = (subdirInput.trim() || fromUrlSubdir).replace(/^\/+|\/+$/g, "");
   return {
@@ -176,12 +177,12 @@ export function assertUsableThemeManifest(manifest: RemoteThemeManifest): assert
   name: string;
 } {
   if (manifest.specVersion !== 1) {
-    throw new Error(`该主题 specVersion 为 ${String(manifest.specVersion)},当前平台只支持 1。`);
+    throw new Error(actionError("specVersion", { v: String(manifest.specVersion) }));
   }
   if (manifest.engine !== "astro") {
-    throw new Error(`该主题 engine 为 ${String(manifest.engine)},当前只支持 astro。`);
+    throw new Error(actionError("engine", { v: String(manifest.engine) }));
   }
   if (!manifest.name || typeof manifest.name !== "string") {
-    throw new Error("theme.json 缺少 name。");
+    throw new Error(actionError("themeNameMissing"));
   }
 }

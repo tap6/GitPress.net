@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import { useMediaBlob } from "@/hooks/useMediaBlob";
 
 const VIEW_WIDTH = 280;
@@ -27,6 +28,7 @@ export function ImageCropper({
   currentPreviewUrl,
   aspectChoices,
 }: Props) {
+  const t = useTranslations("media");
   const [aspect, setAspect] = useState(initialAspect);
   const [fileUrl, setFileUrl] = useState<string | null>(null);
   const [natural, setNatural] = useState<{ w: number; h: number } | null>(null);
@@ -190,13 +192,13 @@ export function ImageCropper({
             borderRadius: round ? "999px" : "8px",
           }}
         >
-          尚未设置
+          {t("unset")}
         </div>
       )}
 
       {fileUrl && (
         <label className="flex items-center gap-2 text-xs text-neutral-500">
-          缩放
+          {t("zoom")}
           <input
             type="range"
             min={1}
@@ -226,7 +228,7 @@ export function ImageCropper({
             }}
             className="accent-wp-accent"
           />
-          移除当前图片
+          {t("removeCurrent")}
         </label>
       )}
 
@@ -236,9 +238,10 @@ export function ImageCropper({
 }
 
 function CurrentPreview({ url, round }: { url: string; round?: boolean }) {
+  const t = useTranslations("media");
   const { src, loading, failed } = useMediaBlob(url);
   if (failed) {
-    return <p className="text-xs text-neutral-400">当前图片无法预览</p>;
+    return <p className="text-xs text-neutral-400">{t("previewFail")}</p>;
   }
   if (loading || !src) {
     return <div className="mx-auto h-28 w-28 animate-pulse rounded bg-neutral-100" />;

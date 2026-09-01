@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import {
   applyCatalogThemeAction,
   enableLibraryThemeAction,
@@ -19,8 +20,9 @@ export function ThemeEnableForm({
   item: ThemeShelfItem;
   className?: string;
 }) {
+  const t = useTranslations("themeShelf");
   if (item.active) {
-    return <p className={`text-xs font-medium text-wp-accent ${className ?? ""}`}>✓ 当前主题</p>;
+    return <p className={`text-xs font-medium text-wp-accent ${className ?? ""}`}>{t("current")}</p>;
   }
 
   const action =
@@ -37,11 +39,11 @@ export function ThemeEnableForm({
       <input type="hidden" name={fieldName} value={item.id} />
       <ProgressButton
         expectedSeconds={item.kind === "builtin" ? 5 : 6}
-        pendingLabel="启用中"
+        pendingLabel={t("enabling")}
         buildSiteId={siteId}
         className="rounded border border-wp-accent px-3 py-1 text-xs text-wp-accent hover:bg-wp-accent hover:text-white"
       >
-        启用
+        {t("enable")}
       </ProgressButton>
     </form>
   );
@@ -56,6 +58,7 @@ export function ThemeCard({
   item: ThemeShelfItem;
   onOpen: () => void;
 }) {
+  const t = useTranslations("themeShelf");
   return (
     <article
       className={`overflow-hidden rounded-lg border-2 bg-white shadow-sm ${
@@ -64,12 +67,12 @@ export function ThemeCard({
     >
       <button type="button" className="block w-full text-left" onClick={onOpen}>
         <div className="relative">
-          <ThemePreviewImage src={item.previewSrc} alt={`${item.displayName} 预览`} />
+          <ThemePreviewImage src={item.previewSrc} alt={t("previewAlt", { name: item.displayName })} />
           <ThemeBadgeMark badge={item.badge} />
         </div>
         <div className="border-t border-neutral-100 p-4 pb-2">
           <p className="text-sm font-semibold">{item.displayName}</p>
-          <p className="mt-0.5 text-xs text-neutral-400">{item.author || "未知作者"}</p>
+          <p className="mt-0.5 text-xs text-neutral-400">{item.author || t("unknownAuthor")}</p>
         </div>
       </button>
       <div className="px-4 pb-4">

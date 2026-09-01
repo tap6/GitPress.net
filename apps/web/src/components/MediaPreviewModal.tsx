@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { useTranslations } from "next-intl";
 import { useMediaBlob } from "@/hooks/useMediaBlob";
 import { mediaKind, type MediaKind } from "@/lib/mediaTypes";
 import { mediaPreviewUrl } from "@/lib/mediaUrl";
@@ -47,6 +48,8 @@ function PreviewBody({ kind, src }: { kind: MediaKind; src: string }) {
 }
 
 export function MediaPreviewModal({ siteId, item, onClose }: Props) {
+  const t = useTranslations("media");
+  const tc = useTranslations("common");
   const kind = mediaKind(item.name);
   const previewUrl = mediaPreviewUrl(siteId, item.name, item.sha);
   const { src, failed, loading } = useMediaBlob(previewUrl);
@@ -72,7 +75,7 @@ export function MediaPreviewModal({ siteId, item, onClose }: Props) {
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
-      aria-label={`预览 ${item.name}`}
+      aria-label={t("previewName", { name: item.name })}
       onClick={onClose}
     >
       <div
@@ -91,7 +94,7 @@ export function MediaPreviewModal({ siteId, item, onClose }: Props) {
             onClick={onClose}
             className="shrink-0 rounded-md px-3 py-1.5 text-sm text-white/80 hover:bg-white/10 hover:text-white"
           >
-            关闭
+            {tc("close")}
           </button>
         </div>
 
@@ -100,17 +103,17 @@ export function MediaPreviewModal({ siteId, item, onClose }: Props) {
             <div className="h-48 w-full max-w-lg animate-pulse rounded-lg bg-white/10" />
           )}
           {failed && (
-            <p className="rounded-lg bg-white/10 px-4 py-3 text-sm text-white/80">无法加载预览</p>
+            <p className="rounded-lg bg-white/10 px-4 py-3 text-sm text-white/80">{t("loadFail")}</p>
           )}
           {!loading && !failed && src && <PreviewBody kind={kind} src={src} />}
         </div>
 
         <p className="mt-4 text-center text-xs text-white/50">
-          文章中引用:
+          {t("articleRef")}
           {kind === "video" ? (
             <code className="ml-1 text-white/70">{`<video src="/media/${item.name}" controls></video>`}</code>
           ) : (
-            <code className="ml-1 text-white/70">{`![说明](/media/${item.name})`}</code>
+            <code className="ml-1 text-white/70">{`![${t("altHint")}](/media/${item.name})`}</code>
           )}
         </p>
       </div>

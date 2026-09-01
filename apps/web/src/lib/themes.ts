@@ -8,9 +8,9 @@
  * configSchema, including future community/AI-generated themes, without a
  * platform code change every time a theme adds an option.
  *
- * The Chinese `description` below is platform-only presentation copy for the
- * picker cards. The preview image itself comes from each theme's `preview`
- * field (usually `preview.svg`).
+ * The `description` below is platform-only presentation copy for the
+ * picker cards (see messages `themes.*`). The preview image itself comes
+ * from each theme's `preview` field (usually `preview.svg`).
  */
 import classicManifest from "../../../../themes/classic/theme.json";
 import minimalManifest from "../../../../themes/minimal/theme.json";
@@ -47,14 +47,6 @@ export interface BuiltinTheme {
   configSchema: ThemeConfigSchema;
 }
 
-const PRESENTATION: Record<string, { description: string }> = {
-  classic: { description: "温暖的衬线字体、居中版式,经典博客气质。" },
-  minimal: { description: "留白充分、以排版为先的极简风格。" },
-  ink: { description: "暗色卡片式杂志风,适合夜猫子。" },
-  quill: { description: "卡片式列表、标签、阅读时长,一键切换浅色/深色。" },
-};
-
-/** Loosely-typed shape of theme.json — just enough for this registry. */
 interface ThemeManifestJson {
   displayName?: string;
   description?: string;
@@ -75,11 +67,10 @@ const MANIFESTS: Record<string, ThemeManifestJson> = {
 };
 
 export const BUILTIN_THEMES: BuiltinTheme[] = Object.entries(MANIFESTS).map(([name, manifest]) => {
-  const presentation = PRESENTATION[name];
   return {
     name,
     displayName: manifest.displayName ?? name,
-    description: presentation?.description ?? manifest.description ?? "",
+    description: manifest.description ?? "",
     author: manifest.author?.trim() || "GitPress",
     version: manifest.version?.trim() || "",
     license: manifest.license?.trim() || "",
@@ -96,25 +87,31 @@ export function getBuiltinTheme(name: string): BuiltinTheme | undefined {
 }
 
 /**
- * Chinese labels for option keys used by GitPress's own builtin themes.
- * Any theme (including community ones) still works without an entry here —
- * its JSON Schema `description` is used instead, falling back to the raw key.
+ * Builtin option keys. UI copy lives in messages `themes.*`.
+ * Community themes still work without an entry — JSON Schema `description`, then the raw key.
  */
-const KNOWN_OPTION_LABELS: Record<string, string> = {
-  accentColor: "强调色",
-  showExcerpts: "列表显示摘要",
-  showCovers: "卡片显示封面图",
-  showReadingTime: "显示阅读时长",
-  defaultAppearance: "默认外观",
-  showLogo: "显示 Logo",
-  showAvatar: "显示头像",
-  showTitle: "显示站点名称",
-  showTagline: "显示站点简介",
-  showSearch: "显示搜索",
-  showListTime: "列表显示时分秒",
-  showPostTime: "文章页显示时分秒",
-};
+const KNOWN_OPTION_KEYS = new Set([
+  "accentColor",
+  "showExcerpts",
+  "showCovers",
+  "showReadingTime",
+  "defaultAppearance",
+  "showLogo",
+  "showAvatar",
+  "showTitle",
+  "showTagline",
+  "showSearch",
+  "showListTime",
+  "showPostTime",
+]);
 
+export function themeOptionKey(key: string, property: ThemeConfigProperty): { kind: "known"; key: string } | { kind: "fallback"; text: string } {
+  if (KNOWN_OPTION_KEYS.has(key)) return { kind: "known", key };
+  return { kind: "fallback", text: property.description ?? key };
+}
+
+/** @deprecated Use themeOptionKey + next-intl. Kept for callers that still want a raw string. */
 export function themeOptionLabel(key: string, property: ThemeConfigProperty): string {
-  return KNOWN_OPTION_LABELS[key] ?? property.description ?? key;
+  const resolved = themeOptionKey(key, property);
+  return resolved.kind === "fallback" ? resolved.text : key;
 }

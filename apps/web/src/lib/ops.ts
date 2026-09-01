@@ -1,5 +1,5 @@
 import { eq } from "drizzle-orm";
-import { redirect } from "next/navigation";
+import { redirectTo } from "@/i18n/redirect";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { requireUser } from "./sites";
@@ -35,7 +35,7 @@ export async function userHasOpsAccess(user: OpsUser): Promise<boolean> {
 /** Site-owner admin stays on `/sites/[id]`. Operators who fail this go back to their dashboard. */
 export async function requireOps(): Promise<OpsUser> {
   const user = await requireUser();
-  if (!(await userHasOpsAccess(user))) redirect("/dashboard");
+  if (!(await userHasOpsAccess(user))) return await redirectTo("/dashboard");
   return user;
 }
 
@@ -46,7 +46,8 @@ export function githubRepoHref(ownerRepo: string): string {
   return `https://github.com/${owner}/${name}`;
 }
 
-export function formatOpsDate(value: Date | null | undefined): string {
+export function formatOpsDate(value: Date | null | undefined, locale = "zh"): string {
   if (!value) return "—";
-  return value.toLocaleString("zh-CN", { hour12: false });
+  const tag = locale === "en" || locale.startsWith("en") ? "en" : "zh-CN";
+  return value.toLocaleString(tag, { hour12: false });
 }

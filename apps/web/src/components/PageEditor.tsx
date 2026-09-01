@@ -1,9 +1,11 @@
 "use client";
 
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { useActionState, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useLocale, useTranslations } from "next-intl";
 import { savePageAction, type SavePageState } from "@/lib/actions";
 import { EditorGitHistory, type EditorGitCommit } from "@/components/EditorGitHistory";
+import { FormError } from "@/components/FormError";
 import { ProgressButton } from "@/components/ProgressButton";
 import { RichTextEditor } from "@/components/RichTextEditor";
 import {
@@ -73,6 +75,10 @@ export function PageEditor({
   gitError = null,
   initial,
 }: Props) {
+  const t = useTranslations("editor");
+  const tc = useTranslations("common");
+  const locale = useLocale();
+  const dateLoc = locale === "en" ? "en" : "zh-CN";
   const [title, setTitle] = useState(initial?.title ?? "");
   const [slug, setSlug] = useState(initial?.slug ?? "");
   const [description, setDescription] = useState(initial?.description ?? "");
@@ -163,7 +169,13 @@ export function PageEditor({
 
   const savedLabel =
     local.lastSavedAt != null
-      ? `本地底稿 ${new Date(local.lastSavedAt).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}`
+      ? t("localDraft", {
+          time: new Date(local.lastSavedAt).toLocaleTimeString(dateLoc, {
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+          }),
+        })
       : null;
   const showLocalDraftHint = local.dirty && !isEmptyDraft(fields);
 
@@ -179,11 +191,11 @@ export function PageEditor({
         {local.pending && (
           <div className="shrink-0 rounded border-l-4 border-sky-500 bg-sky-50 p-3 text-sm text-sky-900">
             <p>
-              这个浏览器里有一份未提交的底稿
+              {t("pendingTitle")}
               {local.pending.savedAt
-                ? `（${new Date(local.pending.savedAt).toLocaleString("zh-CN")}）`
+                ? t("pendingAt", { time: new Date(local.pending.savedAt).toLocaleString(dateLoc) })
                 : ""}
-              ,切换标签或刷新前写过的内容还在。
+              {t("pendingSuffix")}
             </p>
             <div className="mt-2 flex flex-wrap gap-3">
               <button
@@ -191,7 +203,7 @@ export function PageEditor({
                 onClick={local.restorePending}
                 className="rounded bg-sky-700 px-3 py-1 text-xs font-medium text-white hover:bg-sky-800"
               >
-                恢复底稿
+                {t("restoreDraft")}
               </button>
               <button
                 type="button"
@@ -201,7 +213,7 @@ export function PageEditor({
                 }}
                 className="text-xs text-sky-700 hover:underline"
               >
-                丢弃,用仓库里的版本
+                {t("discardDraft")}
               </button>
             </div>
           </div>
@@ -211,33 +223,31 @@ export function PageEditor({
           required
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          placeholder="在此输入标题"
+          placeholder={t("titlePlaceholder")}
           className="w-full shrink-0 rounded border border-neutral-300 bg-white px-4 py-3 text-lg shadow-sm focus:border-wp-accent focus:outline-none"
         />
         <input
           name="slug"
           value={slug}
           onChange={(e) => setSlug(e.target.value)}
-          placeholder="URL 标识,如 about(留空由标题生成)。公开地址是 /标识/"
+          placeholder={t("pageSlugPlaceholder")}
           className="w-full shrink-0 rounded border border-neutral-300 bg-white px-4 py-2 text-sm shadow-sm focus:border-wp-accent focus:outline-none"
         />
         {path && (
           <p className="shrink-0 text-[11px] text-neutral-400">
-            修改后旧链接会自动生成跳转页,顶栏/页脚里指向本页的项也会跟着改。
+            {t("pageSlugHint")}
           </p>
         )}
         {showLocalDraftHint && (
           <p className="shrink-0 text-[11px] text-neutral-400">
             {local.persistOk
               ? savedLabel
-                ? `${savedLabel} · 仅存在此浏览器,提交到 GitHub 后才会出现在站点上。`
-                : "正在写入本地底稿…"
-              : "本地底稿写入失败(可能是浏览器存储已满),请尽快点保存提交到 GitHub。"}
+                ? t("localDraftPageHint", { saved: savedLabel })
+                : t("localDraftWriting")
+              : t("localDraftFail")}
           </p>
         )}
-        {state.error && (
-          <p className="shrink-0 rounded bg-red-50 p-3 text-sm text-red-600">{state.error}</p>
-        )}
+        <FormError error={state.error} className="shrink-0 rounded bg-red-50 p-3 text-sm text-red-600" />
         <RichTextEditor
           key={editorKey}
           name="body"
@@ -249,7 +259,7 @@ export function PageEditor({
             pendingFilesRef.current = files;
             setPendingCount(files.length);
           }}
-          placeholder="开始写作…"
+          placeholder={t("startWriting")}
           fill={fillEditor}
           onToggleFill={toggleFillEditor}
         />
@@ -257,11 +267,11 @@ export function PageEditor({
 
       <div className="flex w-full flex-col gap-4 lg:w-72 lg:shrink-0 lg:min-h-0">
         <div className="shrink-0 rounded border border-neutral-200 bg-white shadow-sm">
-          <h2 className="border-b border-neutral-100 px-4 py-2.5 text-sm font-semibold">发布</h2>
+          <h2 className="border-b border-neutral-100 px-4 py-2.5 text-sm font-semibold">{t("publishBox")}</h2>
           <div className="space-y-3 p-4 text-sm">
             <p className="text-neutral-500">
-              页面没有草稿。保存后会出现在公开站点的
-              {path ? " 原地址。" : " /标识/ 。"}
+              {t("pageNoDraft")}
+              {path ? t("pageNoDraftPath") : t("pageNoDraftSlug")}
             </p>
             {!path && hasCustomNav && (
               <label className="flex items-start gap-2 text-neutral-600">
@@ -273,36 +283,34 @@ export function PageEditor({
                   onChange={(e) => setAddToNav(e.target.checked)}
                   className="mt-0.5 accent-wp-accent"
                 />
-                <span>加入顶栏菜单</span>
+                <span>{t("addToNav")}</span>
               </label>
             )}
             {!path && !hasCustomNav && (
-              <p className="text-xs text-neutral-400">
-                还没有自定义过菜单时,全部页面都会出现在顶栏。若只要部分页面进导航,先到「菜单」保存一次。
-              </p>
+              <p className="text-xs text-neutral-400">{t("implicitNavHint")}</p>
             )}
             <ProgressButton
               expectedSeconds={5 + pendingCount * 2}
-              pendingLabel="提交中"
+              pendingLabel={tc("submitting")}
               buildSiteId={siteId}
               className="w-full rounded bg-wp-accent px-4 py-2 font-medium text-white hover:bg-wp-accent-dark"
             >
-              {path ? "更新" : "发布"}
+              {path ? tc("update") : tc("publish")}
             </ProgressButton>
             <Link
               href={`/sites/${siteId}/pages`}
               className="block text-center text-xs text-neutral-400 hover:text-neutral-600"
             >
-              返回列表
+              {t("backToList")}
             </Link>
           </div>
         </div>
 
         <div className="shrink-0 rounded border border-neutral-200 bg-white shadow-sm">
-          <h2 className="border-b border-neutral-100 px-4 py-2.5 text-sm font-semibold">元信息</h2>
+          <h2 className="border-b border-neutral-100 px-4 py-2.5 text-sm font-semibold">{t("metaBox")}</h2>
           <div className="space-y-3 p-4 text-sm">
             <label className="block">
-              <span className="text-neutral-500">摘要(可选)</span>
+              <span className="text-neutral-500">{t("excerptOptional")}</span>
               <textarea
                 name="description"
                 rows={3}

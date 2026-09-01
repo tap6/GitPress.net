@@ -33,19 +33,8 @@ export function githubAppInstallUrl(): string {
 
 const PERMISSION_RANK: Record<string, number> = { read: 1, write: 2, admin: 3 };
 
-const PERMISSION_LABELS: Record<string, string> = {
-  actions: "Actions(读取构建记录)",
-  administration: "仓库管理",
-  contents: "仓库内容",
-  metadata: "元数据",
-  pages: "GitHub Pages",
-  discussions: "评论区(Discussions)",
-  secrets: "Actions Secrets",
-  workflows: "工作流文件",
-};
-
 function permissionLabel(name: string): string {
-  return PERMISSION_LABELS[name] ?? name;
+  return name;
 }
 
 function asPermissionMap(value: unknown): Record<string, string> {
@@ -219,7 +208,7 @@ export async function fetchDiscussionCategories(
     }`,
     { owner: ref.owner, name: ref.repo },
   );
-  if (!data.repository) throw new Error("找不到站点仓库");
+  if (!data.repository) throw new Error("siteRepoMissing");
   return {
     repoId: data.repository.id,
     categories: (data.repository.discussionCategories.nodes ?? []).filter(
@@ -326,10 +315,10 @@ export async function listRepoCommits(
     console.error("listRepoCommits failed:", error);
     const message =
       status === 403
-        ? "没有权限读取这个仓库的提交记录。"
+        ? "commitsForbidden"
         : status === 404
-          ? "找不到数据仓库。"
-          : "暂时无法读取 Git 记录，请稍后再试。";
+          ? "dataRepoMissing"
+          : "commitsUnavailable";
     return emptyCommitList(page, perPage, { error: message });
   }
 }
@@ -793,7 +782,7 @@ export async function setPagesCustomDomain(
   if (cname) {
     if (!existing) {
       const enabled = await enablePages(octokit, ref);
-      if (!enabled) throw new Error("无法启用 GitHub Pages。");
+      if (!enabled) throw new Error("pagesEnableFailed");
       existing = await getPagesSite(octokit, ref);
     }
     await octokit.request("PUT /repos/{owner}/{repo}/pages", {
@@ -1076,7 +1065,7 @@ export async function getActionsUsage(options: {
 }): Promise<ActionsUsage> {
   const now = new Date();
   const { year, month, day: todayDay } = shanghaiParts(now);
-  const periodLabel = `${year}年${month}月`;
+  const periodLabel = `${year}-${String(month).padStart(2, "0")}`;
   const billingUrl =
     options.accountType === "Organization"
       ? `https://github.com/organizations/${options.accountLogin}/settings/billing`

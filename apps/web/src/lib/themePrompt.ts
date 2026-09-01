@@ -102,3 +102,110 @@ theme.json、package.json、astro.config.mjs、src/layouts/Base.astro、src/page
 - 仓库是独立仓库还是放在 themes/某子目录
 
 我答完后,请给出可直接运行的完整主题源码(每个文件完整内容),并告诉我:推到公开 GitHub 仓库后,在 GitPress 后台「外观」里粘贴仓库 URL 即可导入。`;
+
+export const THEME_AUTHORING_PROMPT_EN = `You are a GitPress theme author. Ask me clarifying questions first. Do not generate a complete theme until I have answered. After that, output a full Astro theme (spec v1) that can be imported on GitPress.net.
+
+GitPress is a Git-native blogging platform: content lives in the user's GitHub data repo; the theme only presents it. The GitPress GitHub Action mounts the data-repo files into the theme project, then runs \`astro build\`.
+
+## Rules you must follow
+
+1. The theme root has theme.json: specVersion 1, engine "astro", name a short lowercase id (e.g. "aurora"), version the theme's own semver. Provide configSchema (JSON Schema) so the Appearance page can build a form. Provide preview (usually preview.svg) and author. GitPress.net shows preview and author; official builtins get an Official badge; store listings get Listed.
+2. It is a normal Astro project buildable with \`npx astro build\`. astro.config site / base must read gitpress.config.json site.url and site.basePath (GitHub Pages project sites use "/repo-name/").
+3. These mount points are fixed — do not tell me to copy files by hand:
+   - data repo gitpress.json → gitpress.config.json in the theme
+   - data repo content/ → user-content/ (content/posts/ → user-content/posts/, content/pages/ → user-content/pages/)
+   - data repo media/ → public/media/
+4. Read posts and pages from user-content/ with Astro content collections.
+5. Read site and theme.config from gitpress.config.json. Missing theme.config keys must have defaults.
+6. Do not implement gitpress-build.json, a Service Worker, vercel.json cache headers, sitemap.xml, robots.txt, or pagefind indexing — the build Action injects those.
+7. Do not put Logo / avatar in theme.config. They are site.logo and site.avatar (usually /media/...). Switching theme must not drop them. Use configSchema toggles for whether to show them.
+
+## Posts and pages
+
+Posts are user-content/posts/*.md, public URL /posts/{slug}/. Frontmatter:
+- title (required)
+- date: ISO 8601 instant, preferably with offset such as 2026-08-31T04:00:00+08:00; date-only and offset-less wall clocks are accepted; the build fills the offset from site.timezone (Chinese sites default Asia/Shanghai). No date, draft: true, or an instant later than Date.now() must not appear in the public build. Display with Intl and timeZone: site.timezone. Include those posts only when GITPRESS_INCLUDE_DRAFTS=true.
+- updated, draft, tags, categories, description, cover, slug, redirectFrom optional.
+- slug overrides the filename; redirectFrom is a list of old slugs. The theme must emit a static 301 (Astro.redirect) from each old slug to the current URL.
+
+Standalone pages are user-content/pages/*.md, public URL /{slug}/ (not /posts/). Frontmatter is title (required), description?, slug?, redirectFrom?. Pages have no drafts and no dates; they always enter the public build. Do not filter pages with post draft/date rules.
+
+Default slug comes from the filename. Unknown frontmatter keys are kept with .passthrough().
+
+## Routes (required)
+
+- Home pagination: / and /{n}/, page size site.postsPerPage (default 10)
+- Post: /posts/{slug}/
+- Page: /{slug}/
+- Category archive: /categories/{slug}/ (paginated)
+- Tag archive: /tags/{tag}/
+- RSS: /rss.xml (latest 20 is fine)
+- Search: /search/ (below). Do not use posts, categories, tags, rss, archive, media, search as a page slug.
+
+## Nav and footer
+
+- If site.nav exists, the header must render that array exactly (type: home | rss | category | page | link), using each optional label. Do not append extra categories or pages.
+- If there is no site.nav, implicit header = Home + categories whose inNav is not false + all standalone pages (sorted by title with site.language). Default Home copy follows site.language: zh 「首页」, ja 「ホーム」, otherwise "Home". Missing languages fall back to English. Do not use product-locale if/else.
+- Append a Search item linking to /search/, gated by theme.config.showSearch (default true). It is not a site.nav type. Default copy: zh 「搜索」, ja 「検索」, otherwise "Search". Always generate /search/; the toggle only hides the header entry.
+- Dates must show year-month-day. Time of day uses theme.config.showListTime (lists, default off) and showPostTime (post page, default on). JSON-LD / article:published_time stay ISO.
+- Do not put RSS in the default header. Always keep <link rel="alternate" type="application/rss+xml" href="…/rss.xml">; always generate /rss.xml.
+- If site.footer exists, render that array exactly (type: copyright | gitpress | theme | rss | page | link | text). copyright defaults to "© {year} site name", not the GitHub username; replace {year} at build time. gitpress links to https://gitpress.net (rel=generator). theme links to this theme's theme.json homepage (skip the slot if missing). rss links to /rss.xml. Custom types are only page / link / text. Unknown type: url+label as external link, label-only as text, otherwise skip.
+- If there is no site.footer, default footer = copyright + GitPress + theme credit (when homepage exists) + RSS. The owner can turn each off.
+- If site.beian.icp / site.beian.gongan exist, append them at the end of the footer. Keep the statutory Chinese wording and official badge; do not put 备案 into theme.config.
+- Provide homepage on theme.json (repo or intro page).
+- Insert site.analyticsSnippet before </head> as-is. Do not parse site.analytics (platform config; the builder compiles enabled items into the snippet).
+- Comments only on post pages (not standalone pages by default). If site.comments.enabled is off, render nothing. When enabled is omitted: treat as on if comments.giscus or commentsSnippet exists. With comments.giscus, build the giscus script from those fields (data-repo / data-repo-id / data-category / data-category-id, mapping pathname); otherwise render site.commentsSnippet as-is.
+
+## SEO (theme must output; sitemap/robots come from the Action)
+
+Every page <head>:
+- <link rel="canonical">
+- Open Graph: og:type (article vs website), og:title, og:description, og:url, og:image when cover or logo exists
+- Twitter Card: summary_large_image or summary
+- article:published_time on posts
+- JSON-LD: BlogPosting on posts, WebSite elsewhere
+
+Prefer absolute URLs with site.url for cover, canonical, og:image. Pass cover / type="article" / publishedTime into the layout on posts.
+
+## Search
+
+Provide /search/ with Pagefind Default UI (do not add pagefind to package.json). The build Action runs pagefind on dist/; assets are /pagefind/pagefind-ui.js and pagefind-ui.css. pagefind-ui.js is a global (window.PagefindUI); load with <script is:inline src>, not import(). Use withBase and set bundlePath. Add data-pagefind-body on the content container; data-pagefind-ignore on header/footer. If the index is missing, show a visitor-readable fallback — do not say "local preview". Pass language-appropriate Pagefind translations from site.language; missing languages fall back to English.
+
+## Theme options (configSchema)
+
+The JSON Schema appears on GitPress Appearance. Provide and actually read:
+
+- showLogo (boolean, default true)
+- showAvatar (boolean, default false)
+- showTitle (boolean, default true)
+- showTagline (boolean, default true)
+- showSearch (boolean, default true)
+- showListTime (boolean, default false; lists always have Y-M-D, this adds time of day)
+- showPostTime (boolean, default true; post pages always have Y-M-D, this adds time of day)
+- plus options this theme actually needs (accentColor format:color, showExcerpts, dark mode, etc.)
+
+Show the image when a logo exists and showLogo is on; show the site name when showTitle is true (or there is no logo). Do not render an empty img.
+
+Chrome strings (pagination, empty lists, search unavailable, archive, reading time, footer credits) must follow site.language with English fallback. Do not hard-code Chinese or English.
+
+## Suggested layout
+
+theme.json, package.json, astro.config.mjs, src/layouts/Base.astro, src/pages (home pagination, posts, pages, category archives, tag archives, rss.xml, search), src/lib/gitpress.ts (config, withBase, buildNav, buildFooter, getPublishedPosts), src/components/SearchBox.astro, src/styles.
+
+## Ask me first
+
+Before writing any files, ask every item in English in one pass:
+
+- Visual style (serif/sans, magazine cards vs list, light/dark/toggle)
+- Home density, covers/excerpts/reading time/tags
+- Default logo and avatar placement
+- Extra theme options to expose
+- Theme name, displayName, license
+- Standalone repo vs themes/subdirectory
+
+After I answer, give complete runnable theme source (full file contents) and tell me: push to a public GitHub repo, then paste the URL under Appearance in GitPress.`;
+
+export function themeAuthoringPrompt(locale: string): string {
+  return locale === "en" ? THEME_AUTHORING_PROMPT_EN : THEME_AUTHORING_PROMPT;
+}
+

@@ -1,12 +1,18 @@
 import path from "node:path";
 import type { NextConfig } from "next";
+import createNextIntlPlugin from "next-intl/plugin";
+
+const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
 const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
   async redirects() {
-    return [{ source: "/make-theme", destination: "/help/make-theme", permanent: true }];
+    return [
+      { source: "/make-theme", destination: "/help/make-theme", permanent: true },
+      { source: "/en/make-theme", destination: "/en/help/make-theme", permanent: true },
+    ];
   },
   outputFileTracingRoot: path.join(__dirname, "../.."),
   outputFileTracingIncludes: {
@@ -18,17 +24,14 @@ const nextConfig: NextConfig = {
     ],
   },
   experimental: {
-    // Client navigations reuse RSC payloads for 3 minutes so admin tab
-    // switches don't re-hit GitHub. Mutations still call revalidateTag.
     staleTimes: {
       dynamic: 180,
       static: 180,
     },
-    // Post save can attach a batch of images (one Git commit).
     serverActions: {
       bodySizeLimit: "24mb",
     },
   },
 };
 
-export default nextConfig;
+export default withNextIntl(nextConfig);

@@ -2,8 +2,10 @@
 
 import { useActionState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { removeLibraryThemeAction, type ImportThemeState } from "@/lib/actions";
 import { ProgressButton } from "@/components/ProgressButton";
+import { FormError } from "@/components/FormError";
 import { ThemeBadgeMark } from "@/components/ThemeBadgeMark";
 import { ThemeEnableForm } from "@/components/ThemeCard";
 import { ThemePreviewImage } from "@/components/ThemePreviewImage";
@@ -18,6 +20,10 @@ export function ThemeDetailModal({
   item: ThemeShelfItem;
   onClose: () => void;
 }) {
+  const t = useTranslations("appearance");
+  const ts = useTranslations("themeShelf");
+  const tc = useTranslations("common");
+  const tt = useTranslations("themes");
   const router = useRouter();
   const [removeState, removeAction] = useActionState<ImportThemeState, FormData>(
     removeLibraryThemeAction,
@@ -47,11 +53,14 @@ export function ThemeDetailModal({
     }
   }, [removeState.saved, onClose, router]);
 
+  const description =
+    item.kind === "builtin" && tt.has(item.name) ? tt(item.name) : item.description;
+
   const rows: Array<[string, string | null | undefined]> = [
-    ["作者", item.author],
-    ["版本", item.version],
-    ["协议", item.license],
-    ["标识", item.name],
+    [t("author"), item.author],
+    [t("version"), item.version],
+    [t("license"), item.license],
+    [t("ident"), item.name],
   ];
 
   return (
@@ -67,7 +76,7 @@ export function ThemeDetailModal({
         onClick={(event) => event.stopPropagation()}
       >
         <div className="relative">
-          <ThemePreviewImage src={item.previewSrc} alt={`${item.displayName} 预览`} className="h-56 sm:h-72" />
+          <ThemePreviewImage src={item.previewSrc} alt={ts("previewAlt", { name: item.displayName })} className="h-56 sm:h-72" />
           <ThemeBadgeMark badge={item.badge} />
         </div>
         <div className="space-y-3 p-5 text-sm">
@@ -77,7 +86,7 @@ export function ThemeDetailModal({
                 {item.displayName}
               </h2>
               {item.active ? (
-                <p className="mt-1 text-xs font-medium text-wp-accent">当前主题</p>
+                <p className="mt-1 text-xs font-medium text-wp-accent">{t("current")}</p>
               ) : null}
             </div>
             <button
@@ -85,10 +94,10 @@ export function ThemeDetailModal({
               onClick={onClose}
               className="rounded px-2 py-1 text-xs text-neutral-500 hover:bg-neutral-100"
             >
-              关闭
+              {tc("close")}
             </button>
           </div>
-          {item.description ? <p className="text-neutral-600">{item.description}</p> : null}
+          {description ? <p className="text-neutral-600">{description}</p> : null}
           <dl className="grid grid-cols-[4.5rem_1fr] gap-x-3 gap-y-1 text-xs text-neutral-500">
             {rows.map(([label, value]) =>
               value ? (
@@ -100,7 +109,7 @@ export function ThemeDetailModal({
             )}
             {item.homepage ? (
               <div className="contents">
-                <dt>主页</dt>
+                <dt>{t("homepage")}</dt>
                 <dd>
                   <a href={item.homepage} target="_blank" rel="noreferrer" className="text-wp-accent hover:underline">
                     {item.homepage}
@@ -110,7 +119,7 @@ export function ThemeDetailModal({
             ) : null}
             {item.githubUrl ? (
               <div className="contents">
-                <dt>仓库</dt>
+                <dt>{t("repoLabel")}</dt>
                 <dd>
                   <a href={item.githubUrl} target="_blank" rel="noreferrer" className="text-wp-accent hover:underline">
                     GitHub ↗
@@ -119,12 +128,8 @@ export function ThemeDetailModal({
               </div>
             ) : null}
           </dl>
-          <p className="text-xs text-neutral-400">
-            启用其他主题时会按该主题的默认选项重建,上一套主题的强调色等配置不会跟过来。
-          </p>
-          {removeState.error ? (
-            <p className="rounded bg-red-50 p-2 text-xs text-red-600">{removeState.error}</p>
-          ) : null}
+          <p className="text-xs text-neutral-400">{t("switchHint")}</p>
+          <FormError error={removeState.error} className="rounded bg-red-50 p-2 text-xs text-red-600" />
           <div className="flex flex-wrap items-center gap-3 pt-1">
             <ThemeEnableForm siteId={siteId} item={item} />
             {item.kind === "library" && !item.active ? (
@@ -133,10 +138,10 @@ export function ThemeDetailModal({
                 <input type="hidden" name="libraryId" value={item.id} />
                 <ProgressButton
                   expectedSeconds={3}
-                  pendingLabel="移除中"
+                  pendingLabel={t("removing")}
                   className="text-xs text-red-600 hover:underline"
                 >
-                  从列表移除
+                  {t("remove")}
                 </ProgressButton>
               </form>
             ) : null}

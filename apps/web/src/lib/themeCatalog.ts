@@ -16,8 +16,8 @@ export async function listAllThemeListings(): Promise<ThemeListingRow[]> {
   return db.select().from(themeListings).orderBy(desc(themeListings.updatedAt));
 }
 
-export function listingStatusLabel(status: ThemeListingStatus): string {
-  if (status === "listed") return "已上架";
-  if (status === "hidden") return "已下架";
-  return "待审";
+export function listingStatusKey(status: ThemeListingStatus): "statusListed" | "statusHidden" | "statusPending" {
+  if (status === "listed") return "statusListed";
+  if (status === "hidden") return "statusHidden";
+  return "statusPending";
 }

@@ -1,10 +1,10 @@
 "use client";
 
 import { createContext, useContext, useLayoutEffect, useState, type ReactNode } from "react";
+import { useTranslations } from "next-intl";
 import {
   parseSettingsSection,
   setSettingsSection,
-  settingsSectionLabel,
   SETTINGS_SECTION_EVENT,
   SETTINGS_SECTIONS,
   type SettingsPanelId,
@@ -14,13 +14,19 @@ import {
 const SettingsSectionContext = createContext<SettingsSectionId>("all");
 
 interface WorkspaceProps {
-  /** e.g. domain save redirect should open 访问地址 even without a hash. */
+  /** e.g. domain save redirect should open Site URL even without a hash. */
   initialSection?: SettingsPanelId;
   children: ReactNode;
 }
 
 export function SettingsWorkspace({ initialSection, children }: WorkspaceProps) {
+  const t = useTranslations("settings");
+  const tn = useTranslations("nav");
   const [section, setSection] = useState<SettingsSectionId>(initialSection ?? "all");
+
+  function sectionLabel(id: SettingsSectionId): string {
+    return id === "all" ? t("all") : t(id);
+  }
 
   useLayoutEffect(() => {
     const fromHash = parseSettingsSection(window.location.hash);
@@ -52,12 +58,12 @@ export function SettingsWorkspace({ initialSection, children }: WorkspaceProps) 
   return (
     <div>
       <h1 className="text-2xl font-normal text-neutral-800">
-        设置
+        {tn("settings")}
         {section !== "all" && (
-          <span className="ml-2 text-base text-neutral-400">/ {settingsSectionLabel(section)}</span>
+          <span className="ml-2 text-base text-neutral-400">/ {sectionLabel(section)}</span>
         )}
       </h1>
-      <div className="mt-3 flex flex-wrap gap-1.5 lg:hidden" role="tablist" aria-label="设置分组">
+      <div className="mt-3 flex flex-wrap gap-1.5 lg:hidden" role="tablist" aria-label={tn("settingsGroup")}>
         <button
           type="button"
           role="tab"
@@ -69,7 +75,7 @@ export function SettingsWorkspace({ initialSection, children }: WorkspaceProps) 
               : "bg-white text-neutral-600 ring-1 ring-neutral-200 hover:bg-neutral-50"
           }`}
         >
-          全部
+          {t("all")}
         </button>
         {SETTINGS_SECTIONS.map((item) => {
           const active = item.id === section;
@@ -86,7 +92,7 @@ export function SettingsWorkspace({ initialSection, children }: WorkspaceProps) 
                   : "bg-white text-neutral-600 ring-1 ring-neutral-200 hover:bg-neutral-50"
               }`}
             >
-              {item.label}
+              {t(item.id)}
             </button>
           );
         })}
@@ -103,13 +109,14 @@ export function SettingsPanel({
   id: SettingsPanelId;
   children: ReactNode;
 }) {
+  const t = useTranslations("settings");
   const section = useContext(SettingsSectionContext);
   const active = section === "all" || section === id;
   return (
     <div
       hidden={!active}
       role="tabpanel"
-      aria-label={settingsSectionLabel(id)}
+      aria-label={t(id)}
       className={active ? "mt-5 flex flex-col gap-5" : undefined}
       inert={!active || undefined}
     >

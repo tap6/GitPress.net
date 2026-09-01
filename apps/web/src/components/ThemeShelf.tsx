@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { ThemeCard } from "@/components/ThemeCard";
 import { ThemeDetailModal } from "@/components/ThemeDetailModal";
 import type { ThemeShelfItem } from "@/lib/themeShelf";
@@ -52,28 +53,26 @@ export function ThemeShelf({
   listed: ThemeShelfItem[];
   library: ThemeShelfItem[];
 }) {
+  const t = useTranslations("themeShelf");
+  const ta = useTranslations("appearance");
   const [open, setOpen] = useState<ThemeShelfItem | null>(null);
 
   return (
     <>
-      <Section title="官方" hint="GitPress 内置主题,构建时从 tap6/gitpress@v1 拉取。">
+      <Section title={t("official")} hint={ta("officialHint")}>
         <Grid siteId={siteId} items={official} onOpen={setOpen} />
       </Section>
       {listed.length > 0 ? (
-        <Section title="已收录" hint="经过官方验收上架的社区主题。启用后由你的 Actions 去 GitHub 拉取。">
+        <Section title={t("listed")} hint={ta("listedHint")}>
           <Grid siteId={siteId} items={listed} onOpen={setOpen} />
         </Section>
       ) : null}
       <Section
-        title="我的导入"
-        hint={
-          library.length === 0
-            ? "把公开 GitHub 主题加到本站列表,需要时再启用。不会写入文章仓库。"
-            : "仅本站可见。从列表移除不会卸载 GitHub 上的主题。"
-        }
+        title={ta("mine")}
+        hint={library.length === 0 ? ta("mineEmptyHint") : ta("mineHint")}
       >
         {library.length === 0 ? (
-          <p className="text-sm text-neutral-400">还没有导入主题,用下方表单添加。</p>
+          <p className="text-sm text-neutral-400">{ta("mineEmpty")}</p>
         ) : (
           <Grid siteId={siteId} items={library} onOpen={setOpen} />
         )}

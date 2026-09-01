@@ -1,9 +1,12 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { useLocale, useTranslations } from "next-intl";
 import { createSiteAction, type CreateSiteState } from "@/lib/actions";
+import { FormError } from "@/components/FormError";
 import { ProgressButton } from "@/components/ProgressButton";
 import { ThemePreviewImage } from "@/components/ThemePreviewImage";
+import { siteLanguageForLocale } from "@/i18n/routing";
 import type { BuiltinTheme } from "@/lib/themes";
 
 interface Props {
@@ -13,61 +16,58 @@ interface Props {
 }
 
 export function NewSiteForm({ installations, themes, connectMoreUrl }: Props) {
-  const [state, formAction] = useActionState<CreateSiteState, FormData>(
-    createSiteAction,
-    {},
-  );
+  const t = useTranslations("newSite");
+  const tt = useTranslations("themes");
+  const locale = useLocale();
+  const [state, formAction] = useActionState<CreateSiteState, FormData>(createSiteAction, {});
   const [selectedTheme, setSelectedTheme] = useState(themes[0]?.name ?? "");
 
   return (
     <form action={formAction} className="mt-8 space-y-8">
-      {/* Step 1: site info */}
       <section className="rounded-xl border border-neutral-200 bg-white p-6">
-        <h2 className="font-semibold">1. 站点信息</h2>
+        <h2 className="font-semibold">{t("stepInfo")}</h2>
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <label className="block text-sm">
-            <span className="font-medium">站点名称 *</span>
+            <span className="font-medium">{t("name")}</span>
             <input
               name="name"
               required
-              placeholder="我的博客"
+              placeholder={t("namePlaceholder")}
               className="mt-1 w-full rounded-md border border-neutral-300 px-3 py-2 focus:border-wp-accent focus:outline-none"
             />
           </label>
           <label className="block text-sm">
-            <span className="font-medium">标识符(仓库名)</span>
+            <span className="font-medium">{t("slug")}</span>
             <input
               name="slug"
-              placeholder="my-blog(留空自动生成)"
+              placeholder={t("slugPlaceholder")}
               pattern="[a-z0-9][a-z0-9\-]*"
               className="mt-1 w-full rounded-md border border-neutral-300 px-3 py-2 focus:border-wp-accent focus:outline-none"
             />
-            <span className="mt-1 block text-xs text-neutral-400">
-              将创建仓库 <code>标识符</code>(公开)与 <code>标识符-data</code>(私有)
-            </span>
+            <span className="mt-1 block text-xs text-neutral-400">{t("slugHint")}</span>
           </label>
           <label className="block text-sm sm:col-span-2">
-            <span className="font-medium">简介</span>
+            <span className="font-medium">{t("description")}</span>
             <input
               name="description"
-              placeholder="一句话介绍你的博客"
+              placeholder={t("descriptionPlaceholder")}
               className="mt-1 w-full rounded-md border border-neutral-300 px-3 py-2 focus:border-wp-accent focus:outline-none"
             />
           </label>
           <label className="block text-sm">
-            <span className="font-medium">语言</span>
+            <span className="font-medium">{t("language")}</span>
             <select
               name="language"
-              defaultValue="zh-CN"
+              defaultValue={siteLanguageForLocale(locale)}
               className="mt-1 w-full rounded-md border border-neutral-300 bg-white px-3 py-2"
             >
-              <option value="zh-CN">中文(简体)</option>
-              <option value="en">English</option>
-              <option value="ja">日本語</option>
+              <option value="zh-CN">{t("langZh")}</option>
+              <option value="en">{t("langEn")}</option>
+              <option value="ja">{t("langJa")}</option>
             </select>
           </label>
           <label className="block text-sm">
-            <span className="font-medium">GitHub 账号</span>
+            <span className="font-medium">{t("githubAccount")}</span>
             <select
               name="installation"
               className="mt-1 w-full rounded-md border border-neutral-300 bg-white px-3 py-2"
@@ -78,22 +78,16 @@ export function NewSiteForm({ installations, themes, connectMoreUrl }: Props) {
                 </option>
               ))}
             </select>
-            <a
-              href={connectMoreUrl}
-              className="mt-1 block text-xs text-wp-accent hover:underline"
-            >
-              连接其他账号 / 组织 →
+            <a href={connectMoreUrl} className="mt-1 block text-xs text-wp-accent hover:underline">
+              {t("connectMore")}
             </a>
           </label>
         </div>
       </section>
 
-      {/* Step 2: theme */}
       <section className="rounded-xl border border-neutral-200 bg-white p-6">
-        <h2 className="font-semibold">2. 选择主题</h2>
-        <p className="mt-1 text-xs text-neutral-400">
-          之后可以随时更换,内容不受任何影响。
-        </p>
+        <h2 className="font-semibold">{t("stepTheme")}</h2>
+        <p className="mt-1 text-xs text-neutral-400">{t("themeHint")}</p>
         <input type="hidden" name="theme" value={selectedTheme} />
         <div className="mt-4 grid gap-4 sm:grid-cols-3">
           {themes.map((theme) => (
@@ -108,31 +102,31 @@ export function NewSiteForm({ installations, themes, connectMoreUrl }: Props) {
               }`}
             >
               <div className="relative">
-                <ThemePreviewImage src={theme.previewSrc} alt={`${theme.displayName} 预览`} className="h-32" />
+                <ThemePreviewImage src={theme.previewSrc} alt={t("themePreview", { name: theme.displayName })} className="h-32" />
                 <span className="absolute right-2 top-2 rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-medium text-white">
-                  官方
+                  {t("official")}
                 </span>
               </div>
               <div className="border-t border-neutral-100 bg-white p-3">
                 <p className="text-sm font-semibold">{theme.displayName}</p>
                 <p className="mt-0.5 text-xs text-neutral-400">{theme.author}</p>
-                <p className="mt-0.5 text-xs text-neutral-400">{theme.description}</p>
+                <p className="mt-0.5 text-xs text-neutral-400">
+                  {tt.has(theme.name) ? tt(theme.name) : theme.description}
+                </p>
               </div>
             </button>
           ))}
         </div>
       </section>
 
-      {state.error && (
-        <p className="rounded-md bg-red-50 p-3 text-sm text-red-600">{state.error}</p>
-      )}
+      <FormError error={state.error} />
 
       <ProgressButton
         expectedSeconds={20}
-        pendingLabel="正在初始化仓库与首次构建"
+        pendingLabel={t("pending")}
         className="w-full rounded-md bg-gp-brand px-6 py-3 font-semibold text-white hover:opacity-90"
       >
-        创建站点
+        {t("submit")}
       </ProgressButton>
     </form>
   );

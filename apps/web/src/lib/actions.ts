@@ -2,7 +2,8 @@
 
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
+import { redirectTo } from "@/i18n/redirect";
+import { actionError, wrapCaughtError } from "./actionError";
 import { db } from "@/db";
 import { githubInstallations, siteThemeLibrary, sites, themeListings } from "@/db/schema";
 import {
@@ -115,12 +116,12 @@ export async function createSiteAction(
   const language = String(formData.get("language") ?? "en");
   const themeName = String(formData.get("theme") ?? "");
 
-  if (!name) return { error: "请填写站点名称。" };
+  if (!name) return { error: actionError("needName") };
   const slug = slugify(slugInput || name);
   if (!/^[a-z0-9][a-z0-9-]*$/.test(slug)) {
-    return { error: "标识符只能包含小写字母、数字和连字符。" };
+    return { error: actionError("invalidSlug") };
   }
-  if (!getBuiltinTheme(themeName)) return { error: "请选择一个主题。" };
+  if (!getBuiltinTheme(themeName)) return { error: actionError("needTheme") };
 
   const [installation] = await db
     .select()
@@ -128,7 +129,7 @@ export async function createSiteAction(
     .where(eq(githubInstallations.id, installationRowId))
     .limit(1);
   if (!installation || installation.userId !== user.id) {
-    return { error: "请先连接 GitHub 账号。" };
+    return { error: actionError("needGithub") };
   }
 
   let result;
@@ -147,9 +148,9 @@ export async function createSiteAction(
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     if (message.includes("name already exists")) {
-      return { error: `仓库 ${slug} 或 ${slug}-data 已存在,请换一个标识符。` };
+      return { error: actionError("repoExists", { slug }) };
     }
-    return { error: `初始化失败:${message}` };
+    return { error: actionError("initFailed", { detail: message }) };
   }
 
   const [row] = await db
@@ -171,7 +172,7 @@ export async function createSiteAction(
     })
     .returning({ id: sites.id });
 
-  redirect(`/sites/${row.id}?created=1`);
+  return await redirectTo(`/sites/${row.id}?created=1`);
 }
 
 // ---------------------------------------------------------------------------
@@ -190,7 +191,7 @@ export async function savePostAction(
   const { site, installation } = await requireSite(siteId);
 
   const title = String(formData.get("title") ?? "").trim();
-  if (!title) return { error: "请填写标题。" };
+  if (!title) return { error: actionError("needTitle") };
   const body = String(formData.get("body") ?? "");
   const authorNow = readAuthorNow(formData);
   const dateWall = parsePostDate(formData.get("date")) ?? authorNow;
@@ -226,14 +227,14 @@ export async function savePostAction(
   for (const file of mediaFiles) {
     if (!(file instanceof File) || file.size === 0) continue;
     if (!file.type.startsWith("image/")) {
-      return { error: "只能随文章提交图片文件。" };
+      return { error: actionError("imagesOnly") };
     }
-    if (file.size > MAX_IMAGE_BYTES) return { error: "单个文件最大 8MB" };
+    if (file.size > MAX_IMAGE_BYTES) return { error: actionError("fileTooBig") };
     batchBytes += file.size;
     if (media.length >= MAX_BATCH_IMAGES) {
-      return { error: `一次最多随文章提交 ${MAX_BATCH_IMAGES} 张图片。` };
+      return { error: actionError("tooManyImages", { n: MAX_BATCH_IMAGES }) };
     }
-    if (batchBytes > MAX_BATCH_BYTES) return { error: "一次保存的图片合计不超过 20MB。" };
+    if (batchBytes > MAX_BATCH_BYTES) return { error: actionError("batchTooBig") };
     const buffer = Buffer.from(await file.arrayBuffer());
     media.push({ name: sanitizeMediaFileName(file.name), base64: buffer.toString("base64") });
   }
@@ -248,7 +249,7 @@ export async function savePostAction(
       media,
     );
   } catch (error) {
-    return { error: `保存失败:${error instanceof Error ? error.message : String(error)}` };
+    return { error: wrapCaughtError(error) };
   }
 
   revalidateSiteData(site.dataRepo, [
@@ -256,7 +257,7 @@ export async function savePostAction(
     `/sites/${siteId}`,
     `/sites/${siteId}/media`,
   ]);
-  redirect(`/sites/${siteId}/posts?saved=${draft ? "draft" : "1"}`);
+  return await redirectTo(`/sites/${siteId}/posts?saved=${draft ? "draft" : "1"}`);
 }
 
 export async function deletePostAction(formData: FormData): Promise<void> {
@@ -285,7 +286,7 @@ export async function savePageAction(
   const { site, installation } = await requireSite(siteId);
 
   const title = String(formData.get("title") ?? "").trim();
-  if (!title) return { error: "请填写标题。" };
+  if (!title) return { error: actionError("needTitle") };
   const body = String(formData.get("body") ?? "");
   const description = String(formData.get("description") ?? "").trim();
 
@@ -293,7 +294,7 @@ export async function savePageAction(
   const isNew = !existingPath;
   const slug = slugify(String(formData.get("slug") ?? "") || title, "page");
   const path = existingPath || `content/pages/${slug}.md`;
-  if (!isPagePath(path)) return { error: "无效的页面路径。" };
+  if (!isPagePath(path)) return { error: actionError("invalidPagePath") };
 
   const octokit = await getInstallationOctokit(installation.installationId);
   const slugConflict = await findSlugConflict(octokit, site.dataRepo, "page", slug, existingPath || undefined);
@@ -304,14 +305,14 @@ export async function savePageAction(
   for (const file of mediaFiles) {
     if (!(file instanceof File) || file.size === 0) continue;
     if (!file.type.startsWith("image/")) {
-      return { error: "只能随页面提交图片文件。" };
+      return { error: actionError("pageImagesOnly") };
     }
-    if (file.size > MAX_IMAGE_BYTES) return { error: "单个文件最大 8MB" };
+    if (file.size > MAX_IMAGE_BYTES) return { error: actionError("fileTooBig") };
     batchBytes += file.size;
     if (media.length >= MAX_BATCH_IMAGES) {
-      return { error: `一次最多随页面提交 ${MAX_BATCH_IMAGES} 张图片。` };
+      return { error: actionError("tooManyPageImages", { n: MAX_BATCH_IMAGES }) };
     }
-    if (batchBytes > MAX_BATCH_BYTES) return { error: "一次保存的图片合计不超过 20MB。" };
+    if (batchBytes > MAX_BATCH_BYTES) return { error: actionError("batchTooBig") };
     const buffer = Buffer.from(await file.arrayBuffer());
     media.push({ name: sanitizeMediaFileName(file.name), base64: buffer.toString("base64") });
   }
@@ -322,7 +323,7 @@ export async function savePageAction(
       await addPageToNav(octokit, site.dataRepo, slug);
     }
   } catch (error) {
-    return { error: `保存失败:${error instanceof Error ? error.message : String(error)}` };
+    return { error: wrapCaughtError(error) };
   }
 
   revalidateSiteData(site.dataRepo, [
@@ -332,7 +333,7 @@ export async function savePageAction(
     `/sites/${siteId}`,
     `/sites/${siteId}/media`,
   ]);
-  redirect(`/sites/${siteId}/pages?saved=1`);
+  return await redirectTo(`/sites/${siteId}/pages?saved=1`);
 }
 
 export async function deletePageAction(formData: FormData): Promise<void> {
@@ -369,7 +370,7 @@ export async function updatePostMetaAction(
   const siteId = String(formData.get("siteId"));
   const path = assertPostPath(String(formData.get("path") ?? ""));
   const title = String(formData.get("title") ?? "").trim();
-  if (!title) return { error: "请填写标题。" };
+  if (!title) return { error: actionError("needTitle") };
   const authorNow = readAuthorNow(formData);
   const dateWall = parsePostDate(formData.get("date")) ?? authorNow;
   const date = attachOffset(dateWall, formData.get("tzOffsetMinutes"));
@@ -395,7 +396,7 @@ export async function updatePostMetaAction(
       timezone,
     });
   } catch (error) {
-    return { error: `保存失败:${error instanceof Error ? error.message : String(error)}` };
+    return { error: wrapCaughtError(error) };
   }
   revalidateSiteData(site.dataRepo, [`/sites/${siteId}/posts`, `/sites/${siteId}`]);
   return {};
@@ -420,9 +421,9 @@ export async function bulkPostsAction(
     .getAll("paths")
     .map(String)
     .filter((path) => path.startsWith("content/posts/") && !path.includes(".."));
-  if (paths.length === 0) return { error: "请先勾选文章。" };
+  if (paths.length === 0) return { error: actionError("needPosts") };
   if (op !== "draft" && op !== "publish" && op !== "delete") {
-    return { error: "未知操作。" };
+    return { error: actionError("unknownAction") };
   }
 
   const { site, installation } = await requireSite(siteId);
@@ -436,7 +437,7 @@ export async function bulkPostsAction(
       );
     }
   } catch (error) {
-    return { error: `操作失败:${error instanceof Error ? error.message : String(error)}` };
+    return { error: wrapCaughtError(error, "actionFailed") };
   }
   revalidateSiteData(site.dataRepo, [`/sites/${siteId}/posts`, `/sites/${siteId}`]);
   return {};
@@ -451,7 +452,7 @@ export async function uploadMediaAction(formData: FormData): Promise<void> {
   const { site, installation } = await requireSite(siteId);
   const file = formData.get("file");
   if (!(file instanceof File) || file.size === 0) return;
-  if (file.size > 8 * 1024 * 1024) throw new Error("单个文件最大 8MB");
+  if (file.size > 8 * 1024 * 1024) throw new Error(actionError("fileTooBig"));
   assertAllowedMediaUpload(file);
   const buffer = Buffer.from(await file.arrayBuffer());
   const octokit = await getInstallationOctokit(installation.installationId);
@@ -473,8 +474,8 @@ export async function uploadEditorImageAction(formData: FormData): Promise<Uploa
   const siteId = String(formData.get("siteId"));
   const { site, installation } = await requireSite(siteId);
   const file = formData.get("file");
-  if (!(file instanceof File) || file.size === 0) return { error: "请选择一张图片" };
-  if (file.size > 8 * 1024 * 1024) return { error: "单个文件最大 8MB" };
+  if (!(file instanceof File) || file.size === 0) return { error: actionError("needImage") };
+  if (file.size > 8 * 1024 * 1024) return { error: actionError("fileTooBig") };
   const buffer = Buffer.from(await file.arrayBuffer());
   const octokit = await getInstallationOctokit(installation.installationId);
   const url = await uploadMedia(octokit, site.dataRepo, file.name, buffer.toString("base64"));
@@ -500,7 +501,7 @@ export async function switchThemeAction(formData: FormData): Promise<void> {
   const siteId = String(formData.get("siteId"));
   const themeName = String(formData.get("theme"));
   const { site, installation } = await requireSite(siteId);
-  if (!getBuiltinTheme(themeName)) throw new Error("Unknown theme");
+  if (!getBuiltinTheme(themeName)) throw new Error(actionError("unknownTheme"));
   await persistActiveTheme(site, installation, {
     name: themeName,
     source: "builtin",
@@ -556,7 +557,7 @@ export async function saveThemeOptionsAction(formData: FormData): Promise<void> 
     source === "builtin"
       ? (getBuiltinTheme(site.themeName)?.configSchema.properties ?? {})
       : ((await fetchGithubThemeManifest(source))?.configSchema?.properties ?? {});
-  if (Object.keys(properties).length === 0) throw new Error("无法读取该主题的选项定义");
+  if (Object.keys(properties).length === 0) throw new Error(actionError("noThemeOptions"));
 
   const config: Record<string, unknown> = {};
   for (const [key, property] of Object.entries(properties)) {
@@ -609,7 +610,7 @@ export async function importThemeAction(
 
   const source = formatGithubThemeSource(parsed);
   if (await findListedThemeSource(source)) {
-    return { error: "该主题已在「已收录」中,可直接启用,不必再添加到我的导入。" };
+    return { error: actionError("alreadyListed") };
   }
 
   const [existing] = await db
@@ -617,15 +618,15 @@ export async function importThemeAction(
     .from(siteThemeLibrary)
     .where(and(eq(siteThemeLibrary.siteId, site.id), eq(siteThemeLibrary.source, source)))
     .limit(1);
-  if (existing) return { error: "该主题已在「我的导入」里。" };
+  if (existing) return { error: actionError("alreadyImported") };
 
   if ((await siteThemeLibraryCount(site.id)) >= SITE_THEME_LIBRARY_LIMIT) {
-    return { error: `每个站点最多收藏 ${SITE_THEME_LIBRARY_LIMIT} 个导入主题。` };
+    return { error: actionError("libraryLimit", { n: SITE_THEME_LIBRARY_LIMIT }) };
   }
 
   const manifest = await fetchGithubThemeManifest(source);
   if (!manifest) {
-    return { error: "读不到 theme.json。请确认仓库公开,并且路径、分支或标签正确。" };
+    return { error: actionError("themeJsonPublic") };
   }
   try {
     assertUsableThemeManifest(manifest);
@@ -640,7 +641,7 @@ export async function importThemeAction(
       ...themeCardCacheFromManifest(source, manifest),
     });
   } catch (error) {
-    return { error: `添加失败:${error instanceof Error ? error.message : String(error)}` };
+    return { error: wrapCaughtError(error, "addFailed") };
   }
 
   revalidateSiteData(site.dataRepo, [`/sites/${site.id}/appearance`]);
@@ -656,13 +657,13 @@ export async function applyCatalogThemeAction(formData: FormData): Promise<void>
     .from(themeListings)
     .where(and(eq(themeListings.id, listingId), eq(themeListings.status, "listed")))
     .limit(1);
-  if (!listing) throw new Error("该主题未上架或不存在。");
+  if (!listing) throw new Error(actionError("themeNotListed"));
 
   const parsed = parseGithubThemeSource(listing.source);
-  if (!parsed) throw new Error("目录里的主题地址无效。");
+  if (!parsed) throw new Error(actionError("themeUrlInvalid"));
 
   const manifest = await fetchGithubThemeManifest(listing.source);
-  if (!manifest) throw new Error("读不到 theme.json。主题仓库可能已改名或设为私有。");
+  if (!manifest) throw new Error(actionError("themeJsonMissing"));
   assertUsableThemeManifest(manifest);
   await persistActiveTheme(site, installation, {
     name: manifest.name,
@@ -681,13 +682,13 @@ export async function enableLibraryThemeAction(formData: FormData): Promise<void
     .from(siteThemeLibrary)
     .where(and(eq(siteThemeLibrary.id, libraryId), eq(siteThemeLibrary.siteId, site.id)))
     .limit(1);
-  if (!row) throw new Error("该导入主题不在列表中。");
+  if (!row) throw new Error(actionError("importMissing"));
 
   const parsed = parseGithubThemeSource(row.source);
-  if (!parsed) throw new Error("导入地址无效。");
+  if (!parsed) throw new Error(actionError("themeUrlInvalid"));
 
   const manifest = await fetchGithubThemeManifest(row.source);
-  if (!manifest) throw new Error("读不到 theme.json。主题仓库可能已改名或设为私有。");
+  if (!manifest) throw new Error(actionError("themeJsonMissing"));
   assertUsableThemeManifest(manifest);
   await persistActiveTheme(site, installation, {
     name: manifest.name,
@@ -709,13 +710,13 @@ export async function removeLibraryThemeAction(
     .from(siteThemeLibrary)
     .where(and(eq(siteThemeLibrary.id, libraryId), eq(siteThemeLibrary.siteId, site.id)))
     .limit(1);
-  if (!row) return { error: "该导入主题不在列表中。" };
+  if (!row) return { error: actionError("importMissing") };
 
   const octokit = await getInstallationOctokit(installation.installationId);
   const siteConfig = await getSiteConfig(octokit, site.dataRepo);
   const currentSource = String(siteConfig?.theme.source ?? site.themeSource ?? "builtin");
   if (currentSource === row.source) {
-    return { error: "这是当前主题,请先启用其他主题再从列表移除。" };
+    return { error: actionError("isCurrentTheme") };
   }
 
   await db.delete(siteThemeLibrary).where(eq(siteThemeLibrary.id, row.id));
@@ -751,8 +752,8 @@ export async function saveBrandAction(
 
   async function uploadBrand(dataUrl: string, stem: string): Promise<string | { error: string }> {
     const parsed = parseImageDataUrl(dataUrl);
-    if (!parsed) return { error: `${stem} 图片无效,请重新裁剪后保存。` };
-    if (parsed.bytes.length > MAX_IMAGE_BYTES) return { error: `${stem} 超过 8MB。` };
+    if (!parsed) return { error: actionError("badCrop", { stem }) };
+    if (parsed.bytes.length > MAX_IMAGE_BYTES) return { error: actionError("cropTooBig", { stem }) };
     return uploadMedia(
       octokit,
       site.dataRepo,
@@ -783,7 +784,7 @@ export async function saveBrandAction(
   }
 
   if (logoPath === undefined && avatarPath === undefined) {
-    return { error: "请先选择图片,或勾选移除。" };
+    return { error: actionError("needBrandChoice") };
   }
 
   try {
@@ -799,7 +800,7 @@ export async function saveBrandAction(
       "Update site logo and avatar",
     );
   } catch (error) {
-    return { error: `保存失败:${error instanceof Error ? error.message : String(error)}` };
+    return { error: wrapCaughtError(error) };
   }
 
   revalidateSiteData(site.dataRepo, [`/sites/${siteId}/settings`, `/sites/${siteId}/media`]);
@@ -819,7 +820,7 @@ export async function saveSettingsAction(
   const { site, installation } = await requireSite(siteId);
 
   const name = String(formData.get("name") ?? "").trim();
-  if (!name) return { error: "请填写站点名称。" };
+  if (!name) return { error: actionError("needName") };
   const description = String(formData.get("description") ?? "").trim();
   const language = String(formData.get("language") ?? "en");
   const author = String(formData.get("author") ?? "").trim();
@@ -841,7 +842,7 @@ export async function saveSettingsAction(
       "Update site settings",
     );
   } catch (error) {
-    return { error: `保存失败:${error instanceof Error ? error.message : String(error)}` };
+    return { error: wrapCaughtError(error) };
   }
 
   await db.update(sites).set({ name, description, language }).where(eq(sites.id, siteId));
@@ -866,10 +867,10 @@ export async function saveAnalyticsAction(
   try {
     incoming = JSON.parse(String(formData.get("providers") ?? "[]"));
   } catch {
-    return { error: "统计配置格式无效，请刷新后重试。" };
+    return { error: actionError("badAnalytics") };
   }
   if (!Array.isArray(incoming) || incoming.length > 20) {
-    return { error: "统计配置格式无效。" };
+    return { error: actionError("badAnalyticsShort") };
   }
   for (const item of incoming) {
     if (!item || typeof item !== "object") continue;
@@ -883,7 +884,7 @@ export async function saveAnalyticsAction(
     .map((item) => parseAnalyticsProvider(item))
     .filter((item): item is NonNullable<typeof item> => Boolean(item));
   if (providers.length !== incoming.length) {
-    return { error: "统计配置格式无效，请刷新后重试。" };
+    return { error: actionError("badAnalytics") };
   }
   const invalid = validateAnalyticsProviders(providers);
   if (invalid) return { error: invalid };
@@ -909,7 +910,7 @@ export async function saveAnalyticsAction(
       rebuilt ? "Update site analytics" : "Update site analytics [skip ci]",
     );
   } catch (error) {
-    return { error: `保存失败:${error instanceof Error ? error.message : String(error)}` };
+    return { error: wrapCaughtError(error) };
   }
 
   revalidateSiteData(site.dataRepo, [`/sites/${siteId}/analytics`, `/sites/${siteId}/settings`]);
@@ -955,7 +956,7 @@ export async function connectGiscusAction(
     if (error instanceof CommentsPermissionError) {
       return { error: error.message, reviewUrl: error.permissionGap?.reviewUrl };
     }
-    return { error: `连接失败:${error instanceof Error ? error.message : String(error)}` };
+    return { error: wrapCaughtError(error, "connectFailed") };
   }
 
   revalidateSiteData(site.dataRepo, [`/sites/${siteId}/settings`, `/sites/${siteId}`]);
@@ -982,7 +983,7 @@ export async function setCommentsEnabledAction(
       enabled ? "Enable comments" : "Disable comments",
     );
   } catch (error) {
-    return { error: `保存失败:${error instanceof Error ? error.message : String(error)}` };
+    return { error: wrapCaughtError(error) };
   }
 
   revalidateSiteData(site.dataRepo, [`/sites/${siteId}/settings`, `/sites/${siteId}`]);
@@ -1014,7 +1015,7 @@ export async function disconnectGiscusAction(
       "Disconnect giscus comments",
     );
   } catch (error) {
-    return { error: `断开失败:${error instanceof Error ? error.message : String(error)}` };
+    return { error: wrapCaughtError(error, "disconnectFailed") };
   }
 
   revalidateSiteData(site.dataRepo, [`/sites/${siteId}/settings`, `/sites/${siteId}`]);
@@ -1037,7 +1038,7 @@ export async function saveCommentsAction(
       site.dataRepo,
       (config) => {
         if (commentsFromConfig(config).giscus) {
-          throw new Error("已连接 giscus,请先断开再改自定义嵌入代码。");
+          throw new Error(actionError("giscusConnected"));
         }
         if (commentsSnippet) {
           config.site.commentsSnippet = commentsSnippet;
@@ -1054,7 +1055,7 @@ export async function saveCommentsAction(
       "Update comments snippet",
     );
   } catch (error) {
-    return { error: `保存失败:${error instanceof Error ? error.message : String(error)}` };
+    return { error: wrapCaughtError(error) };
   }
 
   revalidateSiteData(site.dataRepo, [`/sites/${siteId}/settings`, `/sites/${siteId}`]);
@@ -1073,12 +1074,12 @@ function pagesApiError(error: unknown): string {
     response?: { data?: { message?: string } };
   };
   const detail = err.response?.data?.message ?? err.message ?? "";
-  if (err.status === 403) return "没有权限改这个仓库的 GitHub Pages 设置。";
+  if (err.status === 403) return actionError("pagesForbidden");
   if (err.status === 422 || err.status === 400) {
-    if (/taken|already in use/i.test(detail)) return "这个域名已被另一个 GitHub Pages 站点占用。";
-    return detail ? `GitHub 拒绝了这个域名：${detail}` : "GitHub 拒绝了这个域名。";
+    if (/taken|already in use/i.test(detail)) return actionError("domainTaken");
+    return detail ? actionError("domainRejected", { detail }) : actionError("domainRejectedGeneric");
   }
-  return error instanceof Error ? error.message : "保存失败，请稍后再试。";
+  return error instanceof Error ? error.message : actionError("saveRetry");
 }
 
 async function clearPagesCustomDomain(
@@ -1147,7 +1148,7 @@ export async function saveSiteUrlAction(
     .where(eq(sites.id, siteId));
   revalidateSiteData(site.dataRepo, [`/sites/${siteId}/settings`, `/sites/${siteId}`]);
   const notice = resolved.isDefaultPages ? "reset" : registerPages ? "pages" : "url";
-  redirect(`/sites/${siteId}/settings?domain=${notice}`);
+  return await redirectTo(`/sites/${siteId}/settings?domain=${notice}`);
 }
 
 export async function unregisterPagesDomainAction(
@@ -1163,7 +1164,7 @@ export async function unregisterPagesDomainAction(
     return { error: pagesApiError(error) };
   }
   revalidatePath(`/sites/${siteId}/settings`);
-  redirect(`/sites/${siteId}/settings?domain=unpages`);
+  return await redirectTo(`/sites/${siteId}/settings?domain=unpages`);
 }
 
 // ---------------------------------------------------------------------------
@@ -1189,7 +1190,7 @@ export async function saveCategoriesAction(
     const seen = new Set<string>();
     categories = parsed.map((item: unknown) => {
       const label = String((item as { label?: unknown })?.label ?? "").trim();
-      if (!label) throw new Error("分类名称不能为空");
+      if (!label) throw new Error(actionError("emptyCategoryName"));
       let slug = slugify(String((item as { slug?: unknown })?.slug ?? "") || label);
       while (seen.has(slug)) slug = `${slug}-2`;
       seen.add(slug);
@@ -1200,14 +1201,14 @@ export async function saveCategoriesAction(
       });
     });
   } catch (error) {
-    return { error: error instanceof Error ? error.message : "分类数据格式有误" };
+    return { error: error instanceof Error ? error.message : actionError("badCategories") };
   }
 
   const octokit = await getInstallationOctokit(installation.installationId);
   try {
     await saveSiteCategories(octokit, site.dataRepo, categories);
   } catch (error) {
-    return { error: `保存失败:${error instanceof Error ? error.message : String(error)}` };
+    return { error: wrapCaughtError(error) };
   }
 
   revalidateSiteData(site.dataRepo, [`/sites/${siteId}/categories`, `/sites/${siteId}/posts`]);
@@ -1244,33 +1245,33 @@ export async function saveMenuAction(
           return persistNavItem({ type: "rss", label: label || undefined });
         case "category": {
           const slug = String(item.slug ?? "").trim();
-          if (!slug) throw new Error("菜单中的分类项缺少 slug");
+          if (!slug) throw new Error(actionError("menuCategorySlug"));
           return persistNavItem({ type: "category", slug, label: label || undefined });
         }
         case "page": {
           const slug = String(item.slug ?? "").trim();
-          if (!slug) throw new Error("菜单中的页面项缺少 slug");
+          if (!slug) throw new Error(actionError("menuPageSlug"));
           return persistNavItem({ type: "page", slug, label: label || undefined });
         }
         case "link": {
           const url = String(item.url ?? "").trim();
-          if (!url) throw new Error("自定义链接不能为空网址");
-          if (!label) throw new Error("自定义链接需要填写名称");
+          if (!url) throw new Error(actionError("needCustomUrl"));
+          if (!label) throw new Error(actionError("needCustomLabel"));
           return persistNavItem({ type: "link", url, label });
         }
         default:
-          throw new Error(`未知的菜单项类型:${String(item.type)}`);
+          throw new Error(actionError("unknownMenuType", { type: String(item.type) }));
       }
     });
   } catch (error) {
-    return { error: error instanceof Error ? error.message : "菜单数据格式有误" };
+    return { error: error instanceof Error ? error.message : actionError("badMenu") };
   }
 
   const octokit = await getInstallationOctokit(installation.installationId);
   try {
     await saveSiteNav(octokit, site.dataRepo, nav);
   } catch (error) {
-    return { error: `保存失败:${error instanceof Error ? error.message : String(error)}` };
+    return { error: wrapCaughtError(error) };
   }
 
   revalidateSiteData(site.dataRepo, [`/sites/${siteId}/menu`]);
@@ -1311,31 +1312,31 @@ export async function saveFooterAction(
           return persistFooterItem({ type: "rss", label: label || undefined });
         case "page": {
           const slug = String(item.slug ?? "").trim();
-          if (!slug) throw new Error("页脚中的页面项缺少 slug");
+          if (!slug) throw new Error(actionError("footerPageSlug"));
           return persistFooterItem({ type: "page", slug, label: label || undefined });
         }
         case "link": {
           const url = String(item.url ?? "").trim();
-          if (!url) throw new Error("自定义链接不能为空网址");
-          if (!label) throw new Error("自定义链接需要填写名称");
+          if (!url) throw new Error(actionError("needCustomUrl"));
+          if (!label) throw new Error(actionError("needCustomLabel"));
           return persistFooterItem({ type: "link", url, label });
         }
         case "text":
-          if (!label) throw new Error("纯文本不能为空");
+          if (!label) throw new Error(actionError("emptyText"));
           return persistFooterItem({ type: "text", label });
         default:
-          throw new Error(`未知的页脚项类型:${String(item.type)}`);
+          throw new Error(actionError("unknownFooterType", { type: String(item.type) }));
       }
     });
   } catch (error) {
-    return { error: error instanceof Error ? error.message : "页脚数据格式有误" };
+    return { error: error instanceof Error ? error.message : actionError("badFooter") };
   }
 
   const octokit = await getInstallationOctokit(installation.installationId);
   try {
     await saveSiteFooter(octokit, site.dataRepo, footer);
   } catch (error) {
-    return { error: `保存失败:${error instanceof Error ? error.message : String(error)}` };
+    return { error: wrapCaughtError(error) };
   }
 
   revalidateSiteData(site.dataRepo, [`/sites/${siteId}/settings`]);
@@ -1362,7 +1363,7 @@ export async function saveBeianAction(
   try {
     await saveSiteBeian(octokit, site.dataRepo, beian);
   } catch (error) {
-    return { error: `保存失败:${error instanceof Error ? error.message : String(error)}` };
+    return { error: wrapCaughtError(error) };
   }
 
   revalidateSiteData(site.dataRepo, [`/sites/${siteId}/settings`]);
@@ -1398,7 +1399,7 @@ export async function savePublishCheckAction(
     const scheduled = listScheduledPosts(await listPosts(octokit, site.dataRepo), readAuthorNow(formData));
     if (scheduled.length > 0) {
       return {
-        error: "还有未到日期的已发布文章。先改成现在、改成草稿，或等它们上线后，才能关闭定时发布。",
+        error: actionError("cannotDisableSchedule"),
         blockedPosts: scheduled,
       };
     }
@@ -1418,13 +1419,12 @@ export async function savePublishCheckAction(
       otherChecks: account.otherChecks,
     });
     if (projection.percent >= QUOTA_CAUTION_PERCENT && current.dataRepoPrivate) {
-      const reasonText = projection.reasons.join("，");
       return {
         needsConfirm: true,
         confirmKey,
         projectedPercent: projection.percent,
         reasons: projection.reasons,
-        warning: `请谨慎选择。按这个设置叠加后约占免费额度的 ${projection.percent}%，可能会因为${reasonText}，导致文章编译的 GitHub Actions 时长不足。确认仍要保存吗？`,
+        warning: actionError("quotaCaution", { percent: projection.percent }),
       };
     }
   }
@@ -1440,7 +1440,7 @@ export async function savePublishCheckAction(
         : "Turn off publish check [skip ci]",
     );
   } catch (error) {
-    return { error: `保存失败:${error instanceof Error ? error.message : String(error)}` };
+    return { error: wrapCaughtError(error) };
   }
 
   revalidateSiteData(site.dataRepo, [
@@ -1482,7 +1482,7 @@ export async function refreshGitHistoryAction(formData: FormData): Promise<void>
   const page = Number.parseInt(String(formData.get("page") ?? "1"), 10) || 1;
   const path = page > 1 ? `/sites/${siteId}/history?page=${page}` : `/sites/${siteId}/history`;
   revalidatePath(`/sites/${siteId}/history`);
-  redirect(path);
+  return await redirectTo(path);
 }
 
 // ---------------------------------------------------------------------------
@@ -1556,7 +1556,7 @@ export async function saveScratchNoteAction(
 ): Promise<ScratchNoteSaveState> {
   await requireSite(siteId);
   if (body.length > SCRATCH_NOTE_MAX_CHARS) {
-    return { error: `随手记最多 ${SCRATCH_NOTE_MAX_CHARS} 字。` };
+    return { error: actionError("scratchLimit", { n: SCRATCH_NOTE_MAX_CHARS }) };
   }
   await upsertScratchNote(siteId, { body });
   return { saved: true };
@@ -1598,9 +1598,9 @@ export async function saveAiSettingsAction(
   const apiKeyInput = String(formData.get("apiKey") ?? "").trim();
 
   if (!baseUrl || !/^https?:\/\//.test(baseUrl)) {
-    return { error: "请填写有效的 Base URL(以 http(s):// 开头)。" };
+    return { error: actionError("needBaseUrl") };
   }
-  if (!model) return { error: "请填写模型名称。" };
+  if (!model) return { error: actionError("needModel") };
 
   // Leaving the key field blank on an already-configured account keeps the
   // existing key (the form never re-displays the decrypted key, so an empty
@@ -1608,14 +1608,14 @@ export async function saveAiSettingsAction(
   let apiKey = apiKeyInput;
   if (!apiKey) {
     const existing = await getAiConfig(user.id);
-    if (!existing) return { error: "请填写 API Key。" };
+    if (!existing) return { error: actionError("needApiKey") };
     apiKey = existing.apiKey;
   }
 
   try {
     await saveAiConfig(user.id, { baseUrl, model, apiKey });
   } catch (error) {
-    return { error: `保存失败:${error instanceof Error ? error.message : String(error)}` };
+    return { error: wrapCaughtError(error) };
   }
 
   revalidatePath("/account/ai");
@@ -1641,9 +1641,9 @@ export async function generateSummaryAction(
   body: string,
 ): Promise<GenerateSummaryState> {
   const { user } = await requireSite(siteId);
-  if (!body.trim()) return { error: "正文还是空的,先写点什么吧。" };
+  if (!body.trim()) return { error: actionError("emptyBody") };
   const config = await getAiConfig(user.id);
-  if (!config) return { error: "还没有配置 AI,请先前往「AI 设置」。" };
+  if (!config) return { error: actionError("needAiConfig") };
   try {
     const summary = await generateSummary(config, body);
     return { summary };
@@ -1663,9 +1663,9 @@ export async function generateDraftAction(
   options?: { tone?: DraftTone; length?: DraftLength },
 ): Promise<GenerateDraftState> {
   const { user } = await requireSite(siteId);
-  if (!prompt.trim()) return { error: "请先填写主题或要点。" };
+  if (!prompt.trim()) return { error: actionError("needPrompt") };
   const config = await getAiConfig(user.id);
-  if (!config) return { error: "还没有配置 AI,请先前往「AI 设置」。" };
+  if (!config) return { error: actionError("needAiConfig") };
   try {
     const draft = await generateDraft(config, prompt, options);
     return { draft };

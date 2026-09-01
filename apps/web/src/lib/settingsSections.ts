@@ -1,16 +1,16 @@
 export const SETTINGS_SECTION_EVENT = "gitpress:settings-section";
 
 export const SETTINGS_SECTIONS = [
-  { id: "general", label: "常规" },
-  { id: "comments", label: "评论区" },
-  { id: "brand", label: "品牌" },
-  { id: "footer", label: "页脚" },
-  { id: "beian", label: "备案" },
-  { id: "domain", label: "访问地址" },
-  { id: "account", label: "AI 写作" },
-  { id: "widgets", label: "小工具" },
-  { id: "publish", label: "定时发布" },
-  { id: "maintain", label: "维护" },
+  { id: "general" },
+  { id: "comments" },
+  { id: "brand" },
+  { id: "footer" },
+  { id: "beian" },
+  { id: "domain" },
+  { id: "account" },
+  { id: "widgets" },
+  { id: "publish" },
+  { id: "maintain" },
 ] as const;
 
 export type SettingsPanelId = (typeof SETTINGS_SECTIONS)[number]["id"];
@@ -29,11 +29,6 @@ export function parseSettingsSection(hash: string | null | undefined): SettingsS
   if (ALIASES[raw]) return ALIASES[raw];
   if (IDS.has(raw)) return raw as SettingsPanelId;
   return "all";
-}
-
-export function settingsSectionLabel(id: SettingsSectionId): string {
-  if (id === "all") return "全部";
-  return SETTINGS_SECTIONS.find((item) => item.id === id)?.label ?? "全部";
 }
 
 /** Same-page switch: no App Router navigation, forms stay mounted. */

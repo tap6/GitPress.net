@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { aiSettings } from "@/db/schema";
 import { decryptSecret, encryptSecret } from "./crypto";
+import { actionError } from "./actionError";
 
 /**
  * Thin client for any OpenAI-compatible `/chat/completions` endpoint
@@ -72,18 +73,18 @@ async function chatComplete(config: AiConfig, messages: ChatMessage[], maxTokens
       }),
     });
   } catch (error) {
-    throw new Error(`无法连接 AI 服务:${error instanceof Error ? error.message : String(error)}`);
+    throw new Error(actionError("aiConnect", { detail: error instanceof Error ? error.message : String(error) }));
   }
   if (!res.ok) {
     const text = await res.text().catch(() => "");
-    throw new Error(`AI 服务返回错误(HTTP ${res.status}):${text.slice(0, 300)}`);
+    throw new Error(actionError("aiHttp", { status: res.status, detail: text.slice(0, 300) }));
   }
   const data = (await res.json()) as {
     choices?: Array<{ message?: { content?: string } }>;
   };
   const content = data.choices?.[0]?.message?.content;
   if (typeof content !== "string" || !content.trim()) {
-    throw new Error("AI 服务返回了空内容,请检查模型名称是否正确。");
+    throw new Error("aiEmpty");
   }
   return content.trim();
 }

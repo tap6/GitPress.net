@@ -1,6 +1,6 @@
 "use client";
 
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter } from "@/i18n/navigation";
 import { useEffect, useRef } from "react";
 import { adminNavHrefs } from "@/components/AdminMenu";
 

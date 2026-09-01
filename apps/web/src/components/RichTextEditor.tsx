@@ -5,10 +5,13 @@ import Placeholder from "@tiptap/extension-placeholder";
 import { Markdown } from "@tiptap/markdown";
 import { EditorContent, useEditor, type Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
+import { useTranslations } from "next-intl";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { AiDraftModal } from "@/components/AiDraftModal";
+import { isNeedAiConfig, useFormErrorText } from "@/components/FormError";
 import { ImageUploadTray, type ImageUploadTask } from "@/components/ImageUploadTray";
+import { actionError } from "@/lib/actionError";
 import {
   MAX_BATCH_BYTES,
   MAX_BATCH_IMAGES,
@@ -96,6 +99,8 @@ export function RichTextEditor({
   fill = false,
   onToggleFill,
 }: Props) {
+  const t = useTranslations("editor");
+  const errorText = useFormErrorText();
   const [markdown, setMarkdownState] = useState(defaultValue);
   const [mode, setMode] = useState<"rich" | "source">("rich");
   const [tasks, setTasks] = useState<ImageUploadTask[]>([]);
@@ -140,7 +145,7 @@ export function RichTextEditor({
     extensions: [
       StarterKit.configure({ link: { openOnClick: false } }),
       imageExtension,
-      Placeholder.configure({ placeholder: placeholder ?? "开始写作…" }),
+      Placeholder.configure({ placeholder: placeholder ?? t("startWriting") }),
       Markdown,
     ],
     content: defaultValue,
@@ -238,7 +243,7 @@ export function RichTextEditor({
             name: file.name,
             preview: "",
             status: "error",
-            error: "单个文件最大 8MB",
+            error: "fileTooBig",
           },
         ]);
         continue;
@@ -251,7 +256,7 @@ export function RichTextEditor({
             name: file.name,
             preview: "",
             status: "error",
-            error: `一次最多 ${MAX_BATCH_IMAGES} 张,请先保存文章`,
+            error: actionError("tooManyPendingImages", { n: MAX_BATCH_IMAGES }),
           },
         ]);
         continue;
@@ -264,7 +269,7 @@ export function RichTextEditor({
             name: file.name,
             preview: "",
             status: "error",
-            error: "待提交图片合计不超过 20MB",
+            error: "batchTooBig",
           },
         ]);
         continue;
@@ -325,7 +330,7 @@ export function RichTextEditor({
   function setLink() {
     if (!editor) return;
     const previous = editor.getAttributes("link").href as string | undefined;
-    const url = window.prompt("链接地址(留空可取消/移除链接)", previous ?? "https://");
+    const url = window.prompt(t("linkPrompt"), previous ?? "https://");
     if (url === null) return;
     if (url === "") {
       editor.chain().focus().extendMarkRange("link").unsetLink().run();
@@ -388,7 +393,7 @@ export function RichTextEditor({
         <ToolbarButton
           active={editor?.isActive("bold")}
           disabled={mode !== "rich"}
-          label="加粗"
+          label={t("bold")}
           onClick={() => editor?.chain().focus().toggleBold().run()}
         >
           B
@@ -396,7 +401,7 @@ export function RichTextEditor({
         <ToolbarButton
           active={editor?.isActive("italic")}
           disabled={mode !== "rich"}
-          label="斜体"
+          label={t("italic")}
           onClick={() => editor?.chain().focus().toggleItalic().run()}
         >
           <span className="italic">I</span>
@@ -404,7 +409,7 @@ export function RichTextEditor({
         <ToolbarButton
           active={editor?.isActive("strike")}
           disabled={mode !== "rich"}
-          label="删除线"
+          label={t("strike")}
           onClick={() => editor?.chain().focus().toggleStrike().run()}
         >
           <span className="line-through">S</span>
@@ -413,7 +418,7 @@ export function RichTextEditor({
         <ToolbarButton
           active={editor?.isActive("heading", { level: 1 })}
           disabled={mode !== "rich"}
-          label="标题 1"
+          label={t("h1")}
           onClick={() => editor?.chain().focus().toggleHeading({ level: 1 }).run()}
         >
           H1
@@ -421,7 +426,7 @@ export function RichTextEditor({
         <ToolbarButton
           active={editor?.isActive("heading", { level: 2 })}
           disabled={mode !== "rich"}
-          label="标题 2"
+          label={t("h2")}
           onClick={() => editor?.chain().focus().toggleHeading({ level: 2 }).run()}
         >
           H2
@@ -429,7 +434,7 @@ export function RichTextEditor({
         <ToolbarButton
           active={editor?.isActive("heading", { level: 3 })}
           disabled={mode !== "rich"}
-          label="标题 3"
+          label={t("h3")}
           onClick={() => editor?.chain().focus().toggleHeading({ level: 3 }).run()}
         >
           H3
@@ -438,31 +443,31 @@ export function RichTextEditor({
         <ToolbarButton
           active={editor?.isActive("bulletList")}
           disabled={mode !== "rich"}
-          label="无序列表"
+          label={t("bulletList")}
           onClick={() => editor?.chain().focus().toggleBulletList().run()}
         >
-          • 列表
+          {t("bulletListShort")}
         </ToolbarButton>
         <ToolbarButton
           active={editor?.isActive("orderedList")}
           disabled={mode !== "rich"}
-          label="有序列表"
+          label={t("orderedList")}
           onClick={() => editor?.chain().focus().toggleOrderedList().run()}
         >
-          1. 列表
+          {t("orderedListShort")}
         </ToolbarButton>
         <ToolbarButton
           active={editor?.isActive("blockquote")}
           disabled={mode !== "rich"}
-          label="引用"
+          label={t("quote")}
           onClick={() => editor?.chain().focus().toggleBlockquote().run()}
         >
-          ❝ 引用
+          {t("quoteShort")}
         </ToolbarButton>
         <ToolbarButton
           active={editor?.isActive("codeBlock")}
           disabled={mode !== "rich"}
-          label="代码块"
+          label={t("codeBlock")}
           onClick={() => editor?.chain().focus().toggleCodeBlock().run()}
         >
           {"</>"}
@@ -471,17 +476,17 @@ export function RichTextEditor({
         <ToolbarButton
           active={editor?.isActive("link")}
           disabled={mode !== "rich"}
-          label="插入链接"
+          label={t("insertLink")}
           onClick={setLink}
         >
-          🔗 链接
+          {t("linkShort")}
         </ToolbarButton>
         <ToolbarButton
           disabled={mode !== "rich"}
-          label="插入图片"
+          label={t("insertImage")}
           onClick={() => fileInputRef.current?.click()}
         >
-          🖼 图片
+          {t("imageShort")}
         </ToolbarButton>
         <input
           ref={fileInputRef}
@@ -498,36 +503,36 @@ export function RichTextEditor({
         <Divider />
         <ToolbarButton
           disabled={mode !== "rich"}
-          label="AI 生成初稿"
+          label={t("aiDraft")}
           onClick={() => {
             setAiError(null);
             setAiDraftOpen(true);
           }}
         >
-          ✨ AI 初稿
+          {t("aiDraftShort")}
         </ToolbarButton>
         <div className="ml-auto flex items-center gap-1">
           <ToolbarButton
             active={mode === "rich"}
-            label="所见即所得"
+            label={t("visual")}
             onClick={switchToRich}
           >
-            可视化
+            {t("visualShort")}
           </ToolbarButton>
           <ToolbarButton
             active={mode === "source"}
-            label="Markdown 源码"
+            label={t("markdownSource")}
             onClick={switchToSource}
           >
-            Markdown 源码
+            {t("markdownSource")}
           </ToolbarButton>
           {onToggleFill && (
             <ToolbarButton
               active={fill}
-              label={fill ? "恢复默认高度" : "铺满下方空白"}
+              label={fill ? t("unfill") : t("fill")}
               onClick={onToggleFill}
             >
-              {fill ? "收起" : "铺满"}
+              {fill ? t("unfillShort") : t("fillShort")}
             </ToolbarButton>
           )}
         </div>
@@ -535,10 +540,10 @@ export function RichTextEditor({
 
       {aiError && (
         <p className="border-x border-neutral-300 bg-amber-50 px-3 py-1.5 text-xs text-amber-700">
-          {aiError}{" "}
-          {aiError.includes("AI 设置") && (
+          {errorText(aiError)}{" "}
+          {isNeedAiConfig(aiError) && (
             <Link href={`/sites/${siteId}/settings#account-ai`} className="underline hover:text-amber-900">
-              前往配置 →
+              {t("goConfigure")}
             </Link>
           )}
         </p>
@@ -559,7 +564,7 @@ export function RichTextEditor({
       )}
       {queued && (
         <p className="mt-1 shrink-0 text-[11px] text-neutral-400">
-          图片目前只在本机预览,点右侧保存时会和文章一起写入数据仓库,只触发一次构建。
+          {t("pendingImagesHint")}
         </p>
       )}
       <ImageUploadTray

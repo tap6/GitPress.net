@@ -1,7 +1,9 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { useTranslations } from "next-intl";
 import { ProgressButton } from "@/components/ProgressButton";
+import { FormError } from "@/components/FormError";
 import { saveMenuAction, type SaveMenuState } from "@/lib/actions";
 import type { NavItem } from "@/lib/nav";
 import type { SiteCategory } from "@/lib/categories";
@@ -53,18 +55,18 @@ function defaultLabel(
   }
 }
 
-function typeBadge(type: NavItem["type"]): string {
+function typeBadge(type: NavItem["type"], t: (key: string) => string): string {
   switch (type) {
     case "home":
-      return "首页";
+      return t("typeHome");
     case "rss":
       return "RSS";
     case "category":
-      return "分类";
+      return t("typeCategory");
     case "page":
-      return "页面";
+      return t("typePage");
     case "link":
-      return "外链";
+      return t("typeLink");
   }
 }
 
@@ -78,6 +80,8 @@ interface Props {
 }
 
 export function MenuForm({ siteId, initial, categories, pages, language }: Props) {
+  const t = useTranslations("settings");
+  const tc = useTranslations("common");
   const [rows, setRows] = useState<Row[]>(() =>
     (initial ?? legacyDefault(categories, pages)).map(toRow),
   );
@@ -132,16 +136,14 @@ export function MenuForm({ siteId, initial, categories, pages, language }: Props
       <input type="hidden" name="navJson" value={navJson} />
 
       <div className="flex flex-wrap items-center gap-2 border-b border-neutral-100 px-4 py-3">
-        <p className="mr-auto text-xs text-neutral-400">
-          列表顺序就是顶栏顺序,移除的项不会出现在导航中(分类归档页、独立页面本身不受影响)。
-        </p>
+        <p className="mr-auto text-xs text-neutral-400">{t("menuOrderHint")}</p>
         {!hasHome && (
           <button
             type="button"
             onClick={() => addItem({ type: "home" })}
             className="rounded border border-dashed border-neutral-300 px-2.5 py-1 text-xs text-neutral-500 hover:border-wp-accent hover:text-wp-accent"
           >
-            + 首页
+            {t("addHome")}
           </button>
         )}
         {!hasRss && (
@@ -150,7 +152,7 @@ export function MenuForm({ siteId, initial, categories, pages, language }: Props
             onClick={() => addItem({ type: "rss" })}
             className="rounded border border-dashed border-neutral-300 px-2.5 py-1 text-xs text-neutral-500 hover:border-wp-accent hover:text-wp-accent"
           >
-            + RSS
+            {t("addRss")}
           </button>
         )}
         {availableCategories.length > 0 && (
@@ -161,7 +163,7 @@ export function MenuForm({ siteId, initial, categories, pages, language }: Props
             }}
             className="rounded border border-dashed border-neutral-300 px-2 py-1 text-xs text-neutral-500"
           >
-            <option value="">+ 添加分类</option>
+            <option value="">{t("addCategory")}</option>
             {availableCategories.map((c) => (
               <option key={c.slug} value={c.slug}>
                 {c.label}
@@ -177,7 +179,7 @@ export function MenuForm({ siteId, initial, categories, pages, language }: Props
             }}
             className="rounded border border-dashed border-neutral-300 px-2 py-1 text-xs text-neutral-500"
           >
-            <option value="">+ 添加页面</option>
+            <option value="">{t("addPage")}</option>
             {availablePages.map((p) => (
               <option key={p.slug} value={p.slug}>
                 {p.title}
@@ -190,13 +192,13 @@ export function MenuForm({ siteId, initial, categories, pages, language }: Props
           onClick={() => addItem({ type: "link", url: "", label: "" })}
           className="rounded border border-dashed border-neutral-300 px-2.5 py-1 text-xs text-neutral-500 hover:border-wp-accent hover:text-wp-accent"
         >
-          + 自定义链接
+          {t("addCustomLink")}
         </button>
       </div>
 
       <div className="space-y-2 p-4">
         {rows.length === 0 && (
-          <p className="text-neutral-400">菜单为空,站点将不显示任何顶部导航链接。</p>
+          <p className="text-neutral-400">{t("menuEmpty")}</p>
         )}
 
         {rows.map((row, index) => (
@@ -207,7 +209,7 @@ export function MenuForm({ siteId, initial, categories, pages, language }: Props
                 onClick={() => move(row.key, -1)}
                 disabled={index === 0}
                 className="px-1 text-neutral-400 hover:text-neutral-700 disabled:opacity-20"
-                aria-label="上移"
+                aria-label={tc("moveUp")}
               >
                 ▲
               </button>
@@ -216,14 +218,14 @@ export function MenuForm({ siteId, initial, categories, pages, language }: Props
                 onClick={() => move(row.key, 1)}
                 disabled={index === rows.length - 1}
                 className="px-1 text-neutral-400 hover:text-neutral-700 disabled:opacity-20"
-                aria-label="下移"
+                aria-label={tc("moveDown")}
               >
                 ▼
               </button>
             </div>
 
             <span className="w-10 shrink-0 rounded bg-neutral-100 px-1.5 py-1 text-center text-[11px] text-neutral-500">
-              {typeBadge(row.type)}
+              {typeBadge(row.type, t)}
             </span>
 
             {row.type === "link" ? (
@@ -231,7 +233,7 @@ export function MenuForm({ siteId, initial, categories, pages, language }: Props
                 <input
                   value={row.label}
                   onChange={(e) => updateLink(row.key, { label: e.target.value })}
-                  placeholder="链接名称,例如:GitHub"
+                  placeholder={t("customLinkPlaceholder")}
                   className="min-w-0 w-full rounded border border-neutral-300 px-3 py-2 focus:border-wp-accent focus:outline-none"
                 />
                 <input
@@ -254,7 +256,7 @@ export function MenuForm({ siteId, initial, categories, pages, language }: Props
               type="button"
               onClick={() => remove(row.key)}
               className="w-8 shrink-0 px-2 pt-2 text-neutral-400 hover:text-red-600 sm:pt-0"
-              aria-label="删除"
+              aria-label={tc("delete")}
             >
               ✕
             </button>
@@ -262,22 +264,18 @@ export function MenuForm({ siteId, initial, categories, pages, language }: Props
         ))}
       </div>
 
-      {state.error && (
-        <p className="mx-4 mb-4 rounded bg-red-50 p-3 text-red-600">{state.error}</p>
-      )}
+      <FormError error={state.error} className="mx-4 mb-4 rounded bg-red-50 p-3 text-red-600" />
       {state.saved && (
-        <p className="mx-4 mb-4 rounded bg-emerald-50 p-3 text-emerald-700">
-          已保存,站点将在约 1 分钟后更新。
-        </p>
+        <p className="mx-4 mb-4 rounded bg-emerald-50 p-3 text-emerald-700">{tc("savedRebuild")}</p>
       )}
       <div className="border-t border-neutral-100 p-4">
         <ProgressButton
           expectedSeconds={5}
-          pendingLabel="保存中"
+          pendingLabel={tc("saving")}
           buildSiteId={siteId}
           className="rounded bg-wp-accent px-4 py-2 font-medium text-white hover:bg-wp-accent-dark"
         >
-          保存并重新构建
+          {tc("saveRebuild")}
         </ProgressButton>
       </div>
     </form>

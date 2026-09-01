@@ -1,7 +1,9 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { useTranslations } from "next-intl";
 import { ProgressButton } from "@/components/ProgressButton";
+import { FormError } from "@/components/FormError";
 import { saveFooterAction, type SaveFooterState } from "@/lib/actions";
 import type { FooterItem } from "@/lib/footer";
 import { defaultFooterItems, defaultCopyrightPlaceholder } from "@/lib/footer";
@@ -20,22 +22,22 @@ function toRow(item: FooterItem): Row {
   return { ...item, key: nextKey() };
 }
 
-function typeBadge(type: FooterItem["type"]): string {
+function typeBadge(type: FooterItem["type"], t: (key: string) => string): string {
   switch (type) {
     case "copyright":
-      return "版权";
+      return t("footerTypeCopyright");
     case "gitpress":
       return "GitPress";
     case "theme":
-      return "主题";
+      return t("footerTypeTheme");
     case "rss":
       return "RSS";
     case "page":
-      return "页面";
+      return t("footerTypePage");
     case "link":
-      return "外链";
+      return t("footerTypeLink");
     case "text":
-      return "文本";
+      return t("footerTypeText");
   }
 }
 
@@ -45,6 +47,7 @@ function placeholder(
   language: string,
   siteTitle: string,
   themeDisplayName: string,
+  textPlaceholder: string,
 ): string {
   switch (item.type) {
     case "copyright":
@@ -60,7 +63,7 @@ function placeholder(
     case "link":
       return item.label;
     case "text":
-      return "页脚文字";
+      return textPlaceholder;
   }
 }
 
@@ -82,6 +85,8 @@ export function FooterForm({
   pages,
   language,
 }: Props) {
+  const t = useTranslations("settings");
+  const tc = useTranslations("common");
   const [rows, setRows] = useState<Row[]>(() => (initial ?? defaultFooterItems()).map(toRow));
   const [pendingGitpressKey, setPendingGitpressKey] = useState<string | null>(null);
   const [state, formAction] = useActionState<SaveFooterState, FormData>(saveFooterAction, {});
@@ -150,21 +155,17 @@ export function FooterForm({
             className="max-w-md rounded-lg bg-white p-5 shadow-xl"
           >
             <h3 id="hide-gitpress-title" className="text-base font-semibold text-neutral-900">
-              要隐藏「由 GitPress 驱动」吗?
+              {t("hideGitpressTitle")}
             </h3>
-            <p className="mt-3 text-sm leading-relaxed text-neutral-600">
-              页脚这行是访客认识 GitPress 的主要方式。主题和构建工具是开源的,文章在你自己的 GitHub
-              上;用的人越多,这个控制面才更值得长期运转,你的站点也不必担心某一天没地方点「保存」。欢迎把
-              gitpress.net 介绍给同样想自己托管博客的朋友。
-            </p>
-            <p className="mt-2 text-sm text-neutral-500">你可以隐藏它,站点照常生成。</p>
+            <p className="mt-3 text-sm leading-relaxed text-neutral-600">{t("hideGitpressBody")}</p>
+            <p className="mt-2 text-sm text-neutral-500">{t("hideGitpressOk")}</p>
             <div className="mt-5 flex flex-wrap justify-end gap-2">
               <button
                 type="button"
                 onClick={() => setPendingGitpressKey(null)}
                 className="rounded bg-wp-accent px-4 py-2 font-medium text-white hover:bg-wp-accent-dark"
               >
-                保留
+                {t("keep")}
               </button>
               <button
                 type="button"
@@ -174,7 +175,7 @@ export function FooterForm({
                 }}
                 className="rounded border border-neutral-300 px-4 py-2 text-neutral-600 hover:bg-neutral-50"
               >
-                仍然隐藏
+                {t("hideAnyway")}
               </button>
             </div>
           </div>
@@ -182,17 +183,14 @@ export function FooterForm({
       )}
 
       <div className="flex flex-wrap items-center gap-2 border-b border-neutral-100 px-4 py-3">
-        <p className="mr-auto text-xs text-neutral-400">
-          列表顺序就是页脚顺序。版权默认用站点名称,不会用你的 GitHub 用户名。RSS
-          关掉只是不显示链接,订阅源仍会生成。
-        </p>
+        <p className="mr-auto text-xs text-neutral-400">{t("footerOrderHint")}</p>
         {!hasCopyright && (
           <button
             type="button"
             onClick={() => addItem({ type: "copyright" })}
             className="rounded border border-dashed border-neutral-300 px-2.5 py-1 text-xs text-neutral-500 hover:border-wp-accent hover:text-wp-accent"
           >
-            + 版权
+            {t("addCopyright")}
           </button>
         )}
         {!hasGitpress && (
@@ -201,7 +199,7 @@ export function FooterForm({
             onClick={() => addItem({ type: "gitpress" })}
             className="rounded border border-dashed border-neutral-300 px-2.5 py-1 text-xs text-neutral-500 hover:border-wp-accent hover:text-wp-accent"
           >
-            + GitPress
+            {t("addGitpress")}
           </button>
         )}
         {!hasTheme && (
@@ -210,7 +208,7 @@ export function FooterForm({
             onClick={() => addItem({ type: "theme" })}
             className="rounded border border-dashed border-neutral-300 px-2.5 py-1 text-xs text-neutral-500 hover:border-wp-accent hover:text-wp-accent"
           >
-            + 主题署名
+            {t("addThemeCredit")}
           </button>
         )}
         {!hasRss && (
@@ -219,7 +217,7 @@ export function FooterForm({
             onClick={() => addItem({ type: "rss" })}
             className="rounded border border-dashed border-neutral-300 px-2.5 py-1 text-xs text-neutral-500 hover:border-wp-accent hover:text-wp-accent"
           >
-            + RSS
+            {t("addRss")}
           </button>
         )}
         {availablePages.length > 0 && (
@@ -230,7 +228,7 @@ export function FooterForm({
             }}
             className="rounded border border-dashed border-neutral-300 px-2 py-1 text-xs text-neutral-500"
           >
-            <option value="">+ 添加页面</option>
+            <option value="">{t("addPage")}</option>
             {availablePages.map((p) => (
               <option key={p.slug} value={p.slug}>
                 {p.title}
@@ -243,20 +241,20 @@ export function FooterForm({
           onClick={() => addItem({ type: "link", url: "", label: "" })}
           className="rounded border border-dashed border-neutral-300 px-2.5 py-1 text-xs text-neutral-500 hover:border-wp-accent hover:text-wp-accent"
         >
-          + 自定义链接
+          {t("addCustomLink")}
         </button>
         <button
           type="button"
           onClick={() => addItem({ type: "text", label: "" })}
           className="rounded border border-dashed border-neutral-300 px-2.5 py-1 text-xs text-neutral-500 hover:border-wp-accent hover:text-wp-accent"
         >
-          + 纯文本
+          {t("addText")}
         </button>
       </div>
 
       <div className="space-y-2 p-4">
         {rows.length === 0 && (
-          <p className="text-neutral-400">页脚列表为空。若填写了备案号,备案仍会出现在页脚末尾。</p>
+          <p className="text-neutral-400">{t("footerEmpty")}</p>
         )}
 
         {rows.map((row, index) => (
@@ -267,7 +265,7 @@ export function FooterForm({
                 onClick={() => move(row.key, -1)}
                 disabled={index === 0}
                 className="px-1 text-neutral-400 hover:text-neutral-700 disabled:opacity-20"
-                aria-label="上移"
+                aria-label={tc("moveUp")}
               >
                 ▲
               </button>
@@ -276,14 +274,14 @@ export function FooterForm({
                 onClick={() => move(row.key, 1)}
                 disabled={index === rows.length - 1}
                 className="px-1 text-neutral-400 hover:text-neutral-700 disabled:opacity-20"
-                aria-label="下移"
+                aria-label={tc("moveDown")}
               >
                 ▼
               </button>
             </div>
 
             <span className="w-[4.5rem] shrink-0 rounded bg-neutral-100 px-1.5 py-1 text-center text-[11px] text-neutral-500">
-              {typeBadge(row.type)}
+              {typeBadge(row.type, t)}
             </span>
 
             {row.type === "link" ? (
@@ -291,7 +289,7 @@ export function FooterForm({
                 <input
                   value={row.label}
                   onChange={(e) => updateLink(row.key, { label: e.target.value })}
-                  placeholder="链接名称"
+                  placeholder={t("linkName")}
                   className="min-w-0 w-full rounded border border-neutral-300 px-3 py-2 focus:border-wp-accent focus:outline-none"
                 />
                 <input
@@ -305,7 +303,7 @@ export function FooterForm({
               <input
                 value={row.label ?? ""}
                 onChange={(e) => updateLabel(row.key, e.target.value)}
-                placeholder={placeholder(row, pages, language, siteTitle, themeDisplayName)}
+                placeholder={placeholder(row, pages, language, siteTitle, themeDisplayName, t("footerTextPlaceholder"))}
                 className="min-w-0 flex-1 rounded border border-neutral-300 px-3 py-2 focus:border-wp-accent focus:outline-none"
               />
             )}
@@ -314,7 +312,7 @@ export function FooterForm({
               type="button"
               onClick={() => requestRemove(row)}
               className="w-8 shrink-0 px-2 pt-2 text-neutral-400 hover:text-red-600 sm:pt-0"
-              aria-label="删除"
+              aria-label={tc("delete")}
             >
               ✕
             </button>
@@ -322,22 +320,18 @@ export function FooterForm({
         ))}
       </div>
 
-      {state.error && (
-        <p className="mx-4 mb-4 rounded bg-red-50 p-3 text-red-600">{state.error}</p>
-      )}
+      <FormError error={state.error} className="mx-4 mb-4 rounded bg-red-50 p-3 text-red-600" />
       {state.saved && (
-        <p className="mx-4 mb-4 rounded bg-emerald-50 p-3 text-emerald-700">
-          已保存,站点将在约 1 分钟后更新。
-        </p>
+        <p className="mx-4 mb-4 rounded bg-emerald-50 p-3 text-emerald-700">{tc("savedRebuild")}</p>
       )}
       <div className="border-t border-neutral-100 p-4">
         <ProgressButton
           expectedSeconds={5}
-          pendingLabel="保存中"
+          pendingLabel={tc("saving")}
           buildSiteId={siteId}
           className="rounded bg-wp-accent px-4 py-2 font-medium text-white hover:bg-wp-accent-dark"
         >
-          保存并重新构建
+          {tc("saveRebuild")}
         </ProgressButton>
       </div>
     </form>

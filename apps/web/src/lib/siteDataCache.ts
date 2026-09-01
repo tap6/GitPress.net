@@ -71,10 +71,10 @@ export function cachedSiteBeian(installationId: number, dataRepo: string) {
   )();
 }
 
-export function cachedListPages(installationId: number, dataRepo: string) {
+export function cachedListPages(installationId: number, dataRepo: string, language = "en") {
   return unstable_cache(
-    async () => listPages(await getInstallationOctokit(installationId), dataRepo),
-    ["list-pages", dataRepo],
+    async () => listPages(await getInstallationOctokit(installationId), dataRepo, language),
+    ["list-pages", dataRepo, language],
     { revalidate: REVALIDATE_SECONDS, tags: [siteDataTag(dataRepo)] },
   )();
 }

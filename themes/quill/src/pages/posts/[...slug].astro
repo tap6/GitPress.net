@@ -10,6 +10,7 @@ import {
   postSlug,
   readingTime,
   themeConfig,
+  t,
   type Post,
   withBase,
 } from "../../lib/gitpress";
@@ -59,7 +60,7 @@ const showComments = commentsEnabled();
       <header class="article-header">
         <p class="post-meta">
           {formatPostDate(post.data.date)}
-          {themeConfig.showReadingTime && <span> · {minutes} min read</span>}
+          {themeConfig.showReadingTime && <span> · {t("minRead", { n: minutes })}</span>}
           {post.data.draft && " · DRAFT"}
         </p>
         <h1>{post.data.title}</h1>

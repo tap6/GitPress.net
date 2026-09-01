@@ -1,3 +1,4 @@
+import { actionError } from "./actionError";
 import { nowLocalDateTime, parsePostDate } from "./postDate";
 
 /** Same bucket as GitHub's private-repo Actions free allowance. */
@@ -146,22 +147,20 @@ export function projectQuotaUsage(options: {
   const reasons: string[] = [];
   const others = options.otherChecks ?? [];
   if (others.length > 0) {
-    const names = others.map((site) => `「${site.name}」`).join("、");
-    reasons.push(
-      `同一个 GitHub 帐户下还有 ${others.length} 个站开了定时发布检查（${names}），额度是共用的`,
-    );
+    const names = others.map((site) => site.name).join(", ");
+    reasons.push(actionError("quotaReasonOthers", { n: others.length, names }));
   }
   if (thisMinutes >= estimatePublishCheck("1h").minutesPerMonth) {
-    reasons.push("当前间隔比较密，空转次数会很多");
+    reasons.push("quotaReasonDense");
   }
   if (options.accountUsedMinutes != null && options.accountUsedMinutes >= PUBLISH_CHECK_QUOTA_MINUTES * 0.4) {
-    reasons.push(`这个帐户本月已经用了约 ${Math.round(options.accountUsedMinutes)} 分钟`);
+    reasons.push(actionError("quotaReasonUsed", { minutes: Math.round(options.accountUsedMinutes) }));
   }
   if (saveMinutes >= 80) {
-    reasons.push("按填写的保存次数，点保存本身也会占掉一部分时长");
+    reasons.push("quotaReasonSaves");
   }
   if (reasons.length === 0 && percent >= QUOTA_CAUTION_PERCENT) {
-    reasons.push("预计占用已经偏高");
+    reasons.push("quotaReasonHigh");
   }
   return { thisMinutes, otherMinutes, saveMinutes, totalMinutes, percent, reasons };
 }
@@ -279,7 +278,7 @@ export function futureDateNotAllowed(
 }
 
 export function futureDateBlockedMessage(): string {
-  return "定时发布已关闭，不能把日期选到现在之后。需要预约请到设置 → 定时发布。";
+  return "futureDateBlocked";
 }
 
 export function dateInputMax(

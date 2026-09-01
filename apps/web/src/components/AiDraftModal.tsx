@@ -1,8 +1,10 @@
 "use client";
 
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { generateDraftAction, hasAiConfigAction } from "@/lib/actions";
+import { isNeedAiConfig, useFormErrorText } from "@/components/FormError";
 import type { DraftLength, DraftTone } from "@/lib/ai";
 
 export function AiDraftModal({
@@ -18,6 +20,9 @@ export function AiDraftModal({
   onInsert: (markdown: string) => void;
   onReplace: (markdown: string) => void;
 }) {
+  const t = useTranslations("editor");
+  const tc = useTranslations("common");
+  const errorText = useFormErrorText();
   const [topic, setTopic] = useState("");
   const [tone, setTone] = useState<DraftTone>("default");
   const [length, setLength] = useState<DraftLength>("medium");
@@ -57,7 +62,7 @@ export function AiDraftModal({
 
   async function generate() {
     if (!topic.trim()) {
-      setError("请先填写主题或要点。");
+      setError("needPrompt");
       return;
     }
     setGenerating(true);
@@ -65,7 +70,7 @@ export function AiDraftModal({
     const result = await generateDraftAction(siteId, topic.trim(), { tone, length });
     setGenerating(false);
     if (result.error || !result.draft) {
-      setError(result.error ?? "生成失败");
+      setError(result.error ?? "generateFailed");
       return;
     }
     setDraft(result.draft);
@@ -86,12 +91,12 @@ export function AiDraftModal({
         <div className="flex items-start justify-between gap-3 border-b border-neutral-100 px-5 py-4">
           <div>
             <h2 id="ai-draft-title" className="text-lg font-semibold text-neutral-900">
-              AI 初稿
+              {t("aiTitle")}
             </h2>
             <p className="mt-1 text-xs text-neutral-500">
-              先看预览再插入。不会自动保存到仓库。{" "}
+              {t("aiLead")}{" "}
               <Link href="/help/ai-writing" className="text-wp-accent hover:underline" target="_blank">
-                怎么用
+                {t("aiHow")}
               </Link>
             </p>
           </div>
@@ -100,53 +105,53 @@ export function AiDraftModal({
             onClick={onClose}
             className="rounded px-2 py-1 text-xs text-neutral-500 hover:bg-neutral-100"
           >
-            取消
+            {tc("cancel")}
           </button>
         </div>
 
         <div className="space-y-4 p-5 text-sm">
           {configured === false && (
             <p className="rounded border border-amber-200 bg-amber-50 px-3 py-2 text-amber-800">
-              还没有配置 AI。{" "}
+              {t("aiNotConfigured")}{" "}
               <Link href={settingsHref} className="font-medium underline hover:text-amber-950">
-                前往设置 →
+                {t("aiGoSettings")}
               </Link>
             </p>
           )}
 
           <label className="block">
-            <span className="text-neutral-500">主题或要点</span>
+            <span className="text-neutral-500">{t("aiTopic")}</span>
             <textarea
               value={topic}
               onChange={(event) => setTopic(event.target.value)}
               rows={4}
-              placeholder="例如：周末去了海边，想写一篇带一点天气和食物细节的随笔"
+              placeholder={t("aiTopicPlaceholder")}
               className="mt-1 w-full rounded border border-neutral-300 px-3 py-2 focus:border-wp-accent focus:outline-none"
             />
           </label>
 
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="block">
-              <span className="text-neutral-500">语气</span>
+              <span className="text-neutral-500">{t("aiTone")}</span>
               <select
                 value={tone}
                 onChange={(event) => setTone(event.target.value as DraftTone)}
                 className="mt-1 w-full rounded border border-neutral-300 bg-white px-2 py-1.5"
               >
-                <option value="default">自然</option>
-                <option value="formal">正式</option>
-                <option value="casual">轻松</option>
+                <option value="default">{t("toneDefault")}</option>
+                <option value="formal">{t("toneFormal")}</option>
+                <option value="casual">{t("toneCasual")}</option>
               </select>
             </label>
             <label className="block">
-              <span className="text-neutral-500">篇幅</span>
+              <span className="text-neutral-500">{t("aiLength")}</span>
               <select
                 value={length}
                 onChange={(event) => setLength(event.target.value as DraftLength)}
                 className="mt-1 w-full rounded border border-neutral-300 bg-white px-2 py-1.5"
               >
-                <option value="short">短</option>
-                <option value="medium">中</option>
+                <option value="short">{t("lengthShort")}</option>
+                <option value="medium">{t("lengthMedium")}</option>
               </select>
             </label>
           </div>
@@ -157,15 +162,15 @@ export function AiDraftModal({
             disabled={generating || configured === false}
             className="rounded bg-wp-accent px-4 py-2 font-medium text-white hover:bg-wp-accent-dark disabled:opacity-50"
           >
-            {generating ? "生成中…" : draft ? "再生成" : "生成初稿"}
+            {generating ? t("generating") : draft ? t("regenerate") : t("generateDraft")}
           </button>
 
           {error && (
             <p className="text-xs text-amber-700">
-              {error}{" "}
-              {error.includes("AI 设置") && (
+              {errorText(error)}{" "}
+              {isNeedAiConfig(error) && (
                 <Link href={settingsHref} className="underline hover:text-amber-900">
-                  前往配置 →
+                  {t("goConfigure")}
                 </Link>
               )}
             </p>
@@ -173,7 +178,7 @@ export function AiDraftModal({
 
           {draft && (
             <div>
-              <p className="text-neutral-500">预览</p>
+              <p className="text-neutral-500">{tc("preview")}</p>
               <pre className="mt-1 max-h-64 overflow-auto whitespace-pre-wrap rounded-lg bg-neutral-950 p-4 text-xs leading-relaxed text-neutral-100">
                 {draft}
               </pre>
@@ -186,7 +191,7 @@ export function AiDraftModal({
                   }}
                   className="rounded bg-wp-accent px-3 py-1.5 text-xs font-medium text-white hover:bg-wp-accent-dark"
                 >
-                  插入光标处
+                  {t("insertAtCursor")}
                 </button>
                 <button
                   type="button"
@@ -196,7 +201,7 @@ export function AiDraftModal({
                   }}
                   className="rounded border border-neutral-300 px-3 py-1.5 text-xs font-medium hover:bg-neutral-50"
                 >
-                  替换全文
+                  {t("replaceAll")}
                 </button>
               </div>
             </div>

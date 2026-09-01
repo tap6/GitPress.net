@@ -1,11 +1,11 @@
 ---
 import Base from "../../layouts/Base.astro";
-import { getPublishedPosts, postSlug, formatListDate, withBase } from "../../lib/gitpress";
+import { getPublishedPosts, postSlug, formatListDate, t, withBase } from "../../lib/gitpress";
 
 const posts = await getPublishedPosts();
 const byYear = new Map<string, typeof posts>();
 for (const post of posts) {
-  const year = post.data.date ? String(post.data.date.getFullYear()) : "Undated";
+  const year = post.data.date ? String(post.data.date.getFullYear()) : t("undated");
   const list = byYear.get(year) ?? [];
   list.push(post);
   byYear.set(year, list);
@@ -13,9 +13,9 @@ for (const post of posts) {
 const years = [...byYear.entries()];
 ---
 
-<Base title="Archive">
-  <h1 class="page-heading">Archive</h1>
-  <p class="archive-count">{posts.length} post{posts.length === 1 ? "" : "s"} in total</p>
+<Base title={t("archive")}>
+  <h1 class="page-heading">{t("archive")}</h1>
+  <p class="archive-count">{t("archiveCount", { n: posts.length })}</p>
   {
     years.map(([year, yearPosts]) => (
       <section class="archive-year">

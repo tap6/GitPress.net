@@ -1,16 +1,17 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
+import { LocaleSwitcher } from "@/components/LocaleSwitcher";
+import { Link, usePathname } from "@/i18n/navigation";
 
 const NAV = [
-  { href: "/ops", label: "总览", exact: true },
-  { href: "/ops/users", label: "用户" },
-  { href: "/ops/sites", label: "站点" },
-  { href: "/ops/installations", label: "GitHub 安装" },
-  { href: "/ops/themes", label: "主题商店" },
-];
+  { href: "/ops", key: "overview", exact: true },
+  { href: "/ops/users", key: "users" },
+  { href: "/ops/sites", key: "sites" },
+  { href: "/ops/installations", key: "installations" },
+  { href: "/ops/themes", key: "themesStore" },
+] as const;
 
 function navActive(pathname: string, href: string, exact?: boolean): boolean {
   if (exact) return pathname === href;
@@ -23,6 +24,8 @@ interface Props {
 }
 
 export function OpsShell({ userName, children }: Props) {
+  const t = useTranslations("ops");
+  const tn = useTranslations("nav");
   const [mobileOpen, setMobileOpen] = useState(false);
   const pathname = usePathname();
 
@@ -46,7 +49,7 @@ export function OpsShell({ userName, children }: Props) {
           type="button"
           onClick={() => setMobileOpen(true)}
           className="-ml-1.5 rounded p-1.5 text-white hover:bg-white/10"
-          aria-label="打开菜单"
+          aria-label={tn("openMenu")}
         >
           <svg viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5">
             <path
@@ -56,9 +59,9 @@ export function OpsShell({ userName, children }: Props) {
             />
           </svg>
         </button>
-        <span className="min-w-0 flex-1 truncate text-center text-sm font-medium text-white">运营后台</span>
+        <span className="min-w-0 flex-1 truncate text-center text-sm font-medium text-white">{t("title")}</span>
         <Link href="/dashboard" className="shrink-0 text-xs text-slate-300 hover:text-white">
-          我的站点
+          {t("mySites")}
         </Link>
       </div>
 
@@ -86,14 +89,14 @@ export function OpsShell({ userName, children }: Props) {
             type="button"
             onClick={() => setMobileOpen(false)}
             className="rounded p-1 text-slate-400 hover:text-white lg:hidden"
-            aria-label="关闭菜单"
+            aria-label={tn("closeMenu")}
           >
             ✕
           </button>
         </div>
         <nav className="flex flex-col gap-0.5 p-2 text-sm">
           {NAV.map((item) => {
-            const active = navActive(pathname, item.href, item.exact);
+            const active = navActive(pathname, item.href, "exact" in item ? item.exact : false);
             return (
               <Link
                 key={item.href}
@@ -102,22 +105,25 @@ export function OpsShell({ userName, children }: Props) {
                   active ? "bg-white/10 font-medium text-white" : "text-slate-300 hover:bg-white/5 hover:text-white"
                 }`}
               >
-                {item.label}
+                {t(item.key)}
               </Link>
             );
           })}
         </nav>
         <div className="mt-4 border-t border-white/10 px-4 py-3">
           <Link href="/dashboard" className="text-xs text-slate-400 hover:text-white">
-            ← 我的站点
+            ← {t("mySites")}
           </Link>
         </div>
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="hidden items-center justify-between gap-3 bg-ops-ink px-5 py-1.5 text-[13px] text-slate-300 lg:flex">
-          <span>平台运营 · 只读用户内容,不进入站长后台</span>
-          <span className="shrink-0">你好,{userName}</span>
+          <span>{t("bar")}</span>
+          <div className="flex items-center gap-3">
+            <LocaleSwitcher className="[&_a]:text-slate-300 [&_a.font-semibold]:text-white" />
+            <span className="shrink-0">{tn("hello", { name: userName })}</span>
+          </div>
         </div>
         <main className="flex-1 p-4 sm:p-6 lg:p-8">{children}</main>
       </div>

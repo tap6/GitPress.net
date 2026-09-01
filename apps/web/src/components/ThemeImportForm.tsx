@@ -2,10 +2,14 @@
 
 import { useActionState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import { ProgressButton } from "@/components/ProgressButton";
+import { FormError } from "@/components/FormError";
 import { importThemeAction, type ImportThemeState } from "@/lib/actions";
 
 export function ThemeImportForm({ siteId }: { siteId: string }) {
+  const t = useTranslations("appearance");
   const router = useRouter();
   const [state, formAction] = useActionState<ImportThemeState, FormData>(importThemeAction, {});
 
@@ -19,28 +23,28 @@ export function ThemeImportForm({ siteId }: { siteId: string }) {
       <div>
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <label htmlFor="theme-import-repo" className="font-medium">
-            GitHub 仓库
+            {t("repo")}
           </label>
-          <a
+          <Link
             href="/help/import-theme"
             target="_blank"
             rel="noreferrer"
             className="text-xs font-medium text-wp-accent hover:underline"
           >
-            导入是怎么工作的? ↗
-          </a>
+            {t("howImport")}
+          </Link>
         </div>
         <input
           id="theme-import-repo"
           name="repo"
           required
-          placeholder="owner/repo 或 https://github.com/owner/repo/tree/main/themes/my-theme"
+          placeholder="owner/repo or https://github.com/owner/repo/tree/main/themes/my-theme"
           className="mt-1 w-full rounded border border-neutral-300 px-3 py-2 font-mono text-xs focus:border-wp-accent focus:outline-none"
         />
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="block">
-          <span className="font-medium">子目录(可选)</span>
+          <span className="font-medium">{t("subdir")}</span>
           <input
             name="subdir"
             placeholder="themes/my-theme"
@@ -48,38 +52,30 @@ export function ThemeImportForm({ siteId }: { siteId: string }) {
           />
         </label>
         <label className="block">
-          <span className="font-medium">分支 / 标签</span>
+          <span className="font-medium">{t("ref")}</span>
           <input
             name="ref"
-            placeholder="v1 或 main"
+            placeholder="v1 or main"
             className="mt-1 w-full rounded border border-neutral-300 px-3 py-2 font-mono text-xs focus:border-wp-accent focus:outline-none"
           />
         </label>
       </div>
       <p className="text-xs text-neutral-400">
-        仓库需公开,且根目录或子目录里有符合 spec v1 的 <code>theme.json</code>。
-        添加只是记到本站列表,不会立刻换主题;启用后构建时由 GitHub Actions 去拉取。{" "}
-        <a
-          href="/help/import-theme"
-          target="_blank"
-          rel="noreferrer"
-          className="text-wp-accent hover:underline"
-        >
-          详细说明
-        </a>
+        {t("importHint")}{" "}
+        <Link href="/help/import-theme" target="_blank" rel="noreferrer" className="text-wp-accent hover:underline">
+          {t("details")}
+        </Link>
       </p>
-      {state.error && <p className="rounded bg-red-50 p-3 text-red-600">{state.error}</p>}
+      <FormError error={state.error} />
       {state.saved && (
-        <p className="rounded bg-emerald-50 p-3 text-emerald-700">
-          已添加到「我的导入」:{state.name}。打开卡片启用后才会重建站点。
-        </p>
+        <p className="rounded bg-emerald-50 p-3 text-emerald-700">{t("added", { name: state.name ?? "" })}</p>
       )}
       <ProgressButton
         expectedSeconds={4}
-        pendingLabel="添加中"
+        pendingLabel={t("adding")}
         className="rounded bg-wp-accent px-4 py-2 font-medium text-white hover:bg-wp-accent-dark"
       >
-        添加到我的主题
+        {t("addMine")}
       </ProgressButton>
     </form>
   );

@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { useTranslations } from "next-intl";
 import {
   connectGiscusAction,
   disconnectGiscusAction,
@@ -11,6 +12,7 @@ import {
   type SaveCommentsState,
 } from "@/lib/actions";
 import { commentsEnabled, type GiscusConfig } from "@/lib/comments";
+import { useFormErrorText } from "@/components/FormError";
 import { ProgressButton } from "@/components/ProgressButton";
 
 interface Props {
@@ -26,15 +28,18 @@ interface Props {
 }
 
 function StatusMessage({ state }: { state: SaveCommentsState }) {
+  const t = useTranslations("comments");
+  const tc = useTranslations("common");
+  const errorText = useFormErrorText();
   if (state.error) {
     return (
       <p className="rounded bg-red-50 p-3 text-red-600">
-        {state.error}
+        {errorText(state.error)}
         {state.reviewUrl ? (
           <>
             {" "}
             <a href={state.reviewUrl} className="underline hover:text-red-800">
-              前往 GitHub 批准
+              {t("reviewGithub")}
             </a>
           </>
         ) : null}
@@ -42,7 +47,7 @@ function StatusMessage({ state }: { state: SaveCommentsState }) {
     );
   }
   if (state.saved) {
-    return <p className="rounded bg-emerald-50 p-3 text-emerald-700">已保存,站点将在约 1 分钟后更新。</p>;
+    return <p className="rounded bg-emerald-50 p-3 text-emerald-700">{tc("savedRebuild")}</p>;
   }
   return null;
 }
@@ -78,6 +83,8 @@ export function CommentsForm({
   giscusAppInstalled,
   giscusInstallUrl,
 }: Props) {
+  const t = useTranslations("comments");
+  const tc = useTranslations("common");
   const connected = Boolean(giscus);
   const on = commentsEnabled({ enabled, giscus }, snippet);
   const [connectState, connectAction] = useActionState<SaveCommentsState, FormData>(
@@ -100,31 +107,32 @@ export function CommentsForm({
   return (
     <div className="space-y-4 p-5 text-sm">
       <p className="text-neutral-600">
-        评论要两步，<strong className="font-medium text-neutral-800">先装 giscus App 再连接</strong>
-        最稳妥，顺序反了也可以。装 App 不用重建；连接配置会自动触发构建。
+        {t.rich("lead", {
+          strong: (chunks) => <strong className="font-medium text-neutral-800">{chunks}</strong>,
+        })}
       </p>
 
       {needsDiscussionsPermission ? (
         <p className="rounded bg-amber-50 p-3 text-amber-900">
-          连接需要 GitPress App 的 Discussions 权限。请先
+          {t("needDiscussions")}
           {reviewUrl ? (
             <>
               <a href={reviewUrl} className="mx-1 underline hover:text-amber-950">
-                前往 GitHub 批准
+                {t("reviewGithub")}
               </a>
-              后再点步骤 2。
+              {t("reviewThen")}
             </>
           ) : (
-            " 到本页「故障排查 · GitHub App」批准新权限。"
+            <> {t("reviewInPage")}</>
           )}
         </p>
       ) : null}
 
       {connected && giscusAppInstalled === false ? (
         <p className="rounded bg-amber-50 p-3 text-amber-900">
-          配置已经写入，但这个仓库还没装 giscus App。现在打开文章会看到
-          “giscus is not installed on this repository”。请先完成步骤 1，然后
-          <strong className="font-medium">刷新文章页即可，不必再构建</strong>。
+          {t.rich("appMissing", {
+            strong: (chunks) => <strong className="font-medium">{chunks}</strong>,
+          })}
         </p>
       ) : null}
 
@@ -136,25 +144,27 @@ export function CommentsForm({
       <ol className="space-y-3">
         <li className="rounded border border-neutral-200 p-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="font-medium text-neutral-800">1. 安装 giscus App</p>
+            <p className="font-medium text-neutral-800">{t("step1")}</p>
             <StepBadge
               ok={giscusAppInstalled}
-              okLabel="已安装"
-              badLabel="未安装"
-              unknownLabel="未能检测"
+              okLabel={t("installed")}
+              badLabel={t("notInstalled")}
+              unknownLabel={t("undetected")}
             />
           </div>
           <p className="mt-2 text-neutral-600">
-            把 giscus 授权给公开仓库{" "}
-            <a
-              href={`https://github.com/${siteRepo}`}
-              target="_blank"
-              rel="noreferrer"
-              className="text-wp-accent hover:underline"
-            >
-              {siteRepo}
-            </a>
-            。不装的话访客只能看到报错，评论发不出去。
+            {t.rich("step1Body", {
+              repo: () => (
+                <a
+                  href={`https://github.com/${siteRepo}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-wp-accent hover:underline"
+                >
+                  {siteRepo}
+                </a>
+              ),
+            })}
           </p>
           <div className="mt-3 flex flex-wrap items-center gap-3">
             <a
@@ -167,16 +177,16 @@ export function CommentsForm({
                   : "bg-wp-accent text-white hover:bg-wp-accent-dark"
               }`}
             >
-              {giscusAppInstalled === true ? "管理 giscus 安装" : "去 GitHub 安装 giscus"}
+              {giscusAppInstalled === true ? t("manageGiscus") : t("installGiscus")}
             </a>
             <form action={recheckGiscusAction}>
               <input type="hidden" name="siteId" value={siteId} />
               <ProgressButton
                 expectedSeconds={2}
-                pendingLabel="检测中"
+                pendingLabel={t("checking")}
                 className="text-wp-accent hover:underline"
               >
-                我已安装，重新检测
+                {t("recheck")}
               </ProgressButton>
             </form>
           </div>
@@ -184,17 +194,15 @@ export function CommentsForm({
 
         <li className="rounded border border-neutral-200 p-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="font-medium text-neutral-800">2. 连接本站</p>
+            <p className="font-medium text-neutral-800">{t("step2")}</p>
             <StepBadge
               ok={connected}
-              okLabel={giscus ? `${giscus.repo} · ${giscus.category}` : "已连接"}
-              badLabel="未连接"
-              unknownLabel="未连接"
+              okLabel={giscus ? `${giscus.repo} · ${giscus.category}` : t("connected")}
+              badLabel={t("notConnected")}
+              unknownLabel={t("notConnected")}
             />
           </div>
-          <p className="mt-2 text-neutral-600">
-            GitPress 会打开 Discussions，并写入仓库 / 分类 ID。保存后会自动排队构建，文章页才会出现评论框。
-          </p>
+          <p className="mt-2 text-neutral-600">{t("step2Body")}</p>
           {connected ? (
             <div className="mt-3 flex flex-wrap items-center gap-3">
               <a
@@ -203,17 +211,17 @@ export function CommentsForm({
                 rel="noreferrer"
                 className="text-wp-accent hover:underline"
               >
-                在 GitHub 查看评论
+                {t("viewComments")}
               </a>
               <form action={disconnectAction}>
                 <input type="hidden" name="siteId" value={siteId} />
                 <ProgressButton
                   expectedSeconds={4}
-                  pendingLabel="断开中"
+                  pendingLabel={t("disconnecting")}
                   buildSiteId={siteId}
                   className="rounded border border-neutral-300 px-4 py-2 font-medium hover:bg-neutral-50"
                 >
-                  断开连接
+                  {t("disconnect")}
                 </ProgressButton>
               </form>
             </div>
@@ -222,16 +230,14 @@ export function CommentsForm({
               <input type="hidden" name="siteId" value={siteId} />
               <ProgressButton
                 expectedSeconds={8}
-                pendingLabel="连接中"
+                pendingLabel={t("connecting")}
                 buildSiteId={siteId}
                 className="rounded bg-wp-accent px-4 py-2 font-medium text-white hover:bg-wp-accent-dark"
               >
-                连接并写入配置
+                {t("connectWrite")}
               </ProgressButton>
               {giscusAppInstalled === false ? (
-                <p className="text-xs text-amber-800">
-                  现在连接也可以，但构建完成后文章页仍会报未安装。建议先做完步骤 1。
-                </p>
+                <p className="text-xs text-amber-800">{t("connectEarly")}</p>
               ) : null}
             </form>
           )}
@@ -239,19 +245,19 @@ export function CommentsForm({
 
         {connected || snippet ? (
           <li className="rounded border border-neutral-200 p-4">
-            <p className="font-medium text-neutral-800">3. 显示评论区</p>
-            <p className="mt-2 text-neutral-600">关掉只是不渲染，配置还在，不必删掉重来。</p>
+            <p className="font-medium text-neutral-800">{t("step3")}</p>
+            <p className="mt-2 text-neutral-600">{t("step3Body")}</p>
             <form action={toggleAction} className="mt-3 flex items-center justify-between gap-4">
               <input type="hidden" name="siteId" value={siteId} />
               <input type="hidden" name="enabled" value={on ? "false" : "true"} />
-              <span>当前：{on ? "已开启" : "已关闭"}</span>
+              <span>{on ? t("currentlyOn") : t("currentlyOff")}</span>
               <ProgressButton
                 expectedSeconds={4}
-                pendingLabel="保存中"
+                pendingLabel={tc("saving")}
                 buildSiteId={siteId}
                 className="rounded bg-wp-accent px-4 py-2 font-medium text-white hover:bg-wp-accent-dark"
               >
-                {on ? "关闭" : "开启"}
+                {on ? t("turnOff") : t("turnOn")}
               </ProgressButton>
             </form>
           </li>
@@ -263,44 +269,38 @@ export function CommentsForm({
           <input type="hidden" name="siteId" value={siteId} />
           <ProgressButton
             expectedSeconds={5}
-            pendingLabel="触发中"
+            pendingLabel={t("triggering")}
             buildSiteId={siteId}
             className="rounded border border-neutral-300 px-4 py-2 font-medium hover:bg-neutral-50"
           >
-            手动触发重新构建
+            {t("rebuild")}
           </ProgressButton>
-          <span className="text-xs text-neutral-400">
-            只装 App 不用点这个。评论框还没出现时再构建一次。
-          </span>
+          <span className="text-xs text-neutral-400">{t("rebuildHint")}</span>
         </form>
       ) : null}
 
-      {snippet && !connected ? (
-        <p className="text-neutral-600">当前使用自定义嵌入代码。也可以按上面两步改连 giscus。</p>
-      ) : null}
+      {snippet && !connected ? <p className="text-neutral-600">{t("usingSnippet")}</p> : null}
 
       {connected ? null : (
         <details className="rounded border border-neutral-200 p-3">
-          <summary className="cursor-pointer font-medium">高级:自定义嵌入代码</summary>
+          <summary className="cursor-pointer font-medium">{t("advanced")}</summary>
           <form action={snippetAction} className="mt-3 space-y-3">
             <input type="hidden" name="siteId" value={siteId} />
             <textarea
               name="commentsSnippet"
               rows={6}
               defaultValue={snippet}
-              placeholder="粘贴 giscus / utterances / Disqus 等完整 <script> 代码"
+              placeholder={t("snippetPlaceholder")}
               className="w-full rounded border border-neutral-300 px-3 py-2 font-mono text-xs focus:border-wp-accent focus:outline-none"
             />
-            <p className="text-xs text-neutral-400">
-              不会走上面两步时使用。保存后可用「显示评论区」关掉，不必删掉这段代码。
-            </p>
+            <p className="text-xs text-neutral-400">{t("snippetHint")}</p>
             <ProgressButton
               expectedSeconds={4}
-              pendingLabel="保存中"
+              pendingLabel={tc("saving")}
               buildSiteId={siteId}
               className="rounded bg-wp-accent px-4 py-2 font-medium text-white hover:bg-wp-accent-dark"
             >
-              保存嵌入代码
+              {t("saveSnippet")}
             </ProgressButton>
           </form>
         </details>

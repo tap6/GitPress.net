@@ -1,5 +1,6 @@
 import matter from "gray-matter";
 import type { Octokit } from "octokit";
+import { actionError } from "./actionError";
 import { persistSiteCategory, type SiteCategory } from "./categories";
 import { deleteFile, getFileText, listDirectory, putFile, commitFiles, splitRepo, type CommitFile, type RepoRef } from "./github";
 import { sanitizeMediaFileName, uniqueMediaFileName } from "./mediaName";
@@ -148,9 +149,9 @@ export async function findSlugConflict(
   currentPath?: string,
 ): Promise<string | null> {
   const normalized = slug.trim();
-  if (!normalized) return "请填写有效的 URL 标识。";
+  if (!normalized) return "needUrlSlug";
   if (kind === "page" && isReservedPageSlug(normalized)) {
-    return "这个标识和站点已有路径冲突,请换一个。";
+    return "slugConflictsPath";
   }
   const ref = splitRepo(dataRepo);
   const dir = kind === "post" ? "content/posts" : "content/pages";
@@ -164,7 +165,9 @@ export async function findSlugConflict(
     const effective = effectiveSlugFromMatter(data as Record<string, unknown>, fileSlug);
     const aliases = redirectFromList(data as Record<string, unknown>);
     if (effective === normalized || aliases.includes(normalized)) {
-      return kind === "post" ? `标识「${normalized}」已被其它文章占用。` : `标识「${normalized}」已被其它页面占用。`;
+      return kind === "post"
+        ? actionError("slugTakenByPost", { slug: normalized })
+        : actionError("slugTakenByPage", { slug: normalized });
     }
   }
   return null;
@@ -256,7 +259,7 @@ export async function updatePostMeta(
 ): Promise<void> {
   const ref = splitRepo(dataRepo);
   const existing = await getFileText(octokit, ref, path);
-  if (!existing) throw new Error("文章不存在");
+  if (!existing) throw new Error("articleMissing");
   const parsed = matter(existing.text);
   const frontmatter: Record<string, unknown> = parsed.data ?? {};
 
@@ -490,7 +493,11 @@ function summarizePage(path: string, file: string, text: string): SitePage {
   };
 }
 
-export async function listPages(octokit: Octokit, dataRepo: string): Promise<SitePage[]> {
+export async function listPages(
+  octokit: Octokit,
+  dataRepo: string,
+  language = "en",
+): Promise<SitePage[]> {
   const ref = splitRepo(dataRepo);
   const files = await listDirectory(octokit, ref, "content/pages");
   const mdFiles = files.filter((file) => file.name.endsWith(".md"));
@@ -503,7 +510,7 @@ export async function listPages(octokit: Octokit, dataRepo: string): Promise<Sit
   );
   return results
     .filter((page): page is SitePage => page !== null)
-    .sort((a, b) => a.title.localeCompare(b.title, "zh"));
+    .sort((a, b) => a.title.localeCompare(b.title, language || "en"));
 }
 
 export async function getPage(
@@ -540,7 +547,7 @@ export async function savePage(
   const ref = splitRepo(dataRepo);
   if (isNew) {
     const clash = await getFileText(octokit, ref, path);
-    if (clash) throw new Error("这个标识已经有一页了,请换一个。");
+    if (clash) throw new Error("slugTaken");
   }
   const existing = isNew ? null : await getFileText(octokit, ref, path);
   const frontmatter: Record<string, unknown> = existing ? matter(existing.text).data : {};

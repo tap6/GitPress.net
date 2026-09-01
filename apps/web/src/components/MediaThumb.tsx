@@ -1,6 +1,7 @@
 "use client";
 
 import { useMediaBlob } from "@/hooks/useMediaBlob";
+import { useTranslations } from "next-intl";
 import { mediaKind } from "@/lib/mediaTypes";
 import { mediaPreviewUrl } from "@/lib/mediaUrl";
 
@@ -13,6 +14,7 @@ interface Props {
 }
 
 export function MediaThumb({ siteId, name, sha, alt, onPreview }: Props) {
+  const t = useTranslations("media");
   const kind = mediaKind(name);
   const previewUrl = mediaPreviewUrl(siteId, name, sha);
   const { src, failed, loading } = useMediaBlob(previewUrl);
@@ -21,7 +23,7 @@ export function MediaThumb({ siteId, name, sha, alt, onPreview }: Props) {
   if (failed) {
     return (
       <div className="flex aspect-square items-center justify-center bg-neutral-50 text-xs text-neutral-400">
-        无法预览
+          {t("cannotPreview")}
       </div>
     );
   }
@@ -58,7 +60,7 @@ export function MediaThumb({ siteId, name, sha, alt, onPreview }: Props) {
       type="button"
       onClick={onPreview}
       className="group relative block w-full cursor-zoom-in text-left"
-      aria-label={`预览 ${name}`}
+      aria-label={t("previewName", { name })}
     >
       {body}
       {kind === "video" && (

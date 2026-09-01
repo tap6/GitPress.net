@@ -62,9 +62,9 @@
 - `site.commentsSnippet`(仅当没有 `giscus` 时原样插入每篇**文章**正文下方;独立页面默认不渲染)
 - `site.postsPerPage`
 
-隐式顶栏建议:`首页`(文案随 `site.language`) + `inNav` 分类 + 全部页面(按 title 字母序)。**不要**把 RSS 放进默认顶栏。页脚默认给 RSS 链接,但站长可以关掉;`<head>` 里始终保留 `<link rel="alternate" type="application/rss+xml">`,`/rss.xml` 始终生成。
+隐式顶栏建议:首页文案随 `site.language`(中文「首页」、日文「ホーム」、其它 “Home”,没有的语言回落英文) + `inNav` 分类 + 全部独立页面(按 title 用 `site.language` 排序)。**不要**把 RSS 放进默认顶栏。页脚默认给 RSS 链接,但站长可以关掉;`<head>` 里始终保留 `<link rel="alternate" type="application/rss+xml">`,`/rss.xml` 始终生成。
 
-顶栏末尾加一项「搜索」,链到 `/search/`,由 `theme.config.showSearch` 控制,缺省 true。不要把它做成 `site.nav` 的一种 type。缺省文案随语言:中文「搜索」、日文「検索」、其它 “Search”。`/search/` 页始终生成,关掉的只是顶栏入口。
+顶栏末尾加一项「搜索」,链到 `/search/`,由 `theme.config.showSearch` 控制,缺省 true。不要把它做成 `site.nav` 的一种 type。缺省文案随语言。内置主题 chrome(分页、空列表、搜索不可用、归档、阅读时长、页脚署名)一律走 `themes/_shared/chromeI18n.ts`,按 `zh` / `ja` / `en` 查找,缺的回落英文。导入主题请自备同样规则,不要依赖该文件。Pagefind UI 传入对应语言的 `translations`。`/search/` 页始终生成,关掉的只是顶栏入口。
 
 日期显示年月日必须有。时分秒做成主题选项:`showListTime` 管列表(首页/分类/标签/归档,默认关),`showPostTime` 管文章页(默认开)。JSON-LD 和 `article:published_time` 仍用 ISO,不要跟这两个开关走。
 

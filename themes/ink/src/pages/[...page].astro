@@ -9,6 +9,7 @@ import {
   themeConfig,
   withBase,
   postsPerPage,
+  t,
   type Post,
 } from "../lib/gitpress";
 
@@ -28,7 +29,7 @@ const { page } = Astro.props;
 ---
 
 <Base>
-  {page.data.length === 0 && <p>No posts yet. Write your first one!</p>}
+  {page.data.length === 0 && <p>{t("emptyPosts")}</p>}
   {
     page.data.map((post) => (
       <article class="post-item">

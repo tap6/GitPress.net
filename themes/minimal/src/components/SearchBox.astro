@@ -1,20 +1,22 @@
 ---
-import { withBase } from "../lib/gitpress";
+import { pagefindUiTranslations, t, withBase } from "../lib/gitpress";
 
 const cssHref = withBase("/pagefind/pagefind-ui.css");
 const jsHref = withBase("/pagefind/pagefind-ui.js");
 const bundlePath = withBase("/pagefind/");
+const unavailable = t("searchUnavailable");
+const pf = pagefindUiTranslations();
 ---
 
 <div class="site-search" data-pagefind-ignore>
   <div id="gitpress-search"></div>
   <p class="search-fallback" id="gitpress-search-fallback" hidden>
-    搜索暂时不可用。站点完成构建后即可使用。
+    {unavailable}
   </p>
 </div>
 <link rel="stylesheet" href={cssHref} />
 <script is:inline src={jsHref}></script>
-<script is:inline define:vars={{ bundlePath }}>
+<script is:inline define:vars={{ bundlePath, pf }}>
   (function () {
     var fallback = document.getElementById("gitpress-search-fallback");
     function fail() {
@@ -31,6 +33,7 @@ const bundlePath = withBase("/pagefind/");
           element: "#gitpress-search",
           bundlePath: bundlePath,
           showSubResults: true,
+          translations: pf,
         });
       } catch (error) {
         fail();

@@ -1,9 +1,13 @@
-import Link from "next/link";
+"use client";
+
+import { useLocale, useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import {
-  describeCommitAuthor,
   describeGitChange,
+  formatCommitAuthor,
+  formatDayHeading,
+  formatGitChange,
   formatShanghaiDateTime,
-  shanghaiDayHeading,
   shanghaiDayKey,
 } from "@/lib/buildLabels";
 
@@ -28,40 +32,39 @@ export function EditorGitHistory({
   error?: string | null;
   hasFile: boolean;
 }) {
+  const locale = useLocale();
+  const t = useTranslations("buildHistory");
+  const th = useTranslations("history");
+
   return (
     <section className="flex min-h-40 flex-1 flex-col overflow-hidden rounded border border-neutral-200 bg-white shadow-sm lg:min-h-0">
       <div className="flex shrink-0 items-baseline justify-between gap-2 border-b border-neutral-100 px-3 py-2">
-        <h2 className="text-sm font-semibold text-neutral-700">Git 记录</h2>
+        <h2 className="text-sm font-semibold text-neutral-700">{th("title")}</h2>
         <Link
           href={`/sites/${siteId}/history`}
           className="text-xs leading-none text-neutral-400 hover:text-wp-accent hover:underline"
         >
-          全部
+          {th("all")}
         </Link>
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto px-3 py-2">
         {error ? (
           <p className="text-xs leading-relaxed text-amber-700">{error}</p>
         ) : !hasFile ? (
-          <p className="text-xs leading-relaxed text-neutral-400">
-            保存到仓库后，这篇的改动会出现在这里。
-          </p>
+          <p className="text-xs leading-relaxed text-neutral-400">{th("editorEmptyFile")}</p>
         ) : commits.length === 0 ? (
-          <p className="text-xs leading-relaxed text-neutral-400">这篇还没有单独的提交记录。</p>
+          <p className="text-xs leading-relaxed text-neutral-400">{th("editorEmptyCommits")}</p>
         ) : (
           <ol className="space-y-2.5">
             {commits.map((commit, index) => {
               const change = describeGitChange(commit.message);
-              const day = shanghaiDayHeading(commit.committedAt);
-              const prevDay =
-                index > 0 ? shanghaiDayKey(commits[index - 1].committedAt) : null;
+              const day = formatDayHeading(commit.committedAt, locale, t);
+              const prevDay = index > 0 ? shanghaiDayKey(commits[index - 1].committedAt) : null;
               const showDay = prevDay !== shanghaiDayKey(commit.committedAt);
               return (
                 <li key={commit.sha}>
                   {showDay ? (
-                    <p className="mb-1 text-xs font-medium leading-snug text-neutral-400">
-                      {day}
-                    </p>
+                    <p className="mb-1 text-xs font-medium leading-snug text-neutral-400">{day}</p>
                   ) : null}
                   <a
                     href={commit.htmlUrl}
@@ -69,11 +72,11 @@ export function EditorGitHistory({
                     rel="noreferrer"
                     className="block rounded px-0.5 py-1 hover:bg-neutral-50"
                   >
-                    <p className="text-xs leading-relaxed text-neutral-700">{change.label}</p>
+                    <p className="text-xs leading-relaxed text-neutral-700">{formatGitChange(change, t)}</p>
                     <p className="mt-1 text-[11px] leading-snug text-neutral-400">
-                      {formatShanghaiDateTime(commit.committedAt)}
+                      {formatShanghaiDateTime(commit.committedAt, locale)}
                       <span className="mx-1">·</span>
-                      {describeCommitAuthor(commit.authorLogin, commit.authorName)}
+                      {formatCommitAuthor(commit.authorLogin, commit.authorName, t)}
                     </p>
                   </a>
                 </li>

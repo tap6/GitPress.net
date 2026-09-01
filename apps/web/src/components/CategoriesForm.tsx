@@ -1,7 +1,9 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { useTranslations } from "next-intl";
 import { ProgressButton } from "@/components/ProgressButton";
+import { FormError } from "@/components/FormError";
 import { saveCategoriesAction, type SaveCategoriesState } from "@/lib/actions";
 import { isCategoryInNav, persistSiteCategory, type SiteCategory } from "@/lib/categories";
 
@@ -31,6 +33,8 @@ interface Props {
 }
 
 export function CategoriesForm({ siteId, initial }: Props) {
+  const t = useTranslations("settings");
+  const tc = useTranslations("common");
   const [rows, setRows] = useState<Row[]>(() =>
     initial.map((c) => ({ ...c, inNav: isCategoryInNav(c), key: nextKey() })),
   );
@@ -90,30 +94,28 @@ export function CategoriesForm({ siteId, initial }: Props) {
       <input type="hidden" name="categoriesJson" value={categoriesJson} />
 
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-neutral-100 px-4 py-3">
-        <p className="text-xs text-neutral-400">
-          列表顺序就是顶栏顺序。关掉导航的分类仍会生成归档页。
-        </p>
+        <p className="text-xs text-neutral-400">{t("catOrderHint")}</p>
         <button
           type="button"
           onClick={addRow}
           className="rounded border border-dashed border-neutral-300 px-3 py-1.5 text-neutral-500 hover:border-wp-accent hover:text-wp-accent"
         >
-          + 添加分类
+          {t("addCat")}
         </button>
       </div>
 
       <div className="space-y-3 p-4">
         {rows.length === 0 && (
-          <p className="text-neutral-400">还没有分类,添加一个开始规划你的站点栏目吧。</p>
+          <p className="text-neutral-400">{t("noCats")}</p>
         )}
 
         {rows.length > 0 && (
           <div className="hidden items-center gap-2 text-xs text-neutral-400 sm:flex">
             <span className="w-6 shrink-0" />
             <div className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_10rem_7rem] items-center gap-2">
-              <span>名称</span>
+              <span>{t("catName")}</span>
               <span>slug</span>
-              <span className="text-center">顶栏导航</span>
+              <span className="text-center">{t("catNav")}</span>
             </div>
             <span className="w-8 shrink-0" />
           </div>
@@ -130,7 +132,7 @@ export function CategoriesForm({ siteId, initial }: Props) {
                     onClick={() => move(row.key, -1)}
                     disabled={index === 0}
                     className="px-1 text-neutral-400 hover:text-neutral-700 disabled:opacity-20"
-                    aria-label="上移"
+                    aria-label={tc("moveUp")}
                   >
                     ▲
                   </button>
@@ -139,7 +141,7 @@ export function CategoriesForm({ siteId, initial }: Props) {
                     onClick={() => move(row.key, 1)}
                     disabled={index === rows.length - 1}
                     className="px-1 text-neutral-400 hover:text-neutral-700 disabled:opacity-20"
-                    aria-label="下移"
+                    aria-label={tc("moveDown")}
                   >
                     ▼
                   </button>
@@ -148,25 +150,25 @@ export function CategoriesForm({ siteId, initial }: Props) {
                   <input
                     value={row.label}
                     onChange={(e) => updateLabel(row.key, e.target.value)}
-                    placeholder="分类名称,例如:技术"
+                    placeholder={t("catNamePlaceholder")}
                     className="min-w-0 w-full rounded border border-neutral-300 px-3 py-2 focus:border-wp-accent focus:outline-none"
                   />
                   <input
                     value={row.slug}
                     onChange={(e) => updateSlug(row.key, e.target.value)}
-                    placeholder="slug,自动生成"
+                    placeholder={t("catSlugPlaceholder")}
                     className="w-full rounded border border-neutral-300 px-3 py-2 font-mono text-xs text-neutral-500 focus:border-wp-accent focus:outline-none"
                   />
                   <div
                     className="flex items-center justify-between gap-2 sm:justify-center"
-                    title={inNav ? "显示在站点顶部导航" : "不显示在顶部导航,归档页仍会生成"}
+                    title={inNav ? t("catNavOn") : t("catNavOff")}
                   >
-                    <span className="text-[11px] text-neutral-400 sm:hidden">顶栏导航</span>
+                    <span className="text-[11px] text-neutral-400 sm:hidden">{t("catNav")}</span>
                     <button
                       type="button"
                       role="switch"
                       aria-checked={inNav}
-                      aria-label={`${row.label || "此分类"}显示在顶部导航`}
+                      aria-label={t("catNavAria", { label: row.label || t("thisCategory") })}
                       onClick={() => toggleInNav(row.key)}
                       className={`relative h-5 w-9 shrink-0 cursor-pointer rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wp-accent focus-visible:ring-offset-1 ${
                         inNav ? "bg-wp-accent" : "bg-neutral-300"
@@ -179,7 +181,7 @@ export function CategoriesForm({ siteId, initial }: Props) {
                       />
                     </button>
                     <span className={`text-[11px] ${inNav ? "text-neutral-500" : "text-neutral-400"}`}>
-                      {inNav ? "显示" : "隐藏"}
+                      {inNav ? t("shown") : t("hidden")}
                     </span>
                   </div>
                 </div>
@@ -187,7 +189,7 @@ export function CategoriesForm({ siteId, initial }: Props) {
                   type="button"
                   onClick={() => remove(row.key)}
                   className="w-8 shrink-0 px-2 pt-2 text-neutral-400 hover:text-red-600 sm:pt-0"
-                  aria-label="删除"
+                  aria-label={tc("delete")}
                 >
                   ✕
                 </button>
@@ -197,23 +199,19 @@ export function CategoriesForm({ siteId, initial }: Props) {
         </div>
       </div>
 
-      {state.error && (
-        <p className="mx-4 mb-3 rounded bg-red-50 p-3 text-red-600">{state.error}</p>
-      )}
+      <FormError error={state.error} className="mx-4 mb-3 rounded bg-red-50 p-3 text-red-600" />
       {state.saved && (
-        <p className="mx-4 mb-3 rounded bg-emerald-50 p-3 text-emerald-700">
-          已保存,站点将在约 1 分钟后更新导航。
-        </p>
+        <p className="mx-4 mb-3 rounded bg-emerald-50 p-3 text-emerald-700">{t("savedNav")}</p>
       )}
 
       <div className="border-t border-neutral-100 bg-neutral-50 px-4 py-3">
         <ProgressButton
           expectedSeconds={4}
-          pendingLabel="保存中"
+          pendingLabel={tc("saving")}
           buildSiteId={siteId}
           className="rounded bg-wp-accent px-4 py-2 font-medium text-white hover:bg-wp-accent-dark"
         >
-          保存分类
+          {t("saveCats")}
         </ProgressButton>
       </div>
     </form>

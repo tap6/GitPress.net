@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 import { revalidatePath, revalidateTag } from "next/cache";
 import { db } from "@/db";
 import { themeListings, users, type ThemeListingStatus } from "@/db/schema";
+import { actionError } from "./actionError";
 import { emailIsOpsAllowlisted, requireOps } from "./ops";
 import { PUBLIC_STATS_TAG } from "./publicStats";
 import {
@@ -50,7 +51,7 @@ export async function addThemeListingAction(
   const source = formatGithubThemeSource(parsed);
   const manifest = await fetchGithubThemeManifest(source);
   if (!manifest) {
-    return { error: "读不到 theme.json。请确认仓库公开,并且路径、分支或标签正确。" };
+    return { error: "themeJsonPublic" };
   }
   try {
     assertUsableThemeManifest(manifest);
@@ -74,9 +75,9 @@ export async function addThemeListingAction(
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     if (message.includes("theme_listing") || message.toLowerCase().includes("unique")) {
-      return { error: `目录里已有 ${source}` };
+      return { error: actionError("catalogHasSource", { source }) };
     }
-    return { error: `写入失败:${message}` };
+    return { error: actionError("addFailed", { detail: message }) };
   }
 
   revalidateOps();
@@ -106,7 +107,7 @@ export async function refreshThemeListingAction(formData: FormData): Promise<voi
   if (!row) return;
 
   const manifest = await fetchGithubThemeManifest(row.source);
-  if (!manifest) throw new Error("刷新失败:读不到 theme.json");
+  if (!manifest) throw new Error("refreshThemeFail");
   assertUsableThemeManifest(manifest);
 
   await db
@@ -137,7 +138,7 @@ export async function setUserOpsRoleAction(formData: FormData): Promise<void> {
   if (!target) return;
 
   if (!grant && userId === operator.id && !emailIsOpsAllowlisted(operator.email)) {
-    throw new Error("不能撤销自己的运营权限,否则会锁死后台。请先把邮箱写入 GITPRESS_OPS_EMAILS。");
+    throw new Error("cannotRevokeSelf");
   }
 
   await db
