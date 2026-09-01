@@ -1,5 +1,8 @@
 # GitPress.net
 
+[![PolyForm Shield](https://img.shields.io/badge/license-PolyForm%20Shield-lightgrey)](LICENSE)
+[![Website](https://img.shields.io/badge/website-gitpress.net-0ea5e9)](https://gitpress.net)
+
 **GitPress is a blog admin: write like WordPress, keep posts on your own GitHub, and publish a static site on save.**
 
 This repository is the source of [gitpress.net](https://gitpress.net) — the control plane you click every day — not your article library. Readers hit your GitHub Pages, not our servers.

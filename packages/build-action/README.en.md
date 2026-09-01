@@ -1,5 +1,8 @@
 # tap6/build-action
 
+[![MIT](https://img.shields.io/github/license/tap6/build-action)](LICENSE)
+[![v1](https://img.shields.io/github/v/tag/tap6/build-action?label=tag)](https://github.com/tap6/build-action/tags)
+
 **The GitPress compiler: turn posts in your private repo into a static site.** Not the admin. [MIT](LICENSE).
 
 It runs in GitHub Actions on your data repository, not on gitpress.net machines. Pin `@v1`. Do not use `@main`.

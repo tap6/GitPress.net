@@ -1,5 +1,8 @@
 # tap6/build-action
 
+[![MIT](https://img.shields.io/github/license/tap6/build-action)](LICENSE)
+[![v1](https://img.shields.io/github/v/tag/tap6/build-action?label=tag)](https://github.com/tap6/build-action/tags)
+
 **GitPress 的编译器：把你私有仓库里的文章编成静态网站。** 不是后台。[MIT](LICENSE) 开源。
 
 跑在你数据仓库的 GitHub Actions 里，不跑在 gitpress.net 的机器上。请钉 `@v1`，不要用 `@main`。

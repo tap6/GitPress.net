@@ -1,5 +1,8 @@
 # gitpress
 
+[![MIT](https://img.shields.io/github/license/tap6/gitpress)](LICENSE)
+[![v1](https://img.shields.io/github/v/tag/tap6/gitpress?label=tag)](https://github.com/tap6/gitpress/tags)
+
 **GitPress 博客的主题和约定：Markdown 怎么写、站点长什么样，都认这一份。** [MIT](LICENSE) 开源。
 
 站点锁定本仓 `@v1`。换主题或自己做主题，都从这里的 spec 走。本仓不是后台。

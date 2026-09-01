@@ -1,5 +1,8 @@
 # GitPress.net
 
+[![PolyForm Shield](https://img.shields.io/badge/license-PolyForm%20Shield-lightgrey)](LICENSE)
+[![Website](https://img.shields.io/badge/website-gitpress.net-0ea5e9)](https://gitpress.net)
+
 **GitPress 是博客后台：像 WordPress 一样写文章，稿子在你自己的 GitHub 上，保存后变成静态网页。**
 
 本仓是 [gitpress.net](https://gitpress.net) 你每天点的那个网站（控制面源码），不是文章库。读者打开的是你的 GitHub Pages，不是我们的服务器。
