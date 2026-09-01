@@ -1,8 +1,10 @@
 # gitpress
 
-[GitPress.net](https://gitpress.net) 的主题、约定和数据仓模板。[MIT](LICENSE) 开源。
+**GitPress 博客的主题和约定：Markdown 怎么写、站点长什么样，都认这一份。** [MIT](LICENSE) 开源。
 
-博客长什么样、Markdown 怎么写、`gitpress.json` 是什么意思，都在这里。站点锁定本仓的 `@v1`。换主题或自己做主题，都认这份 spec。
+站点锁定本仓 `@v1`。换主题或自己做主题，都从这里的 spec 走。本仓不是后台。
+
+中文 | [English](README.en.md)
 
 控制面（登录、写稿、建仓）在 [tap6/GitPress.net](https://github.com/tap6/GitPress.net)，源码公开，许可是 PolyForm Shield，不是闭源，也不是本仓的 MIT。编译用 [tap6/build-action](https://github.com/tap6/build-action)（同样 MIT）。
 

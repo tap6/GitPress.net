@@ -1,10 +1,10 @@
 # GitPress.net
 
-[https://gitpress.net](https://gitpress.net) 的控制面源码：WordPress 式后台（登录、建仓、写稿、点保存）。文章、图片、草稿在你自己的 GitHub 仓库里，编译跑在 GitHub Actions 上，不经过我们的机器。
+**GitPress 是博客后台：像 WordPress 一样写文章，稿子在你自己的 GitHub 上，保存后变成静态网页。**
 
-这不是 OSI 意义上的「整仓开源」。后台源码公开，可以自己部署给自己用；不能拿去开另一个面向大家的 GitPress 平台（免费也不行）。主题和构建工具才是 MIT。
+本仓是 [gitpress.net](https://gitpress.net) 你每天点的那个网站（控制面源码），不是文章库。读者打开的是你的 GitHub Pages，不是我们的服务器。
 
-没有一键 Deploy。自建后台要自己注册 GitHub App、数据库和登录凭据，步骤见 [`docs/platform-setup.md`](docs/platform-setup.md)。
+中文 | [English](README.en.md)
 
 ## 三块分别干什么
 
@@ -15,6 +15,8 @@
 | [tap6/build-action](https://github.com/tap6/build-action) | [MIT](LICENSES/MIT.txt) | 从私有数据仓编出静态站，推进公开网站仓 |
 
 关停之后：稿子还在你的仓库里，用同一份主题和 `@v1` Action 继续编即可。少的是这个后台，不是文章。
+
+这不是 OSI 意义上的「整仓开源」。后台源码公开，可以自己部署给自己用；不能拿去开另一个面向大家的 GitPress 平台（免费也不行）。主题和构建工具才是 MIT。没有一键 Deploy；自建见 [`docs/platform-setup.md`](docs/platform-setup.md)。
 
 ## 许可
 

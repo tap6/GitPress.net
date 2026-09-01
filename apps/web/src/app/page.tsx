@@ -21,8 +21,8 @@ const FEATURES = [
     body: "文章、图片、草稿只在你的私有 GitHub 仓库。GitPress.net 不建内容库,卸掉 App 授权后我们就读不到你的正文。",
   },
   {
-    title: "双仓库架构",
-    body: "数据仓库存内容,网站仓库存编译产物。换主题只改配置,一个字都不会丢。",
+    title: "内容和网站分开",
+    body: "一个仓库存文章和草稿，一个仓库存编好的网页。换主题只改配置,一个字都不会丢。",
   },
   {
     title: "零服务器构建",
@@ -90,17 +90,17 @@ export default async function LandingPage() {
       <main>
         <section className="mx-auto max-w-4xl px-6 pb-14 pt-16 text-center sm:pt-20">
           <p className="text-sm font-medium uppercase tracking-[0.2em] text-gp-brand">
-            云工具,不是内容站
+            博客后台
           </p>
           <h1 className="mt-4 text-4xl font-extrabold leading-tight tracking-tight sm:text-5xl">
             像用 WordPress 一样写作。
             <br />
-            文章不进我们的服务器。
+            文章在你自己的 GitHub 上。
           </h1>
           <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-neutral-500">
-            GitPress.net 只是帮你在 GitHub 上建仓、写稿、触发构建的云工具。
-            Markdown、图片、草稿都在你自己的仓库里;我们的数据库不保存正文。
-            读者访问的是你的 GitHub Pages,请求不会经过 gitpress.net。
+            GitPress 是一个博客后台。你登录、写文章；正文进你自己的 GitHub
+            仓库；保存后编成静态网页，挂在 GitHub Pages。gitpress.net
+            只是遥控器，读者打开的不是我们的服务器。
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             <Link

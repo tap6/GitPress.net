@@ -3,9 +3,9 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 export const metadata: Metadata = {
-  title: "这是什么项目？",
+  title: "GitPress 是什么？",
   description:
-    "WordPress 博客因忘续服务器丢光数据之后，才有了 GitPress。正文在你自己的 GitHub 仓库，后台只是遥控器。",
+    "GitPress 是一个博客后台。像用 WordPress 一样写文章，正文在你自己的 GitHub 仓库，保存后编成静态网页。",
 };
 
 const PLATFORM_REPO = "https://github.com/tap6/GitPress.net";
@@ -75,12 +75,55 @@ export default function WhatIsGitPressHelpPage() {
           ← 全部帮助
         </Link>
       </p>
-      <h1 className="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl">这是什么项目？</h1>
-      <p className={`mt-4 ${BODY_MUTED}`}>
-        先讲作者为什么做这个；再讲后台、主题约定和构建各自管什么。
+      <h1 className="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl">GitPress 是什么？</h1>
+      <p className={`mt-4 ${BODY}`}>
+        GitPress 是一个<strong className="font-semibold text-neutral-900">博客后台</strong>。你像用
+        WordPress 一样登录、写文章；正文存在你自己的 GitHub
+        仓库里；保存后自动编成静态网页，挂在 GitHub Pages 上。gitpress.net
+        只是遥控器，读者打开的不是我们的服务器。
+      </p>
+      <p className={`mt-3 ${BODY}`}>
+        它不是又一个静态站点生成器。Hugo、VitePress 那样的工具是你自己安装、自己在命令行里编站；GitPress
+        把「写」放进网页后台，把「编」放进你的 GitHub Actions。
       </p>
 
-      <section className="mt-8 rounded-xl border border-neutral-200 bg-neutral-50 px-5 py-6 sm:px-6">
+      <p className="mt-6 rounded-lg bg-neutral-900 px-4 py-3 text-sm leading-relaxed text-white">
+        只想开一个站？{" "}
+        <Link href="/login" className="font-medium underline decoration-white/50 underline-offset-2 hover:decoration-white">
+          从创建我的博客开始
+        </Link>
+        。想搞清稿子会不会被平台扣住，往下看。
+      </p>
+
+      <section className="mt-10">
+        <h2 className="text-lg font-semibold">适合谁</h2>
+        <ul className={`mt-3 list-disc space-y-1.5 pl-5 ${BODY}`}>
+          <li>想写个人博客，不想每年续服务器、迁数据库、给域名重新解析。</li>
+          <li>不想把稿子存在某个平台的库里，哪天走还得「申请导出」。</li>
+          <li>能有一个 GitHub 账号就行，不必自己搭 Hugo 或 VitePress。</li>
+        </ul>
+      </section>
+
+      <section className="mt-10" id="compare">
+        <h2 className="text-lg font-semibold">和别的工具差在哪</h2>
+        <ul className={`mt-3 space-y-3 ${BODY}`}>
+          <li>
+            <strong className="font-semibold text-neutral-900">WordPress：</strong>
+            后台手感接近。差别是稿子和读者看到的网页都不住在我们服务器上，而在你的 GitHub。
+          </li>
+          <li>
+            <strong className="font-semibold text-neutral-900">Hugo / VitePress：</strong>
+            都是把 Markdown 编成静态站。它们是你本机或 CI 里跑的生成器；GitPress
+            是给你一个网页后台，生成器跑在你仓库的 Actions 里。
+          </li>
+          <li>
+            <strong className="font-semibold text-neutral-900">常见博客平台：</strong>
+            走的时候带走的是仓库，不是申请一份导出。平台关了，少的是这个后台，不是文章。
+          </li>
+        </ul>
+      </section>
+
+      <section className="mt-10 rounded-xl border border-neutral-200 bg-neutral-50 px-5 py-6 sm:px-6">
         <h2 className="text-base font-semibold text-neutral-900">这个项目为什么会出现</h2>
         <div className={`mt-4 space-y-3 ${BODY}`}>
           <p>
@@ -94,11 +137,15 @@ export default function WhatIsGitPressHelpPage() {
             如果没有更一劳永逸的办法，这种又累、又可能再来一次的事还会发生。于是我去找相关项目。
           </p>
           <p>
-            <strong className="font-semibold text-neutral-900">Hugo</strong> 以及一系列 <strong className="font-semibold text-neutral-900">SSG</strong>（静态站点生成器）都能编出网站，但
+            <strong className="font-semibold text-neutral-900">Hugo</strong> 以及一系列{" "}
+            <strong className="font-semibold text-neutral-900">SSG</strong>
+            （静态站点生成器）都能编出网站，但
             <Mark>使用上的心智成本和操作成本都不低。</Mark>
           </p>
           <p>
-            后来遇到 <strong className="font-semibold text-neutral-900">Gridea</strong>。数据保存在电脑上，必须坐在电脑前写，<Mark>不能随时随地写</Mark>，就弃用了。它后来出了网页版，但又收费、又有限制，还不如本地版。本质没变：
+            后来遇到 <strong className="font-semibold text-neutral-900">Gridea</strong>
+            。数据保存在电脑上，必须坐在电脑前写，<Mark>不能随时随地写</Mark>
+            ，就弃用了。它后来出了网页版，但又收费、又有限制，还不如本地版。本质没变：
             <Mark>文章数据依然不够安全。</Mark>
           </p>
           <p>
@@ -107,27 +154,22 @@ export default function WhatIsGitPressHelpPage() {
             还有很多架构上的设计此处不展开细说，如果有需要可以把源码仓库 fork 下来让 AI 帮助你了解。
           </p>
           <p className="text-neutral-600">
-            首版用 <strong className="font-semibold text-neutral-900">Fable 5</strong> 写。仅第一次让 AI 跑 plan 就花了 <Mark>200 元</Mark>。有一说一，<strong className="font-semibold text-neutral-900">Fable 5</strong> 是真贵。后面又多轮加功能、改问题，才有现在这版。
+            首版用 <strong className="font-semibold text-neutral-900">Fable 5</strong> 写。仅第一次让 AI 跑 plan
+            就花了 <Mark>200 元</Mark>。有一说一，
+            <strong className="font-semibold text-neutral-900">Fable 5</strong>{" "}
+            是真贵。后面又多轮加功能、改问题，才有现在这版。
           </p>
         </div>
       </section>
 
       <p className={`mt-8 ${BODY}`}>
-        所以现在你每天用的是后台。真正撑起站点的，是你 GitHub 上的两个仓库，再加上源码公开的后台、以及 MIT 开源的主题和构建工具。后台只是遥控器。
+        所以现在你每天用的是后台。真正撑起站点的，是你 GitHub 上的两个仓库，再加上源码公开的后台、以及 MIT
+        开源的主题和构建工具。后台只是遥控器。
       </p>
 
       <section className="mt-10">
-        <h2 className="text-lg font-semibold">你在乎什么</h2>
-        <ul className={`mt-3 list-disc space-y-1.5 pl-5 ${BODY}`}>
-          <li>文章会不会被平台扣住，哪天想走还得「申请导出」。</li>
-          <li>读者打开的是不是 gitpress.net 上的页面，站点活不活绑在我们服务器上。</li>
-          <li>这家网站关了，你还能不能用同一份稿子自己编、自己挂。</li>
-        </ul>
-        <p className={`mt-3 ${BODY_MUTED}`}>下面三块分别对应这三件事。不用先去读仓库 README。</p>
-      </section>
-
-      <section className="mt-10">
         <h2 className="text-lg font-semibold">三块分别管什么</h2>
+        <p className={`mt-2 ${BODY_MUTED}`}>对应三件事：稿子在哪、长什么样、点保存之后谁在编。不用先去读仓库 README。</p>
         <div className="mt-4 space-y-3">
           <RepoCard
             featured
@@ -154,8 +196,9 @@ export default function WhatIsGitPressHelpPage() {
       <section className="mt-10">
         <h2 className="text-lg font-semibold">关停了怎么办</h2>
         <p className={`mt-2 ${BODY}`}>
-          不是「导出再搬家」。正文、图片、草稿从来没进我们的库，本来就在你的私有数据仓；读者看到的 HTML 在你的公开网站仓。用同一份
-          gitpress 主题和 build-action，在 GitHub 上继续编即可。平台没了，少的是遥控器，不是稿子。
+          不是「导出再搬家」。正文、图片、草稿从来没进我们的库，本来就在你的私有数据仓；读者看到的 HTML
+          在你的公开网站仓。用同一份 gitpress 主题和 build-action，在 GitHub
+          上继续编即可。平台没了，少的是遥控器，不是稿子。
         </p>
         <p className={`mt-3 ${BODY}`}>
           控制面具体留了什么、没留什么，见{" "}

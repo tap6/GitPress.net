@@ -37,8 +37,9 @@ pnpm db:push                      # 用 drizzle 同步表结构
 > PolyForm Shield `LICENSE` 拷过去。网安徽章仍不随 MIT 再授权。
 >
 > `tap6/gitpress` 的根 README 用 [`docs/oss/gitpress.README.md`](oss/gitpress.README.md)
-> 覆盖仓根 `README.md`（线上那份不会随 `spec/` / `themes/` rsync 更新）。
-> `tap6/build-action` 的根 README 就是 `packages/build-action/README.md`。
+> 覆盖仓根 `README.md`，并把 [`docs/oss/gitpress.README.en.md`](oss/gitpress.README.en.md)
+> 拷成仓根 `README.en.md`（线上旧英文 README 不会随 `spec/` / `themes/` rsync 更新）。
+> `tap6/build-action` 的根 README / `README.en.md` 就是 `packages/build-action/` 里同名文件。
 
 ## 3. 注册 GitHub App
 

@@ -8,9 +8,9 @@ export interface HelpArticleMeta {
 export const HELP_ARTICLES: HelpArticleMeta[] = [
   {
     href: "/help/what-is-gitpress",
-    title: "这是什么项目？",
+    title: "GitPress 是什么？",
     summary:
-      "先讲为什么会做：WordPress 博客丢过几年稿。再讲后台、主题约定、构建 Action 各管什么，关停了怎么办。",
+      "GitPress 是博客后台：像 WordPress 一样写，稿子在你的 GitHub，编成静态站。适合谁、和 Hugo / WordPress / VitePress 差在哪，以及为什么会做。",
     keywords: [
       "介绍",
       "是什么",
@@ -24,6 +24,7 @@ export const HELP_ARTICLES: HelpArticleMeta[] = [
       "退出",
       "WordPress",
       "Hugo",
+      "VitePress",
       "Gridea",
       "SSG",
       "服务器",
