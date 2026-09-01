@@ -51,6 +51,6 @@ export function getPublicPlatformStats(): Promise<PublicPlatformStats> {
   })();
 }
 
-export function formatStatCount(value: number): string {
-  return value.toLocaleString("zh-CN");
+export function formatStatCount(value: number, locale: string = "zh"): string {
+  return value.toLocaleString(locale === "en" ? "en-US" : "zh-CN");
 }

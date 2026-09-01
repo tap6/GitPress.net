@@ -613,6 +613,7 @@
     "invalidSlug": "标识符只能包含小写字母、数字和连字符。",
     "needTheme": "请选择一个主题。",
     "needGithub": "请先连接 GitHub 账号。",
+    "githubReconnect": "GitHub 个人授权已过期。请点击下方「连接另一个 GitHub 账号」重新授权后再创建。",
     "repoExists": "仓库 {slug} 或 {slug}-data 已存在,请换一个标识符。",
     "initFailed": "初始化失败:{detail}",
     "needTitle": "请填写标题。",
@@ -1212,6 +1213,7 @@
     "success": "✓ 已{pipeline}",
     "failure": "✗ 未能{pipeline}",
     "unknown": "GitHub 已收到数据，但 App 缺少「Actions」权限，这里看不到实时进度（构建仍会进行）。",
+    "stalled": "GitHub 还没有开始构建。数据已写入仓库；可到 Actions 页确认，或关掉本条。",
     "viewGithub": "在 GitHub 查看",
     "help": "说明",
     "actionsPage": "GitHub Actions 页面"

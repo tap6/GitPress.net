@@ -11,6 +11,7 @@ import {
   GITHUB_SETUP_RESUME_PATH,
   parsePendingGithubSetup,
 } from "@/lib/githubSetupPending";
+import { maybeRedirectToPreferredLocale } from "@/lib/productLocale";
 
 export async function generateMetadata() {
   const t = await getTranslations("nav");
@@ -18,6 +19,7 @@ export async function generateMetadata() {
 }
 
 export default async function LoginPage() {
+  await maybeRedirectToPreferredLocale("/login");
   const session = await auth();
   const locale = (await getLocale()) as AppLocale;
   const pendingGithub = parsePendingGithubSetup((await cookies()).get(GITHUB_SETUP_COOKIE)?.value);

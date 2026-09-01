@@ -38,6 +38,13 @@ export function LocaleSwitcher({ className = "" }: { className?: string }) {
   }, [locale]);
 
   useEffect(() => {
+    const hasCookie = document.cookie.split(";").some((part) => part.trim().startsWith("NEXT_LOCALE="));
+    if (!hasCookie && (locale === "zh" || locale === "en")) {
+      writeLocaleCookie(locale);
+    }
+  }, [locale]);
+
+  useEffect(() => {
     if (!open) return;
     function onPointerDown(event: PointerEvent) {
       if (!rootRef.current?.contains(event.target as Node)) setOpen(false);

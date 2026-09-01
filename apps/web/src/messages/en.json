@@ -613,6 +613,7 @@
     "invalidSlug": "The slug can only contain lowercase letters, numbers, and hyphens.",
     "needTheme": "Choose a theme.",
     "needGithub": "Connect a GitHub account first.",
+    "githubReconnect": "GitHub user authorization has expired. Use “Connect another GitHub account” below to re-authorize, then try again.",
     "repoExists": "Repo {slug} or {slug}-data already exists. Pick another slug.",
     "initFailed": "Setup failed: {detail}",
     "needTitle": "Enter a title.",
@@ -1212,6 +1213,7 @@
     "success": "✓ {pipeline}",
     "failure": "✗ Could not {pipeline}",
     "unknown": "GitHub has the data, but the App lacks Actions permission, so live progress is hidden here (the build still runs).",
+    "stalled": "GitHub has not started a build yet. The data is in the repo; check Actions, or dismiss this.",
     "viewGithub": "View on GitHub",
     "help": "Notes",
     "actionsPage": "GitHub Actions page"

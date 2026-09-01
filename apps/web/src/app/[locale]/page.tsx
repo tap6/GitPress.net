@@ -1,13 +1,12 @@
-import { cookies } from "next/headers";
 import { getLocale, getTranslations } from "next-intl/server";
-import { Link, redirect } from "@/i18n/navigation";
+import { Link } from "@/i18n/navigation";
 import { auth } from "@/auth";
 import { LocaleSwitcher } from "@/components/LocaleSwitcher";
 import { LandingDashboardPreview } from "@/components/LandingDashboardPreview";
 import { QqGroupFloat } from "@/components/QqGroupFloat";
 import { localeAlternates } from "@/i18n/alternates";
 import type { AppLocale } from "@/i18n/routing";
-import { getPreferredLocale } from "@/lib/localePreference";
+import { maybeRedirectToPreferredLocale } from "@/lib/productLocale";
 import { formatStatCount, getPublicPlatformStats } from "@/lib/publicStats";
 
 const PLATFORM_REPO = "https://github.com/tap6/GitPress.net";
@@ -28,18 +27,8 @@ export async function generateMetadata() {
 }
 
 export default async function LandingPage() {
+  await maybeRedirectToPreferredLocale("/");
   const locale = (await getLocale()) as AppLocale;
-  if (locale === "zh") {
-    const cookie = (await cookies()).get("NEXT_LOCALE")?.value;
-    if (cookie === "en") redirect({ href: "/", locale: "en" });
-    if (!cookie) {
-      const sessionPeek = await auth();
-      if (sessionPeek?.user?.id) {
-        const pref = await getPreferredLocale(sessionPeek.user.id);
-        if (pref === "en") redirect({ href: "/", locale: "en" });
-      }
-    }
-  }
   const t = await getTranslations("landing");
   const tn = await getTranslations("nav");
   const [session, stats] = await Promise.all([auth(), getPublicPlatformStats()]);
@@ -144,7 +133,7 @@ export default async function LandingPage() {
               >
                 <dt className="text-xs text-neutral-400">{item.label}</dt>
                 <dd className="mt-2 text-3xl font-light tabular-nums text-neutral-900">
-                  {formatStatCount(item.value)}
+                  {formatStatCount(item.value, locale)}
                 </dd>
               </div>
             ))}
@@ -327,7 +316,7 @@ export default async function LandingPage() {
           <div className="mx-auto max-w-2xl px-6 text-center">
             <h2 className="text-2xl font-semibold">{t("readyTitle")}</h2>
             <p className="mt-3 text-neutral-500">
-              {t("readyBody", { users: formatStatCount(stats.users), sites: formatStatCount(stats.sites) })}
+              {t("readyBody", { users: formatStatCount(stats.users, locale), sites: formatStatCount(stats.sites, locale) })}
             </p>
             <Link
               href={session?.user ? "/new" : "/login"}

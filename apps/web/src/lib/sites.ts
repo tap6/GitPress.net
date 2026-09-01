@@ -3,6 +3,7 @@ import { redirectTo } from "@/i18n/redirect";
 import { auth } from "@/auth";
 import { db } from "@/db";
 import { githubInstallations, sites } from "@/db/schema";
+import { maybeRedirectToPreferredLocale } from "@/lib/productLocale";
 
 export type SiteRow = typeof sites.$inferSelect;
 export type InstallationRow = typeof githubInstallations.$inferSelect;
@@ -10,6 +11,7 @@ export type InstallationRow = typeof githubInstallations.$inferSelect;
 export async function requireUser() {
   const session = await auth();
   if (!session?.user?.id) return await redirectTo("/login");
+  await maybeRedirectToPreferredLocale("/dashboard");
   return session.user as { id: string; name?: string | null; email?: string | null; image?: string | null };
 }
 

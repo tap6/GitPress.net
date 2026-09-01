@@ -79,6 +79,16 @@ export function cachedListPages(installationId: number, dataRepo: string, langua
   )();
 }
 
+function userTokenCacheKey(token?: string | null): string {
+  if (!token) return "0";
+  let hash = 2166136261;
+  for (let i = 0; i < token.length; i += 1) {
+    hash ^= token.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0).toString(16);
+}
+
 export function cachedActionsUsage(options: {
   installationId: number;
   dataRepo: string;
@@ -97,7 +107,7 @@ export function cachedActionsUsage(options: {
         userToken: options.userToken,
       });
     },
-    ["actions-usage", options.dataRepo, options.accountLogin, options.userToken ? "1" : "0"],
+    ["actions-usage", options.dataRepo, options.accountLogin, userTokenCacheKey(options.userToken)],
     { revalidate: 60, tags: [siteDataTag(options.dataRepo)] },
   )();
 }

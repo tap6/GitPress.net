@@ -29,6 +29,7 @@ import {
 import { convertUploadsToWebpEnabled } from "@/lib/convertUploadWebp";
 import { requireSite } from "@/lib/sites";
 import { getBuiltinTheme } from "@/lib/themes";
+import { resolveInstallationUserToken } from "@/lib/userAccessToken";
 
 export async function generateMetadata() {
   const t = await getTranslations("settings");
@@ -45,7 +46,7 @@ export default async function SettingsPage({
   const { siteId } = await params;
   const { domain: domainNotice } = await searchParams;
   const { site, installation, user } = await requireSite(siteId);
-  const [config, permissionGap, aiConfig, pages, footer, beian, octokit, scratch] = await Promise.all([
+  const [config, permissionGap, aiConfig, pages, footer, beian, octokit, scratch, userToken] = await Promise.all([
     cachedSiteConfig(installation.installationId, site.dataRepo),
     getInstallationPermissionGap(installation.installationId),
     getAiConfig(user.id),
@@ -54,6 +55,7 @@ export default async function SettingsPage({
     cachedSiteBeian(installation.installationId, site.dataRepo),
     getInstallationOctokit(installation.installationId),
     getScratchNote(site.id),
+    resolveInstallationUserToken(installation),
   ]);
   const [publishCheck, accountChecks, usage] = await Promise.all([
     loadPublishCheck(octokit, site.dataRepo, site.siteRepo),
@@ -63,7 +65,7 @@ export default async function SettingsPage({
       dataRepo: site.dataRepo,
       accountLogin: installation.accountLogin,
       accountType: installation.accountType,
-      userToken: installation.userToken,
+      userToken,
     }),
   ]);
   const pagesSite = await getPagesSite(octokit, splitRepo(site.siteRepo));

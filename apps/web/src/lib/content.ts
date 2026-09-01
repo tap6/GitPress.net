@@ -245,22 +245,8 @@ export interface UpdatePostMetaInput {
   timezone?: string | null;
 }
 
-/**
- * Update frontmatter only (title / date / draft / tags / category), leaving
- * the Markdown body and any unknown fields untouched. Used by the posts-list
- * quick-edit and bulk status actions so we don't have to round-trip the
- * full editor.
- */
-export async function updatePostMeta(
-  octokit: Octokit,
-  dataRepo: string,
-  path: string,
-  input: UpdatePostMetaInput,
-): Promise<void> {
-  const ref = splitRepo(dataRepo);
-  const existing = await getFileText(octokit, ref, path);
-  if (!existing) throw new Error("articleMissing");
-  const parsed = matter(existing.text);
+function applyPostMeta(text: string, input: UpdatePostMetaInput): string {
+  const parsed = matter(text);
   const frontmatter: Record<string, unknown> = parsed.data ?? {};
 
   if (input.title !== undefined) frontmatter.title = input.title;
@@ -279,16 +265,52 @@ export async function updatePostMeta(
   }
 
   const body = parsed.content.replace(/^\n/, "");
-  const text = matter.stringify(`\n${body.trim()}\n`, frontmatter);
-  const files: CommitFile[] = [{ path, utf8: text }];
+  return matter.stringify(`\n${body.trim()}\n`, frontmatter);
+}
+
+/**
+ * Update frontmatter only (title / date / draft / tags / category), leaving
+ * the Markdown body and any unknown fields untouched. Used by the posts-list
+ * quick-edit and bulk status actions so we don't have to round-trip the
+ * full editor.
+ */
+export async function updatePostMeta(
+  octokit: Octokit,
+  dataRepo: string,
+  path: string,
+  input: UpdatePostMetaInput,
+): Promise<void> {
+  await updatePostsMeta(octokit, dataRepo, [path], input);
+}
+
+/** One commit for many posts so bulk publish/draft does not race on HEAD. */
+export async function updatePostsMeta(
+  octokit: Octokit,
+  dataRepo: string,
+  paths: string[],
+  input: UpdatePostMetaInput,
+): Promise<void> {
+  const ref = splitRepo(dataRepo);
+  const files: CommitFile[] = [];
+  let title = paths[0] ?? "posts";
+  for (const path of paths) {
+    const existing = await getFileText(octokit, ref, path);
+    if (!existing) throw new Error("articleMissing");
+    const parsed = matter(existing.text);
+    title = String(parsed.data?.title ?? path);
+    files.push({ path, utf8: applyPostMeta(existing.text, input) });
+  }
   const timezoneFile = await timezoneConfigFile(octokit, ref, input.timezone);
   if (timezoneFile) files.push(timezoneFile);
-  await commitFiles(
-    octokit,
-    ref,
-    files,
-    `Update post meta: ${String(frontmatter.title ?? path)}`,
-  );
+  const message =
+    paths.length === 1
+      ? `Update post meta: ${title}`
+      : input.draft === true
+        ? `Set ${paths.length} posts to draft`
+        : input.draft === false
+          ? `Publish ${paths.length} posts`
+          : `Update ${paths.length} posts`;
+  await commitFiles(octokit, ref, files, message);
 }
 
 export function parseTagList(input: string): string[] {
@@ -299,7 +321,19 @@ export function parseTagList(input: string): string[] {
 }
 
 export async function deletePost(octokit: Octokit, dataRepo: string, path: string): Promise<void> {
-  await deleteFile(octokit, splitRepo(dataRepo), path, `Delete post: ${path}`);
+  await deletePosts(octokit, dataRepo, [path]);
+}
+
+/** One commit so bulk delete does not race on HEAD or start N builds. */
+export async function deletePosts(octokit: Octokit, dataRepo: string, paths: string[]): Promise<void> {
+  const message =
+    paths.length === 1 ? `Delete post: ${paths[0]}` : `Delete ${paths.length} posts`;
+  await commitFiles(
+    octokit,
+    splitRepo(dataRepo),
+    paths.map((path) => ({ path, delete: true })),
+    message,
+  );
 }
 
 // ---------------------------------------------------------------------------

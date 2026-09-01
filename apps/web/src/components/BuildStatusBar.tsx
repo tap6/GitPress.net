@@ -3,14 +3,16 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
-import { getBuildStatusAction, type BuildStatusSnapshot } from "@/lib/actions";
+import type { BuildStatusSnapshot } from "@/lib/buildStatus";
 import { isScheduledBuildEvent } from "@/lib/recentBuilds";
-import { BUILD_TRIGGER_EVENT, type BuildTriggerDetail } from "./buildTriggerEvent";
+import { BUILD_CANCEL_EVENT, BUILD_TRIGGER_EVENT, type BuildTriggerDetail } from "./buildTriggerEvent";
 
-type Phase = "hidden" | "submitting" | "building" | "success" | "failure" | "unknown";
+type Phase = "hidden" | "submitting" | "building" | "success" | "failure" | "unknown" | "stalled";
 
 /** Rough historical duration of a GitPress build (Astro build + Pages deploy). */
 const EXPECTED_BUILD_SECONDS = 90;
+/** If GitHub never registers a run (workflow missing / Actions off), stop spinning. */
+const SUBMIT_STALL_MS = 90_000;
 
 interface Props {
   siteId: string;
@@ -50,7 +52,9 @@ export function BuildStatusBar({ siteId, dataRepo, siteRepo }: Props) {
   async function poll() {
     let result: BuildStatusSnapshot;
     try {
-      result = await getBuildStatusAction(siteId);
+      const response = await fetch(`/api/sites/${siteId}/build-status`, { cache: "no-store" });
+      if (!response.ok) return;
+      result = (await response.json()) as BuildStatusSnapshot;
     } catch {
       return;
     }
@@ -92,11 +96,23 @@ export function BuildStatusBar({ siteId, dataRepo, siteRepo }: Props) {
         setTimeout(() => setPhase((p) => (p === "success" ? "hidden" : p)), 6000);
       } else if (result.status === "failure") {
         setPhase("failure");
+      } else if (result.status === "cancelled") {
+        // A newer push cancelled this run (`cancel-in-progress`). Wait for the
+        // replacement instead of treating the cancel as a finished build.
+        watchedRunId.current = undefined;
+        startedAtRef.current = Date.now();
+        setPhase("submitting");
       } else {
         setPhase("hidden");
       }
+      return;
     }
-    // status === "idle" or an unrelated concluded run: nothing to announce.
+    if (
+      phaseRef.current === "submitting" &&
+      Date.now() - startedAtRef.current > SUBMIT_STALL_MS
+    ) {
+      setPhase("stalled");
+    }
   }
 
   // A ProgressButton anywhere in the admin just finished a build-triggering
@@ -106,6 +122,10 @@ export function BuildStatusBar({ siteId, dataRepo, siteRepo }: Props) {
     function onTrigger(event: Event) {
       const detail = (event as CustomEvent<BuildTriggerDetail>).detail;
       if (detail?.siteId !== siteId) return;
+      if (phaseRef.current === "submitting" || phaseRef.current === "building") {
+        void poll();
+        return;
+      }
       setPhase("submitting");
       startedAtRef.current = Date.now();
       watchedRunId.current = undefined;
@@ -113,7 +133,18 @@ export function BuildStatusBar({ siteId, dataRepo, siteRepo }: Props) {
       void poll();
     }
     window.addEventListener(BUILD_TRIGGER_EVENT, onTrigger);
-    return () => window.removeEventListener(BUILD_TRIGGER_EVENT, onTrigger);
+    function onCancel(event: Event) {
+      const detail = (event as CustomEvent<BuildTriggerDetail>).detail;
+      if (detail?.siteId !== siteId) return;
+      if (phaseRef.current !== "submitting" && phaseRef.current !== "stalled") return;
+      if (watchedRunId.current != null) return;
+      setPhase("hidden");
+    }
+    window.addEventListener(BUILD_CANCEL_EVENT, onCancel);
+    return () => {
+      window.removeEventListener(BUILD_TRIGGER_EVENT, onTrigger);
+      window.removeEventListener(BUILD_CANCEL_EVENT, onCancel);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [siteId]);
 
@@ -155,7 +186,7 @@ export function BuildStatusBar({ siteId, dataRepo, siteRepo }: Props) {
       ? "border-red-200 bg-red-50 text-red-700"
       : phase === "success"
         ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-        : phase === "unknown"
+        : phase === "unknown" || phase === "stalled"
           ? "border-amber-200 bg-amber-50 text-amber-800"
           : "border-sky-200 bg-sky-50 text-sky-800";
 
@@ -177,6 +208,7 @@ export function BuildStatusBar({ siteId, dataRepo, siteRepo }: Props) {
           {phase === "success" && <span>{t("success", { pipeline })}</span>}
           {phase === "failure" && <span>{t("failure", { pipeline })}</span>}
           {phase === "unknown" && <span>{t("unknown")}</span>}
+          {phase === "stalled" && <span>{t("stalled")}</span>}
           {(phase === "building" || phase === "success" || phase === "failure") &&
             snapshot?.htmlUrl && (
               <a href={snapshot.htmlUrl} target="_blank" rel="noreferrer" className="underline">
@@ -198,8 +230,21 @@ export function BuildStatusBar({ siteId, dataRepo, siteRepo }: Props) {
               {t("actionsPage")}
             </a>
           )}
+          {phase === "stalled" && (
+            <a
+              href={`https://github.com/${dataRepo}/actions`}
+              target="_blank"
+              rel="noreferrer"
+              className="underline"
+            >
+              {t("actionsPage")}
+            </a>
+          )}
         </div>
-        {(phase === "success" || phase === "failure" || phase === "unknown") && (
+        {(phase === "success" ||
+          phase === "failure" ||
+          phase === "unknown" ||
+          phase === "stalled") && (
           <button
             type="button"
             onClick={() => setPhase("hidden")}

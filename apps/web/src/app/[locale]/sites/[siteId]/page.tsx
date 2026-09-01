@@ -21,6 +21,7 @@ import {
 import { loadPublishCheck } from "@/lib/publishCheckRepo";
 import { cachedActionsUsage, cachedListPosts } from "@/lib/siteDataCache";
 import { requireSite } from "@/lib/sites";
+import { resolveInstallationUserToken } from "@/lib/userAccessToken";
 import { ActionsUsageChart } from "@/components/ActionsUsageChart";
 import { BuildStatusPoller, RunElapsed } from "@/components/BuildStatus";
 import { ProgressButton } from "@/components/ProgressButton";
@@ -68,6 +69,7 @@ export default async function SiteDashboard({
   const dateLocale = locale === "zh" ? "zh-CN" : "en";
 
   const octokit = await getInstallationOctokit(installation.installationId);
+  const userToken = await resolveInstallationUserToken(installation);
   const [posts, { runs, actionsPermissionMissing }, permissionGap, usage, scratch, publishCheck] =
     await Promise.all([
       cachedListPosts(installation.installationId, site.dataRepo),
@@ -78,7 +80,7 @@ export default async function SiteDashboard({
         dataRepo: site.dataRepo,
         accountLogin: installation.accountLogin,
         accountType: installation.accountType,
-        userToken: installation.userToken,
+        userToken,
       }),
       getScratchNote(site.id),
       loadPublishCheck(octokit, site.dataRepo, site.siteRepo),

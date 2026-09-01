@@ -369,6 +369,7 @@ export function PostEditor({
               pendingLabel={tc("submitting")}
               buildSiteId={siteId}
               announceBuild={!state.error}
+              error={state.error}
               className="w-full rounded bg-wp-accent px-4 py-2 font-medium text-white hover:bg-wp-accent-dark"
             >
               {draft ? t("saveToRepo") : path ? tc("update") : tc("publish")}

@@ -184,6 +184,8 @@ export function PostsTable({ siteId, posts, categories, publishCheckEnabled = fa
             expectedSeconds={4}
             pendingLabel={tc("processing")}
             buildSiteId={siteId}
+            announceBuild={!bulkState.error}
+            error={bulkState.error}
             disabled={selectedCount === 0}
             className="rounded border border-neutral-300 px-3 py-1.5 text-sm hover:bg-neutral-50 disabled:opacity-40"
           >
@@ -565,6 +567,7 @@ function QuickEditForm({
           pendingLabel={tc("saving")}
           buildSiteId={siteId}
           announceBuild={!state.error}
+          error={state.error}
           className="rounded bg-wp-accent px-3 py-1.5 text-sm font-medium text-white hover:bg-wp-accent-dark"
         >
           {tc("update")}

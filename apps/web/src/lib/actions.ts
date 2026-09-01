@@ -35,6 +35,8 @@ import {
   savePost,
   slugify,
   updatePostMeta,
+  updatePostsMeta,
+  deletePosts,
   updateSiteConfig,
   uploadMedia,
 } from "./content";
@@ -47,7 +49,7 @@ import {
 } from "./analytics";
 import { parseSiteComments, type SiteComments } from "./comments";
 import { CommentsPermissionError, connectGiscus } from "./commentsConnect";
-import { getInstallationOctokit, listBuildRuns, splitRepo, setPagesCustomDomain, putFile } from "./github";
+import { GITHUB_USER_RECONNECT, getInstallationOctokit, splitRepo, setPagesCustomDomain, putFile } from "./github";
 import {
   MAX_BATCH_BYTES,
   MAX_BATCH_IMAGES,
@@ -149,6 +151,9 @@ export async function createSiteAction(
     const message = error instanceof Error ? error.message : String(error);
     if (message.includes("name already exists")) {
       return { error: actionError("repoExists", { slug }) };
+    }
+    if (message === GITHUB_USER_RECONNECT) {
+      return { error: actionError("githubReconnect") };
     }
     return { error: actionError("initFailed", { detail: message }) };
   }
@@ -430,11 +435,9 @@ export async function bulkPostsAction(
   const octokit = await getInstallationOctokit(installation.installationId);
   try {
     if (op === "delete") {
-      await Promise.all(paths.map((path) => deletePost(octokit, site.dataRepo, path)));
+      await deletePosts(octokit, site.dataRepo, paths);
     } else {
-      await Promise.all(
-        paths.map((path) => updatePostMeta(octokit, site.dataRepo, path, { draft: op === "draft" })),
-      );
+      await updatePostsMeta(octokit, site.dataRepo, paths, { draft: op === "draft" });
     }
   } catch (error) {
     return { error: wrapCaughtError(error, "actionFailed") };
@@ -1488,62 +1491,6 @@ export async function refreshGitHistoryAction(formData: FormData): Promise<void>
   const path = page > 1 ? `/sites/${siteId}/history?page=${page}` : `/sites/${siteId}/history`;
   revalidatePath(`/sites/${siteId}/history`);
   return await redirectTo(path);
-}
-
-// ---------------------------------------------------------------------------
-// Build status (polled by the sticky BuildStatusBar in the admin layout)
-// ---------------------------------------------------------------------------
-
-export interface BuildStatusSnapshot {
-  status: "idle" | "queued" | "in_progress" | "success" | "failure" | "cancelled" | "unknown";
-  runId?: number;
-  createdAt?: string;
-  htmlUrl?: string;
-  commitMessage?: string | null;
-  event?: string | null;
-  actionsPermissionMissing: boolean;
-}
-
-/**
- * Lightweight, frequently-polled snapshot of the data repo's latest GitHub
- * Actions run. Called directly from the client (not via a `<form>`) so it
- * can be hit on a timer without a full page navigation/refresh.
- */
-export async function getBuildStatusAction(siteId: string): Promise<BuildStatusSnapshot> {
-  const { site, installation } = await requireSite(siteId);
-  const octokit = await getInstallationOctokit(installation.installationId);
-  const { runs, actionsPermissionMissing } = await listBuildRuns(octokit, splitRepo(site.dataRepo));
-  if (actionsPermissionMissing) {
-    return { status: "unknown", actionsPermissionMissing: true };
-  }
-  const latest = runs[0];
-  if (!latest) return { status: "idle", actionsPermissionMissing: false };
-  if (latest.conclusion == null) {
-    return {
-      status: latest.status === "queued" ? "queued" : "in_progress",
-      runId: latest.id,
-      createdAt: latest.createdAt,
-      htmlUrl: latest.htmlUrl,
-      commitMessage: latest.commitMessage,
-      event: latest.event,
-      actionsPermissionMissing: false,
-    };
-  }
-  const status =
-    latest.conclusion === "success"
-      ? "success"
-      : latest.conclusion === "failure"
-        ? "failure"
-        : "cancelled";
-  return {
-    status,
-    runId: latest.id,
-    createdAt: latest.createdAt,
-    htmlUrl: latest.htmlUrl,
-    commitMessage: latest.commitMessage,
-    event: latest.event,
-    actionsPermissionMissing: false,
-  };
 }
 
 // ---------------------------------------------------------------------------

@@ -11,14 +11,17 @@ import {
   putFile,
   removeDeployKeys,
 } from "./github";
+import { refreshInstallationUserToken, resolveInstallationUserToken } from "./userAccessToken";
 import { buildWorkflow } from "./publishCheck";
 
 export interface ProvisionInput {
   installation: {
+    id: string;
     installationId: number;
     accountLogin: string;
     accountType: string;
     userToken?: string | null;
+    refreshToken?: string | null;
   };
   site: {
     name: string;
@@ -53,12 +56,22 @@ export async function provisionSite(input: ProvisionInput): Promise<ProvisionRes
   const dataRef = { owner, repo: dataRepoName };
   const siteRef = { owner, repo: siteRepoName };
 
+  const userToken =
+    installation.accountType === "Organization"
+      ? installation.userToken
+      : await resolveInstallationUserToken(installation);
+  const refreshUserToken =
+    installation.accountType === "Organization"
+      ? undefined
+      : () => refreshInstallationUserToken(installation);
+
   // 1. Create both repositories.
   await createRepository({
     octokit,
     accountLogin: owner,
     accountType: installation.accountType,
-    userToken: installation.userToken,
+    userToken,
+    refreshUserToken,
     name: dataRepoName,
     description: `Content for "${site.name}" (GitPress data repository)`,
     isPrivate: true,
@@ -68,7 +81,8 @@ export async function provisionSite(input: ProvisionInput): Promise<ProvisionRes
     octokit,
     accountLogin: owner,
     accountType: installation.accountType,
-    userToken: installation.userToken,
+    userToken: installation.userToken ?? userToken,
+    refreshUserToken,
     name: siteRepoName,
     description: `Compiled site for "${site.name}" (published by GitPress)`,
     isPrivate: false,

@@ -119,6 +119,11 @@ export function RichTextEditor({
   const onPendingRef = useRef(onPendingMediaChange);
   onPendingRef.current = onPendingMediaChange;
   const skipInitialUpdate = useRef(true);
+  const defaultValueRef = useRef(defaultValue);
+  defaultValueRef.current = defaultValue;
+  const modeRef = useRef(mode);
+  modeRef.current = mode;
+  const hiddenRef = useRef<HTMLInputElement>(null);
   const uploadFilesRef = useRef<(files: File[]) => void>(() => {});
   const convertUploadsRef = useRef(convertUploadsToWebp);
   convertUploadsRef.current = convertUploadsToWebp;
@@ -178,16 +183,37 @@ export function RichTextEditor({
       },
     },
     onUpdate: ({ editor: current }) => {
+      const next = current.getMarkdown();
       // Tiptap re-serializes Markdown on mount; that is not a user edit.
+      // Still sync the hidden field — if this first update *is* a paste or
+      // the first keystroke (no mount serialize), dropping it published a
+      // titled post with an empty body.
       if (skipInitialUpdate.current) {
         skipInitialUpdate.current = false;
-        return;
+        const initial = defaultValueRef.current;
+        if (next === initial || next.trim() === initial.trim()) {
+          setMarkdownState(next);
+          return;
+        }
       }
-      setMarkdown(current.getMarkdown());
+      setMarkdown(next);
     },
   });
 
   editorRef.current = editor;
+
+  useEffect(() => {
+    const form = hiddenRef.current?.form;
+    if (!form) return;
+    function onSubmit() {
+      if (modeRef.current === "source") return;
+      const latest = editorRef.current?.getMarkdown();
+      if (latest == null || !hiddenRef.current) return;
+      hiddenRef.current.value = latest;
+    }
+    form.addEventListener("submit", onSubmit);
+    return () => form.removeEventListener("submit", onSubmit);
+  }, [editor]);
 
   useEffect(() => {
     const map = previews.current;
@@ -395,7 +421,7 @@ export function RichTextEditor({
 
   return (
     <div className={fill ? "flex min-h-0 flex-1 flex-col" : ""}>
-      <input type="hidden" name={name} value={markdown} />
+      <input ref={hiddenRef} type="hidden" name={name} value={markdown} />
       <div
         ref={paneRef}
         className={fill ? "flex min-h-0 flex-col overflow-hidden" : ""}

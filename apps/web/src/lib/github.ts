@@ -130,10 +130,30 @@ export async function fetchInstallationInfo(installationId: number): Promise<Ins
   };
 }
 
+/** `errors.githubReconnect` — personal-account user-to-server token is missing or dead. */
+export const GITHUB_USER_RECONNECT = "githubReconnect";
+
+export type GithubUserTokens = { accessToken: string; refreshToken?: string };
+
+function parseOAuthTokenResponse(data: unknown): GithubUserTokens | null {
+  if (!data || typeof data !== "object") return null;
+  const row = data as { access_token?: unknown; refresh_token?: unknown; error?: unknown };
+  if (typeof row.error === "string" && row.error.length > 0) return null;
+  if (typeof row.access_token !== "string" || !row.access_token) return null;
+  return {
+    accessToken: row.access_token,
+    refreshToken: typeof row.refresh_token === "string" ? row.refresh_token : undefined,
+  };
+}
+
+function githubHttpStatus(error: unknown): number | undefined {
+  if (!error || typeof error !== "object") return undefined;
+  const row = error as { status?: number; response?: { status?: number } };
+  return row.status ?? row.response?.status;
+}
+
 /** Exchange the OAuth-on-install `code` for a user-to-server token. */
-export async function exchangeOAuthCode(
-  code: string,
-): Promise<{ accessToken: string; refreshToken?: string } | null> {
+export async function exchangeOAuthCode(code: string): Promise<GithubUserTokens | null> {
   const response = await fetch("https://github.com/login/oauth/access_token", {
     method: "POST",
     headers: { Accept: "application/json", "Content-Type": "application/json" },
@@ -144,12 +164,38 @@ export async function exchangeOAuthCode(
     }),
   });
   if (!response.ok) return null;
-  const data = (await response.json()) as {
-    access_token?: string;
-    refresh_token?: string;
-  };
-  if (!data.access_token) return null;
-  return { accessToken: data.access_token, refreshToken: data.refresh_token };
+  return parseOAuthTokenResponse(await response.json());
+}
+
+/**
+ * Rotate a GitHub App user-to-server token. Refresh tokens are single-use;
+ * callers must persist the new pair immediately.
+ */
+export async function refreshUserAccessToken(refreshToken: string): Promise<GithubUserTokens | null> {
+  const response = await fetch("https://github.com/login/oauth/access_token", {
+    method: "POST",
+    headers: { Accept: "application/json", "Content-Type": "application/json" },
+    body: JSON.stringify({
+      client_id: requiredEnv("GITHUB_APP_CLIENT_ID"),
+      client_secret: requiredEnv("GITHUB_APP_CLIENT_SECRET"),
+      grant_type: "refresh_token",
+      refresh_token: refreshToken,
+    }),
+  });
+  if (!response.ok) return null;
+  return parseOAuthTokenResponse(await response.json());
+}
+
+/** False only for a definite 401. Other failures must not trigger a refresh. */
+export async function userAccessTokenAlive(token: string): Promise<boolean> {
+  const response = await fetch("https://api.github.com/user", {
+    headers: {
+      Accept: "application/vnd.github+json",
+      Authorization: `Bearer ${token}`,
+      "X-GitHub-Api-Version": "2022-11-28",
+    },
+  });
+  return response.status !== 401;
 }
 
 // ---------------------------------------------------------------------------
@@ -333,13 +379,14 @@ export async function createRepository(options: {
   accountLogin: string;
   accountType: string;
   userToken?: string | null;
+  /** Called once on 401 so the caller can refresh and persist a new user token. */
+  refreshUserToken?: () => Promise<string | null>;
   name: string;
   description: string;
   isPrivate: boolean;
   autoInit: boolean;
 }): Promise<void> {
-  const { octokit, accountLogin, accountType, userToken, name, description, isPrivate, autoInit } =
-    options;
+  const { octokit, accountLogin, accountType, name, description, isPrivate, autoInit } = options;
   if (accountType === "Organization") {
     await octokit.request("POST /orgs/{org}/repos", {
       org: accountLogin,
@@ -350,18 +397,28 @@ export async function createRepository(options: {
     });
     return;
   }
-  if (!userToken) {
-    throw new Error(
-      "Creating repositories on a personal account requires GitHub user authorization. Please reconnect GitHub.",
-    );
+  const createOnUser = async (token: string) => {
+    const userOctokit = new Octokit({ auth: token });
+    await userOctokit.request("POST /user/repos", {
+      name,
+      description,
+      private: isPrivate,
+      auto_init: autoInit,
+    });
+  };
+  let userToken = options.userToken ?? null;
+  if (!userToken && options.refreshUserToken) {
+    userToken = await options.refreshUserToken();
   }
-  const userOctokit = new Octokit({ auth: userToken });
-  await userOctokit.request("POST /user/repos", {
-    name,
-    description,
-    private: isPrivate,
-    auto_init: autoInit,
-  });
+  if (!userToken) throw new Error(GITHUB_USER_RECONNECT);
+  try {
+    await createOnUser(userToken);
+  } catch (error) {
+    if (githubHttpStatus(error) !== 401 || !options.refreshUserToken) throw error;
+    const next = await options.refreshUserToken();
+    if (!next) throw new Error(GITHUB_USER_RECONNECT);
+    await createOnUser(next);
+  }
 }
 
 /** Create or update a single file (one commit per call). */
@@ -400,6 +457,8 @@ export interface CommitFile {
   path: string;
   utf8?: string;
   base64?: string;
+  /** Drop this path from the tree (bulk delete). */
+  delete?: boolean;
 }
 
 /**
@@ -414,10 +473,16 @@ export async function commitFiles(
   files: CommitFile[],
   message: string,
 ): Promise<void> {
-  const meaningful = files.filter((file) => file.utf8 != null || file.base64 != null);
+  const meaningful = files.filter(
+    (file) => file.delete || file.utf8 != null || file.base64 != null,
+  );
   if (meaningful.length === 0) return;
   if (meaningful.length === 1) {
     const [file] = meaningful;
+    if (file.delete) {
+      await deleteFile(octokit, ref, file.path, message);
+      return;
+    }
     await putFile(octokit, ref, file.path, file, message);
     return;
   }
@@ -436,6 +501,14 @@ export async function commitFiles(
 
   const tree = await Promise.all(
     meaningful.map(async (file) => {
+      if (file.delete) {
+        return {
+          path: file.path,
+          mode: "100644" as const,
+          type: "blob" as const,
+          sha: null,
+        };
+      }
       const content =
         file.base64 ?? Buffer.from(file.utf8 ?? "", "utf8").toString("base64");
       const { data: blob } = await octokit.request("POST /repos/{owner}/{repo}/git/blobs", {

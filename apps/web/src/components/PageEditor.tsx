@@ -296,6 +296,8 @@ export function PageEditor({
               expectedSeconds={5 + pendingCount * 2}
               pendingLabel={tc("submitting")}
               buildSiteId={siteId}
+              announceBuild={!state.error}
+              error={state.error}
               className="w-full rounded bg-wp-accent px-4 py-2 font-medium text-white hover:bg-wp-accent-dark"
             >
               {path ? tc("update") : tc("publish")}

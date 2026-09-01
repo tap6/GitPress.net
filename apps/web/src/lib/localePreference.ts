@@ -19,13 +19,3 @@ export async function persistPreferredLocaleAction(locale: string) {
     // Cookie is enough for this session; a down database must not block the switcher.
   }
 }
-
-export async function getPreferredLocale(userId: string): Promise<"zh" | "en" | null> {
-  const [row] = await db
-    .select({ preferredLocale: users.preferredLocale })
-    .from(users)
-    .where(eq(users.id, userId))
-    .limit(1);
-  const value = row?.preferredLocale;
-  return value === "en" || value === "zh" ? value : null;
-}

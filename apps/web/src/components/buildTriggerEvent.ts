@@ -7,6 +7,8 @@
  * React context.
  */
 export const BUILD_TRIGGER_EVENT = "gp:build-trigger";
+/** Fired when a save that already announced a build then returned a validation/GitHub error. */
+export const BUILD_CANCEL_EVENT = "gp:build-cancel";
 
 export interface BuildTriggerDetail {
   siteId: string;

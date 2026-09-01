@@ -40,6 +40,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   }),
   providers,
   pages: {
+    // Unprefixed on purpose: middleware sends English users to `/en/login`
+    // from the NEXT_LOCALE cookie or an `/en…` callbackUrl.
     signIn: "/login",
   },
   trustHost: true,

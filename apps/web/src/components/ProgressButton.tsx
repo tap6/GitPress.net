@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { useTranslations } from "next-intl";
-import { BUILD_TRIGGER_EVENT, type BuildTriggerDetail } from "./buildTriggerEvent";
+import { BUILD_CANCEL_EVENT, BUILD_TRIGGER_EVENT, type BuildTriggerDetail } from "./buildTriggerEvent";
 
 interface Props {
   children: React.ReactNode;
@@ -29,6 +29,8 @@ interface Props {
    * so a rejected save does not look like GitHub started building.
    */
   announceBuild?: boolean;
+  /** Current form error; if set after a submit that announced a build, the banner is dismissed. */
+  error?: string;
 }
 
 /**
@@ -46,12 +48,28 @@ export function ProgressButton({
   disabled,
   buildSiteId,
   announceBuild = true,
+  error,
 }: Props) {
   const { pending } = useFormStatus();
   const tc = useTranslations("common");
   const [elapsedMs, setElapsedMs] = useState(0);
   const [justSubmitted, setJustSubmitted] = useState(false);
   const wasPending = useRef(false);
+  const userSubmitRef = useRef(false);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const announcedRef = useRef(false);
+  const announceRef = useRef(announceBuild);
+  announceRef.current = announceBuild;
+
+  useLayoutEffect(() => {
+    const form = buttonRef.current?.form;
+    if (!form) return;
+    function onSubmit() {
+      userSubmitRef.current = true;
+    }
+    form.addEventListener("submit", onSubmit);
+    return () => form.removeEventListener("submit", onSubmit);
+  }, []);
 
   useEffect(() => {
     if (!pending) {
@@ -63,16 +81,21 @@ export function ProgressButton({
     return () => clearInterval(timer);
   }, [pending]);
 
-  // Fires once per completed submission (pending: true -> false).
+  // Fires once per completed *form* submission (pending: true -> false).
+  // Other Server Actions on the page (status polls, media preview) can also
+  // flip `useFormStatus().pending`; those must not re-announce a build.
   useEffect(() => {
     if (wasPending.current && !pending) {
-      if (announceBuild) {
+      const fromUserSubmit = userSubmitRef.current;
+      userSubmitRef.current = false;
+      if (announceRef.current && fromUserSubmit && !error) {
         if (buildSiteId) {
           window.dispatchEvent(
             new CustomEvent<BuildTriggerDetail>(BUILD_TRIGGER_EVENT, {
               detail: { siteId: buildSiteId },
             }),
           );
+          announcedRef.current = true;
         }
         setJustSubmitted(true);
         const timeout = setTimeout(() => setJustSubmitted(false), 1800);
@@ -83,7 +106,16 @@ export function ProgressButton({
       return;
     }
     wasPending.current = pending;
-  }, [pending, buildSiteId, announceBuild]);
+  }, [pending, buildSiteId, error]);
+
+  useEffect(() => {
+    if (!error || !announcedRef.current || !buildSiteId) return;
+    announcedRef.current = false;
+    setJustSubmitted(false);
+    window.dispatchEvent(
+      new CustomEvent<BuildTriggerDetail>(BUILD_CANCEL_EVENT, { detail: { siteId: buildSiteId } }),
+    );
+  }, [error, buildSiteId]);
 
   const elapsedSeconds = elapsedMs / 1000;
   const ramp = Math.min(92, (elapsedSeconds / expectedSeconds) * 92);
@@ -92,7 +124,7 @@ export function ProgressButton({
 
   return (
     <span className="inline-flex flex-col items-stretch gap-1">
-      <button type="submit" disabled={pending || disabled} className={className}>
+      <button ref={buttonRef} type="submit" disabled={pending || disabled} className={className}>
         {pending
           ? `${pendingLabel ?? tc("processing")}…(${elapsedSeconds.toFixed(0)}s)`
           : justSubmitted
