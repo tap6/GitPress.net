@@ -118,7 +118,9 @@ export function useLocalPostDraft(
   fieldsRef.current = fields;
   const applyRef = useRef(apply);
   applyRef.current = apply;
-  const serverFingerprint = useRef(fingerprint(fields)).current;
+  // Snapshot after layout (date TZ conversion), not on the first render.
+  const serverFingerprintRef = useRef<string | null>(null);
+  const persistEnabledRef = useRef(false);
 
   const [pending, setPending] = useState<StoredDraft | null>(null);
   const [persistEnabled, setPersistEnabled] = useState(false);
@@ -126,38 +128,59 @@ export function useLocalPostDraft(
   const [lastSavedAt, setLastSavedAt] = useState<number | null>(null);
   const [armed, setArmed] = useState(false);
 
+  function setPersist(value: boolean) {
+    persistEnabledRef.current = value;
+    setPersistEnabled(value);
+  }
+
+  function matchesServer(current: LocalDraftFields): boolean {
+    const baseline = serverFingerprintRef.current;
+    return baseline != null && fingerprint(current) === baseline;
+  }
+
   useEffect(() => {
+    serverFingerprintRef.current = null;
+    setPending(null);
+    setPersist(false);
+    setArmed(false);
+
     const stored = readDraft(key);
-    if (stored && isEmptyDraft(stored)) {
-      clearDraft(key);
-    }
+    if (stored && isEmptyDraft(stored)) clearDraft(key);
+
+    // useLayoutEffect in the editor has already corrected the date by now.
+    const baseline = fingerprint(fieldsRef.current);
+    serverFingerprintRef.current = baseline;
     const leftover = stored && !isEmptyDraft(stored) ? stored : null;
-    if (leftover && fingerprint(leftover) !== serverFingerprint) {
+    if (leftover && fingerprint(leftover) !== baseline) {
       setPending(leftover);
-      setPersistEnabled(false);
+      setPersist(false);
     } else {
       if (leftover) clearDraft(key);
-      setPersistEnabled(true);
+      setPersist(true);
     }
-    const arm = window.setTimeout(() => setArmed(true), 500);
-    return () => window.clearTimeout(arm);
+    setArmed(true);
+    return () => {
+      setArmed(false);
+      persistEnabledRef.current = false;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
 
   useEffect(() => {
     if (!armed || !pending) return;
-    if (fieldsFp !== serverFingerprint) {
+    if (!matchesServer(fieldsRef.current)) {
       // Real user edits while a restore offer is showing: keep the new work.
       setPending(null);
-      setPersistEnabled(true);
+      setPersist(true);
     }
-  }, [armed, fieldsFp, pending, serverFingerprint]);
+  }, [armed, fieldsFp, pending]);
 
   useEffect(() => {
     if (!persistEnabled) return;
     const timer = window.setTimeout(() => {
+      if (!persistEnabledRef.current) return;
       const current = fieldsRef.current;
-      if (isEmptyDraft(current) || fingerprint(current) === serverFingerprint) {
+      if (isEmptyDraft(current) || matchesServer(current)) {
         clearDraft(key);
         setPersistOk(true);
         setLastSavedAt(null);
@@ -168,13 +191,13 @@ export function useLocalPostDraft(
       if (ok) setLastSavedAt(Date.now());
     }, 800);
     return () => window.clearTimeout(timer);
-  }, [fieldsFp, key, persistEnabled, serverFingerprint]);
+  }, [fieldsFp, key, persistEnabled]);
 
   useEffect(() => {
     function flush() {
-      if (!persistEnabled) return;
+      if (!persistEnabledRef.current) return;
       const current = fieldsRef.current;
-      if (isEmptyDraft(current) || fingerprint(current) === serverFingerprint) {
+      if (isEmptyDraft(current) || matchesServer(current)) {
         clearDraft(key);
         setLastSavedAt(null);
         return;
@@ -192,38 +215,42 @@ export function useLocalPostDraft(
       window.removeEventListener("pagehide", flush);
       document.removeEventListener("visibilitychange", onVisibility);
     };
-  }, [key, persistEnabled, serverFingerprint]);
+  }, [key]);
 
   return {
     pending,
-    dirty: persistEnabled && fieldsFp !== serverFingerprint,
+    dirty: persistEnabled && serverFingerprintRef.current != null && fieldsFp !== serverFingerprintRef.current,
     persistOk,
     lastSavedAt,
     restorePending() {
       if (!pending) return;
       applyRef.current(pending);
       setPending(null);
-      setPersistEnabled(true);
+      setPersist(true);
     },
     discardPending() {
       clearDraft(key);
       setPending(null);
-      setPersistEnabled(true);
+      setPersist(true);
     },
     clearForSubmit() {
+      setPersist(false);
       clearDraft(key);
+      setLastSavedAt(null);
     },
     persistNow() {
       const current = fieldsRef.current;
-      if (isEmptyDraft(current) || fingerprint(current) === serverFingerprint) {
+      if (isEmptyDraft(current) || matchesServer(current)) {
         clearDraft(key);
         setPersistOk(true);
         setLastSavedAt(null);
+        setPersist(true);
         return;
       }
       const ok = writeDraft(key, current);
       setPersistOk(ok);
       if (ok) setLastSavedAt(Date.now());
+      setPersist(true);
     },
   };
 }

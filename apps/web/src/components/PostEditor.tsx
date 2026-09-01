@@ -251,6 +251,7 @@ export function PostEditor({
                 onClick={() => {
                   void clearPendingMedia(siteId, path);
                   local.discardPending();
+                  setEditorKey((value) => value + 1);
                 }}
                 className="text-xs text-sky-700 hover:underline"
               >

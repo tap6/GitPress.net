@@ -10,9 +10,29 @@ export function siteDataTag(dataRepo: string): string {
   return `gitpress-data:${dataRepo}`;
 }
 
+function localeVariants(path: string): string[] {
+  if (path === "/en" || path.startsWith("/en/")) return [path];
+  return path === "/" ? ["/", "/en"] : [path, `/en${path}`];
+}
+
 export function revalidateSiteData(dataRepo: string, paths: string[] = []): void {
   revalidateTag(siteDataTag(dataRepo));
-  for (const path of paths) revalidatePath(path);
+  const seen = new Set<string>();
+  for (const path of paths) {
+    const siteRoot = path.match(/^(\/en)?\/sites\/([^/?#]+)/);
+    if (siteRoot) {
+      for (const root of localeVariants(`/sites/${siteRoot[2]}`)) {
+        if (seen.has(`layout:${root}`)) continue;
+        seen.add(`layout:${root}`);
+        revalidatePath(root, "layout");
+      }
+    }
+    for (const candidate of localeVariants(path)) {
+      if (seen.has(candidate)) continue;
+      seen.add(candidate);
+      revalidatePath(candidate);
+    }
+  }
 }
 
 export function cachedListPosts(installationId: number, dataRepo: string) {

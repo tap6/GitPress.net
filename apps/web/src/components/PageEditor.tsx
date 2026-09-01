@@ -212,6 +212,7 @@ export function PageEditor({
                 onClick={() => {
                   void clearPendingMedia(siteId, draftKey);
                   local.discardPending();
+                  setEditorKey((value) => value + 1);
                 }}
                 className="text-xs text-sky-700 hover:underline"
               >

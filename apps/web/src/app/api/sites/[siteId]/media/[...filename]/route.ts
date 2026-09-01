@@ -19,7 +19,7 @@ function previewCacheHeaders(sha?: string): Record<string, string> {
     headers.ETag = `"${sha}"`;
     headers["Cache-Control"] = "private, max-age=31536000, immutable";
   } else {
-    headers["Cache-Control"] = "private, max-age=86400, stale-while-revalidate=604800";
+    headers["Cache-Control"] = "private, no-store";
   }
   return headers;
 }
