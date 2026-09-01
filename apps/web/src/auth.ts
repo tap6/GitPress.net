@@ -14,7 +14,8 @@ if (process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SECRET) {
   providers.push(Google);
 }
 if (process.env.AUTH_GITHUB_ID && process.env.AUTH_GITHUB_SECRET) {
-  providers.push(GitHub);
+  // GitHub now sends RFC 9207 `iss` on callback; beta.32 GitHub provider has none.
+  providers.push(GitHub({ issuer: "https://github.com/login/oauth" }));
 }
 if (
   process.env.AUTH_MICROSOFT_ENTRA_ID_ID &&
