@@ -104,7 +104,7 @@ export default function WhatIsGitPressHelpPage() {
           <p>
             为了解决这个史诗级大难题——而现在市面上的开源工具已经够撑起这样一套——我开始做架构。
             <Mark>用了单博客双仓库等设计。</Mark>
-            还有很多架构上的设计此处不展开细说，如果有需要可以把开源项目 fork 下来让 AI 帮助你了解。
+            还有很多架构上的设计此处不展开细说，如果有需要可以把源码仓库 fork 下来让 AI 帮助你了解。
           </p>
           <p className="text-neutral-600">
             首版用 <strong className="font-semibold text-neutral-900">Fable 5</strong> 写。仅第一次让 AI 跑 plan 就花了 <Mark>200 元</Mark>。有一说一，<strong className="font-semibold text-neutral-900">Fable 5</strong> 是真贵。后面又多轮加功能、改问题，才有现在这版。
@@ -113,7 +113,7 @@ export default function WhatIsGitPressHelpPage() {
       </section>
 
       <p className={`mt-8 ${BODY}`}>
-        所以现在你每天用的是后台。真正撑起站点的，是你 GitHub 上的两个仓库，再加上开源的后台、主题和构建工具。后台只是遥控器。
+        所以现在你每天用的是后台。真正撑起站点的，是你 GitHub 上的两个仓库，再加上源码公开的后台、以及 MIT 开源的主题和构建工具。后台只是遥控器。
       </p>
 
       <section className="mt-10">
@@ -133,7 +133,7 @@ export default function WhatIsGitPressHelpPage() {
             featured
             label="主仓库 · 你每天点的网站"
             name="tap6/GitPress.net"
-            body="WordPress 式后台：登录、建仓、写稿、点保存。我们替你调 GitHub API，Postgres 里没有正文。关停了，你少的是这个后台，不是文章。"
+            body="WordPress 式后台：登录、建仓、写稿、点保存。我们替你调 GitHub API，Postgres 里没有正文。源码公开（PolyForm Shield），可自用。关停了，你少的是这个后台，不是文章。"
             href={PLATFORM_REPO}
           />
           <RepoCard

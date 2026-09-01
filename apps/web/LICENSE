@@ -1,0 +1,10 @@
+Required Notice: Copyright 2026 tap6 (https://gitpress.net)
+Licensor Line of Business: GitPress.net hosted blogging control plane (https://gitpress.net)
+
+This package (`apps/web`, the GitPress.net control plane) is licensed under the
+PolyForm Shield License 1.0.0.
+
+The full license text is at ../../LICENSES/PolyForm-Shield-1.0.0.md
+(canonical URL: https://polyformproject.org/licenses/shield/1.0.0).
+
+How this fits the rest of the monorepo is described in ../../LICENSE.

@@ -1,8 +1,14 @@
-# @gitpress/build-action
+# tap6/build-action
 
-GitHub Action(composite)。在数据仓库的 workflow 中运行:读取 `gitpress.json` → 拉取锁定版本的主题 → 把无时区的文章日期按 `site.timezone` 补上偏移 → Astro 构建(默认排除草稿)→ 把产物推送到公开的网站仓库。
+[GitPress.net](https://gitpress.net) 的编译器，不是后台。[MIT](LICENSE) 开源。
 
-## 用法(数据仓库 workflow)
+在**数据仓库**的 workflow 里运行：读 `gitpress.json` → 拉取锁定版本的主题 → 按 `site.timezone` 补上无时区日期的偏移 → Astro 构建（默认排除草稿）→ 把产物推到公开的网站仓库。跑在 GitHub Actions 上，不跑在 gitpress.net 的机器上。
+
+主题和约定在 [tap6/gitpress](https://github.com/tap6/gitpress)（MIT）。控制面在 [tap6/GitPress.net](https://github.com/tap6/GitPress.net)（PolyForm Shield）。
+
+## 用法
+
+数据仓库 `.github/workflows/` 里：
 
 ```yaml
 - uses: tap6/build-action@v1
@@ -16,8 +22,10 @@ GitHub Action(composite)。在数据仓库的 workflow 中运行:读取 `gitpres
 | `site-repo` | 必填,`owner/name`,编译产物推送目标 |
 | `deploy-key` | 对网站仓库有写权限的 SSH deploy key(GitPress 初始化时自动配置) |
 | `site-token` | `deploy-key` 的替代:有 contents 写权限的 token |
-| `themes-repo` | 内置主题所在 monorepo,默认 `tap6/gitpress` |
+| `themes-repo` | 内置主题所在仓库,默认 `tap6/gitpress` |
 | `include-drafts` | 构建包含草稿(仅用于预览,公开站点保持 false) |
+
+请钉 `@v1`。不要用 `@main`。
 
 ## 兼容性承诺
 
@@ -25,7 +33,9 @@ GitHub Action(composite)。在数据仓库的 workflow 中运行:读取 `gitpres
 - 破坏性变更只发布在新的大版本标签(`@v2`),`@v1` 标签永远向后兼容。
 - 主题来源支持 `builtin` 与 `github:<owner>/<repo>[/<subdir>]#<ref>`;`npm:` 由规范保留,后续版本支持。
 
-## 本地开发
+## 在 GitPress.net monorepo 里改这个 Action
+
+本文件会出现在两个地方：发布仓 `tap6/build-action` 的根目录，以及 monorepo 的 `packages/build-action/`。下面的路径只在 **[tap6/GitPress.net](https://github.com/tap6/GitPress.net)** 仓库根目录成立，不是本 Action 仓根目录的布局。
 
 ```bash
 node packages/build-action/scripts/prepare-local.mjs themes/classic templates/data-repo

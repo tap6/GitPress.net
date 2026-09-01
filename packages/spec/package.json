@@ -15,7 +15,8 @@
       "src",
       "schemas",
       "README.md",
-      "THEME_AUTHORING.md"
+      "THEME_AUTHORING.md",
+      "LICENSE"
     ],
   "scripts": {
     "typecheck": "tsc --noEmit"

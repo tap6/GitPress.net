@@ -2,7 +2,8 @@
   "name": "gitpress",
   "private": true,
   "version": "0.1.0",
-  "description": "GitPress.net — Git-native blogging platform. Control plane is closed-source; spec, themes, build action and templates are open-source.",
+  "license": "SEE LICENSE IN LICENSE",
+  "description": "GitPress.net — Git-native blogging platform. Control plane is source-available (PolyForm Shield); spec, themes, build action and templates are MIT.",
   "scripts": {
     "dev": "pnpm --filter @gitpress/web dev",
     "build": "pnpm --filter @gitpress/web build",

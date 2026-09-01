@@ -67,7 +67,7 @@ export default async function LandingPage() {
           </Link>
           <a href="#open-source" className="inline-flex items-center gap-1.5 text-neutral-500 hover:text-neutral-900">
             <GitHubMark className="h-4 w-4" />
-            开源
+            源码
           </a>
           {session?.user ? (
             <Link
@@ -120,7 +120,7 @@ export default async function LandingPage() {
               className="inline-flex items-center gap-2 rounded-md border border-neutral-300 px-6 py-3 font-semibold text-neutral-700 hover:bg-neutral-50"
             >
               <GitHubMark className="h-4 w-4" />
-              开源怎么保证
+              源码怎么保证
             </a>
           </div>
           <p className="mt-12 text-sm text-neutral-500">
@@ -151,7 +151,7 @@ export default async function LandingPage() {
           className="scroll-mt-8 border-y border-neutral-200 bg-neutral-50 py-16 sm:py-20"
         >
           <div className="mx-auto max-w-6xl px-6">
-            <p className="text-sm font-medium uppercase tracking-[0.2em] text-gp-brand">开源 · 退出权</p>
+            <p className="text-sm font-medium uppercase tracking-[0.2em] text-gp-brand">源码 · 退出权</p>
             <h2 className="mt-4 text-3xl font-extrabold tracking-tight sm:text-5xl">
               即便 GitPress.net 关停，
               <br />
@@ -159,8 +159,7 @@ export default async function LandingPage() {
             </h2>
             <p className="mt-6 max-w-3xl text-lg leading-relaxed text-neutral-600">
               文章、图片、草稿从来没进我们的数据库。主题和构建工具 MIT 开源，编译跑在 GitHub
-              Actions 上，不经过我们的机器。平台哪天不在了，用同一份仓库、同一套 Action
-              继续编、继续挂。不是搬家，是本来就在你这边。
+              Actions 上，不经过我们的机器。控制面源码公开（PolyForm Shield）：可以自己部署给自己用，不能拿去开另一个面向大家的平台。平台哪天不在了，用同一份仓库、同一套 Action 继续编、继续挂。不是搬家，是本来就在你这边。
             </p>
             <div className="mt-10 grid gap-4">
               <a
@@ -175,7 +174,7 @@ export default async function LandingPage() {
                   tap6/GitPress.net
                 </p>
                 <p className="mt-3 max-w-2xl text-base leading-relaxed text-white/90">
-                  WordPress 式后台：登录、建仓、写稿、点保存。这是控制面本身，不是你的文章库。
+                  WordPress 式后台：登录、建仓、写稿、点保存。这是控制面本身，不是你的文章库。源码公开，PolyForm Shield。
                 </p>
                 <p className="mt-5 text-sm font-semibold text-white group-hover:underline">在 GitHub 打开 →</p>
               </a>
@@ -365,7 +364,7 @@ export default async function LandingPage() {
             </Link>
             {" · "}
             <a href="#open-source" className="text-neutral-500 hover:text-neutral-800">
-              开源（MIT）
+              源码与许可
             </a>
         </p>
       </footer>

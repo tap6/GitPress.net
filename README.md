@@ -1,11 +1,33 @@
 # GitPress.net
 
-Git 原生的博客平台:内容与编译产物存放在用户自己的 GitHub 仓库中,GitPress.net 只做控制面(登录、WordPress 风格后台、GitHub API 编排),构建全部由 GitHub Actions 完成,服务器接近零负载。
+[https://gitpress.net](https://gitpress.net) 的控制面源码：WordPress 式后台（登录、建仓、写稿、点保存）。文章、图片、草稿在你自己的 GitHub 仓库里，编译跑在 GitHub Actions 上，不经过我们的机器。
+
+这不是 OSI 意义上的「整仓开源」。后台源码公开，可以自己部署给自己用；不能拿去开另一个面向大家的 GitPress 平台（免费也不行）。主题和构建工具才是 MIT。
+
+没有一键 Deploy。自建后台要自己注册 GitHub App、数据库和登录凭据，步骤见 [`docs/platform-setup.md`](docs/platform-setup.md)。
+
+## 三块分别干什么
+
+| 仓库 | 许可 | 做什么 |
+| --- | --- | --- |
+| **本仓** [tap6/GitPress.net](https://github.com/tap6/GitPress.net) | [PolyForm Shield](LICENSES/PolyForm-Shield-1.0.0.md) | 你每天点的网站：控制面 |
+| [tap6/gitpress](https://github.com/tap6/gitpress) | [MIT](LICENSES/MIT.txt) | 内置主题、`gitpress.json` 约定、数据仓模板 |
+| [tap6/build-action](https://github.com/tap6/build-action) | [MIT](LICENSES/MIT.txt) | 从私有数据仓编出静态站，推进公开网站仓 |
+
+关停之后：稿子还在你的仓库里，用同一份主题和 `@v1` Action 继续编即可。少的是这个后台，不是文章。
+
+## 许可
+
+正文见 [`LICENSE`](LICENSE)。若下面说明与正文冲突，以正文为准。
+
+- **控制面**（`apps/web` 等）：PolyForm Shield 1.0.0。可读、可改、可自用；把后台做成面向他人的产品或服务（含免费托管、白标、开放注册）需要书面授权。商业授权请开 [Issue](https://github.com/tap6/GitPress.net/issues)。
+- **主题 / 规范 / 构建 Action / 数据仓模板**：MIT。发布在 `tap6/gitpress` 与 `tap6/build-action`。
+- 「GitPress」「GitPress.net」、gitpress.net 以及网安徽章不随上述许可再授权。
 
 ## 架构总览
 
 ```
-用户浏览器 ── GitPress.net (Next.js on Vercel, 闭源)
+用户浏览器 ── GitPress.net (Next.js on Vercel, PolyForm Shield)
                  │  GitHub App API(提交 Markdown / 图片 / 配置)
                  ▼
          数据仓库(私有)── push 触发 ──▶ GitHub Actions(gitpress build-action)
@@ -23,16 +45,16 @@ Git 原生的博客平台:内容与编译产物存放在用户自己的 GitHub �
 
 ## 目录结构
 
-| 目录 | 开源性 | 说明 |
+| 目录 | 许可 | 说明 |
 | --- | --- | --- |
-| `apps/web` | 闭源 | GitPress.net 平台(官网 + WordPress 风格后台) |
-| `packages/spec` | 开源 | v1 规范:`gitpress.json` / `theme.json` JSON Schema、内容与 frontmatter 约定、TS 类型 |
-| `packages/build-action` | 开源 | GitHub Action:读配置 → 装主题 → Astro 构建 → 推送产物到网站仓库 |
-| `themes/*` | 开源 | 内置 Astro 主题(classic / minimal / ink / quill) |
-| `templates/data-repo` | 开源 | 数据仓库模板(目录结构 + workflow + 示例文章) |
-| `docs/` | — | 部署与接入文档 |
+| `apps/web` | PolyForm Shield | GitPress.net 平台(官网 + WordPress 风格后台) |
+| `packages/spec` | MIT | v1 规范:`gitpress.json` / `theme.json` JSON Schema、内容与 frontmatter 约定、TS 类型 |
+| `packages/build-action` | MIT | GitHub Action:读配置 → 装主题 → Astro 构建 → 推送产物到网站仓库 |
+| `themes/*` | MIT | 内置 Astro 主题(classic / minimal / ink / quill) |
+| `templates/data-repo` | MIT | 数据仓库模板(目录结构 + workflow + 示例文章) |
+| `docs/` | PolyForm Shield | 部署与接入文档 |
 
-## 快速开始(开发)
+## 本地开发
 
 ```bash
 pnpm install

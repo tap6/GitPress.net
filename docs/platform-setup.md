@@ -31,6 +31,14 @@ pnpm db:push                      # 用 drizzle 同步表结构
 
 > 重要:两个仓库都要打 `v1` git 标签。用户站点全部锁定在 `@v1`,以后升级时:
 > 兼容性修复直接移动 `v1` 标签;破坏性变更发布 `v2` 标签,老站点不受影响。
+>
+> 许可:这两个公开仓是 MIT。同步时带上各目录里的 `LICENSE`,并在仓库根放一份
+> [`LICENSES/MIT.txt`](../LICENSES/MIT.txt),**不要**把本 monorepo 根目录的
+> PolyForm Shield `LICENSE` 拷过去。网安徽章仍不随 MIT 再授权。
+>
+> `tap6/gitpress` 的根 README 用 [`docs/oss/gitpress.README.md`](oss/gitpress.README.md)
+> 覆盖仓根 `README.md`（线上那份不会随 `spec/` / `themes/` rsync 更新）。
+> `tap6/build-action` 的根 README 就是 `packages/build-action/README.md`。
 
 ## 3. 注册 GitHub App
 

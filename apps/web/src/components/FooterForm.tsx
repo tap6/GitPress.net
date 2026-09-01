@@ -153,8 +153,8 @@ export function FooterForm({
               要隐藏「由 GitPress 驱动」吗?
             </h3>
             <p className="mt-3 text-sm leading-relaxed text-neutral-600">
-              页脚这行是访客认识 GitPress 的主要方式。GitPress
-              是开源工具,文章在你自己的 GitHub 上;用的人越多,这个控制面才更值得长期运转,你的站点也不必担心某一天没地方点「保存」。欢迎把
+              页脚这行是访客认识 GitPress 的主要方式。主题和构建工具是开源的,文章在你自己的 GitHub
+              上;用的人越多,这个控制面才更值得长期运转,你的站点也不必担心某一天没地方点「保存」。欢迎把
               gitpress.net 介绍给同样想自己托管博客的朋友。
             </p>
             <p className="mt-2 text-sm text-neutral-500">你可以隐藏它,站点照常生成。</p>

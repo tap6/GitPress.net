@@ -1,6 +1,8 @@
 # @gitpress/spec — GitPress 规范 v1
 
-GitPress 生态的共同契约:平台、构建 Action、所有主题(包括 AI 生成的主题)都以本包为准。
+这是规范正文，不是仓库门面。主题仓介绍见 [tap6/gitpress](https://github.com/tap6/gitpress) 根目录 README（发布后即本文件的上一级）；控制面见 [tap6/GitPress.net](https://github.com/tap6/GitPress.net)。
+
+GitPress 生态的共同契约:平台、构建 Action、所有主题(包括 AI 生成的主题)都以本包为准。本包以 MIT 许可,见 [`LICENSE`](LICENSE)。
 
 ## 兼容性承诺
 

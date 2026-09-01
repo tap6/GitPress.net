@@ -2,7 +2,8 @@
   "name": "@gitpress/web",
   "version": "0.1.0",
   "private": true,
-  "description": "GitPress.net platform — marketing site + WordPress-style admin (closed source).",
+  "license": "PolyForm-Shield-1.0.0",
+  "description": "GitPress.net platform — marketing site + WordPress-style admin (PolyForm Shield).",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
