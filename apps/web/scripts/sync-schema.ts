@@ -1,6 +1,6 @@
 /**
  * Align Postgres with schema.ts. Additive only (no DROP / RENAME / type change).
- * Used at Vercel build; runtime instrumentation does the same if this is skipped.
+ * Used at Vercel build. Auth routes also retry if this is skipped.
  * Never fail the Next.js build — a down database must not block deploys.
  */
 import postgres from "postgres";
@@ -58,7 +58,12 @@ async function main() {
     return;
   }
 
-  const client = postgres(url, { prepare: false, max: 1, connect_timeout: 20 });
+  const client = postgres(url, {
+    prepare: false,
+    max: 1,
+    connect_timeout: 20,
+    onnotice: () => {},
+  });
   try {
     await syncSchemaAdditive(client);
     console.log("[db:sync] ok");
