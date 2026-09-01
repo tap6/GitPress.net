@@ -224,7 +224,7 @@ export function MenuForm({ siteId, initial, categories, pages, language }: Props
               </button>
             </div>
 
-            <span className="w-10 shrink-0 rounded bg-neutral-100 px-1.5 py-1 text-center text-[11px] text-neutral-500">
+            <span className="shrink-0 rounded bg-neutral-100 px-1.5 py-1 text-center text-[11px] leading-tight whitespace-nowrap text-neutral-500">
               {typeBadge(row.type, t)}
             </span>
 

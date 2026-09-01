@@ -149,7 +149,7 @@ export function SiteAdminShell({
             )}
           </div>
           <div className="flex shrink-0 items-center gap-3">
-            <LocaleSwitcher className="text-wp-sidebar-text [&_a]:text-wp-sidebar-text [&_a.font-semibold]:text-white" />
+            <LocaleSwitcher className="text-wp-sidebar-text hover:text-white" />
             <span className="shrink-0">{t("hello", { name: userName })}</span>
           </div>
         </div>

@@ -121,7 +121,7 @@ export function OpsShell({ userName, children }: Props) {
         <div className="hidden items-center justify-between gap-3 bg-ops-ink px-5 py-1.5 text-[13px] text-slate-300 lg:flex">
           <span>{t("bar")}</span>
           <div className="flex items-center gap-3">
-            <LocaleSwitcher className="[&_a]:text-slate-300 [&_a.font-semibold]:text-white" />
+            <LocaleSwitcher className="text-slate-300 hover:text-white" />
             <span className="shrink-0">{tn("hello", { name: userName })}</span>
           </div>
         </div>

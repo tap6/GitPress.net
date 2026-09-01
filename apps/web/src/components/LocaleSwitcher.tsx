@@ -1,12 +1,17 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { usePathname } from "@/i18n/navigation";
 import { persistPreferredLocaleAction } from "@/lib/localePreference";
 import { routing, type AppLocale } from "@/i18n/routing";
 
 const PENDING_KEY = "gp-locale-persist";
+
+const LOCALES: { id: AppLocale; label: string; hrefLang: string }[] = [
+  { id: "zh", label: "中文", hrefLang: "zh-CN" },
+  { id: "en", label: "English", hrefLang: "en" },
+];
 
 function hrefForLocale(pathname: string, locale: AppLocale): string {
   if (locale === routing.defaultLocale) return pathname || "/";
@@ -21,6 +26,9 @@ export function LocaleSwitcher({ className = "" }: { className?: string }) {
   const locale = useLocale();
   const pathname = usePathname();
   const t = useTranslations("locale");
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const current = LOCALES.find((item) => item.id === locale) ?? LOCALES[0];
 
   useEffect(() => {
     const pending = sessionStorage.getItem(PENDING_KEY);
@@ -28,6 +36,22 @@ export function LocaleSwitcher({ className = "" }: { className?: string }) {
     sessionStorage.removeItem(PENDING_KEY);
     void persistPreferredLocaleAction(locale);
   }, [locale]);
+
+  useEffect(() => {
+    if (!open) return;
+    function onPointerDown(event: PointerEvent) {
+      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
+    }
+    function onKey(event: KeyboardEvent) {
+      if (event.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
 
   function onSwitch(event: React.MouseEvent<HTMLAnchorElement>, next: AppLocale) {
     writeLocaleCookie(next);
@@ -40,26 +64,41 @@ export function LocaleSwitcher({ className = "" }: { className?: string }) {
   }
 
   return (
-    <nav className={`inline-flex items-center gap-2 text-sm ${className}`} aria-label={t("switch")}>
-      <a
-        href={hrefForLocale(pathname, "zh")}
-        hrefLang="zh-CN"
-        onClick={(event) => onSwitch(event, "zh")}
-        className={locale === "zh" ? "font-semibold text-neutral-900" : "text-neutral-500 hover:text-neutral-900"}
+    <div ref={rootRef} className="relative inline-block text-sm">
+      <button
+        type="button"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-label={t("switch")}
+        onClick={() => setOpen((value) => !value)}
+        className={`inline-flex items-center gap-1 ${className}`}
       >
-        中文
-      </a>
-      <span className="text-neutral-300" aria-hidden>
-        |
-      </span>
-      <a
-        href={hrefForLocale(pathname, "en")}
-        hrefLang="en"
-        onClick={(event) => onSwitch(event, "en")}
-        className={locale === "en" ? "font-semibold text-neutral-900" : "text-neutral-500 hover:text-neutral-900"}
-      >
-        English
-      </a>
-    </nav>
+        {current.label}
+        <span className="text-[10px] leading-none opacity-70" aria-hidden>
+          ▾
+        </span>
+      </button>
+      {open ? (
+        <ul
+          role="listbox"
+          className="absolute right-0 z-50 mt-1 min-w-[7.5rem] rounded-md border border-neutral-200 bg-white py-1 text-neutral-800 shadow-md"
+        >
+          {LOCALES.map((item) => (
+            <li key={item.id} role="option" aria-selected={item.id === locale}>
+              <a
+                href={hrefForLocale(pathname, item.id)}
+                hrefLang={item.hrefLang}
+                onClick={(event) => onSwitch(event, item.id)}
+                className={`block px-3 py-1.5 hover:bg-neutral-50 ${
+                  item.id === locale ? "font-semibold text-neutral-900" : "text-neutral-600"
+                }`}
+              >
+                {item.label}
+              </a>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </div>
   );
 }
