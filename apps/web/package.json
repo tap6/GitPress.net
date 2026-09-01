@@ -6,11 +6,12 @@
   "description": "GitPress.net platform — marketing site + WordPress-style admin (PolyForm Shield).",
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "tsx ./scripts/sync-schema.ts && next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
-    "db:push": "drizzle-kit push"
+    "db:push": "drizzle-kit push",
+    "db:sync": "tsx ./scripts/sync-schema.ts"
   },
   "dependencies": {
     "@auth/drizzle-adapter": "^1.10.0",
@@ -39,6 +40,7 @@
     "@types/react-dom": "^19.0.0",
     "drizzle-kit": "^0.31.0",
     "tailwindcss": "^4.1.0",
+    "tsx": "^4.21.0",
     "typescript": "^5.7.3"
   }
 }

@@ -10,8 +10,10 @@
 ```bash
 cd apps/web
 cp .env.example .env.local        # 填入 DATABASE_URL
-pnpm db:push                      # 用 drizzle 同步表结构
+pnpm db:push                      # 本地用 drizzle 同步表结构
 ```
+
+部署到 Vercel 且环境变量里有 `DATABASE_URL`(Neon 集成会自动注入)时,构建会按 `schema.ts` **只增不删**地补齐缺失的表和列,升级代码不必再手动 `db:push`。不会自动删列、改类型或改名。
 
 数据库只存元数据(用户、站点、GitHub 安装映射),用户内容永远在他们自己的仓库里。
 
