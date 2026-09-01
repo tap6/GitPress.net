@@ -126,7 +126,7 @@ export default async function LandingPage() {
             </a>
           </div>
           <LandingDashboardPreview
-            src={locale === "en" ? "/landing/dashboard-en.jpg" : "/landing/dashboard-zh.jpg"}
+            src={locale === "en" ? "/landing/dashboard-en.webp" : "/landing/dashboard-zh.webp"}
           />
           <p className="mt-12 text-sm text-neutral-500">
             {t("statsNote")}

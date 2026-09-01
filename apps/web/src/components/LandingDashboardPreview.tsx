@@ -35,8 +35,8 @@ export function LandingDashboardPreview({ src }: { src: string }) {
           <img
             src={src}
             alt={t("previewAlt")}
-            width={1024}
-            height={747}
+            width={2776}
+            height={2026}
             className="w-full rounded-xl"
           />
         </button>
@@ -57,9 +57,9 @@ export function LandingDashboardPreview({ src }: { src: string }) {
           <img
             src={src}
             alt=""
-            width={1024}
-            height={747}
-            className="max-h-[min(92vh,900px)] max-w-full rounded-lg object-contain shadow-2xl"
+            width={2776}
+            height={2026}
+            className="max-h-[92vh] max-w-full rounded-lg object-contain shadow-2xl"
             onClick={(event) => event.stopPropagation()}
           />
         </div>
