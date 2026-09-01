@@ -1,45 +1,52 @@
 Required Notice: Copyright 2026 tap6 (https://gitpress.net)
 Licensor Line of Business: GitPress.net hosted blogging control plane (https://gitpress.net)
 
-# GitPress.net 许可
+GitPress.net 许可
 
-本仓库采用双许可。下面「怎么用」是方便阅读的说明，**不代替**英文协议正文。若说明与正文冲突，以正文为准。
+本仓库采用双许可。下面「怎么用」是方便阅读的说明，不代替英文协议正文。
+若说明与正文冲突，以正文为准。
 
-## 怎么用（非约束性说明）
+怎么用（非约束性说明）
 
-**可以：** 阅读源码；为自己部署一份控制面，只给自己（或自己的组织内部）用；修改后自用；按 MIT 使用主题、规范、构建 Action 和数据仓模板。
+可以：阅读源码；为自己部署一份控制面，只给自己（或自己的组织内部）用；
+修改后自用；按 MIT 使用主题、规范、构建 Action 和数据仓模板。
 
-**不可以（除非另获书面授权）：** 把本仓库里的控制面做成面向他人的产品或服务，包括免费托管、白标、开放注册的「另一个 GitPress」。PolyForm Shield 写明：免费提供也算竞争。
+不可以（除非另获书面授权）：把本仓库里的控制面做成面向他人的产品或服务，
+包括免费托管、白标、开放注册的「另一个 GitPress」。PolyForm Shield 写明：
+免费提供也算竞争。
 
-**商业化：** 只有版权人 tap6，或经其单独授权的人，可以把控制面当作面向他人的商业（或免费公共）服务来提供。需要授权请开 GitHub Issue：https://github.com/tap6/GitPress.net/issues
+商业化：只有版权人 tap6，或经其单独授权的人，可以把控制面当作面向他人的
+商业（或免费公共）服务来提供。需要授权请开 GitHub Issue：
+https://github.com/tap6/GitPress.net/issues
 
-**商标：** 「GitPress」「GitPress.net」、gitpress.net 以及相关标识不随本许可授权。自用可以注明来源；对外提供服务不得冒用这些名称，即使你认为用途合法。
+商标：「GitPress」「GitPress.net」、gitpress.net 以及相关标识不随本许可授权。
+自用可以注明来源；对外提供服务不得冒用这些名称，即使你认为用途合法。
 
-**网安徽章：** 主题内嵌的公安备案徽章是官方标识，仅供依法展示，不随 MIT 或 Shield 再授权。
+网安徽章：主题内嵌的公安备案徽章是官方标识，仅供依法展示，不随 MIT 或
+Shield 再授权。
 
-## Binding terms
+Binding terms
 
-Unless a path below says otherwise, files in this repository are licensed under the
-**PolyForm Shield License 1.0.0**. The full text is in
-[`LICENSES/PolyForm-Shield-1.0.0.md`](LICENSES/PolyForm-Shield-1.0.0.md)
+Unless a path below says otherwise, files in this repository are licensed
+under the PolyForm Shield License 1.0.0. The full text is in
+LICENSES/PolyForm-Shield-1.0.0.md
 (canonical URL: https://polyformproject.org/licenses/shield/1.0.0).
 
-The following paths are licensed under the **MIT License**
-([`LICENSES/MIT.txt`](LICENSES/MIT.txt)), and each of these directories also
-contains its own `LICENSE` file:
+The following paths are licensed under the MIT License (see LICENSES/MIT.txt),
+and each of these directories also contains its own LICENSE file:
 
-- `packages/spec/`
-- `packages/build-action/`
-- `themes/`
-- `templates/`
+    packages/spec/
+    packages/build-action/
+    themes/
+    templates/
 
-These MIT components are the ones published to `tap6/gitpress` and
-`tap6/build-action`. They do not include the GitPress.net control plane
-(`apps/web/`).
+These MIT components are the ones published to tap6/gitpress and
+tap6/build-action. They do not include the GitPress.net control plane
+(apps/web/).
 
-The `Required Notice:` and `Licensor Line of Business:` lines at the top of this
-file are provided with the Shield-licensed software as required by that license.
-They apply to the Shield-licensed portions only.
+The Required Notice: and Licensor Line of Business: lines at the top of this
+file are provided with the Shield-licensed software as required by that
+license. They apply to the Shield-licensed portions only.
 
 The licensor may grant additional licenses for the Shield-licensed software
 (including commercial use that would otherwise be a competing product). MIT

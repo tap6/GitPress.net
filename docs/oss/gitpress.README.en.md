@@ -1,7 +1,7 @@
 # gitpress
 
-[![MIT](https://img.shields.io/github/license/tap6/gitpress)](LICENSE)
-[![v1](https://img.shields.io/github/v/tag/tap6/gitpress?label=tag)](https://github.com/tap6/gitpress/tags)
+[![MIT](https://img.shields.io/github/license/tap6/gitpress?label=License)](LICENSE)
+[![v1](https://img.shields.io/github/v/tag/tap6/gitpress?label=Tag)](https://github.com/tap6/gitpress/tags)
 
 **Themes and conventions for GitPress blogs: how Markdown is written and how a site looks.** [MIT](LICENSE).
 
