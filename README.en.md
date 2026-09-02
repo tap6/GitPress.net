@@ -10,6 +10,8 @@ This repository is the source of [gitpress.net](https://gitpress.net) — the co
 
 [中文](README.md) | English
 
+![GitPress admin dashboard: sidebar, scratch notes, post counts, theme, and GitHub Actions usage](apps/web/public/landing/dashboard-en.webp)
+
 ## The three pieces
 
 | Repository | License | Role |

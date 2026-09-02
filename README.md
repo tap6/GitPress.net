@@ -10,6 +10,8 @@
 
 中文 | [English](README.en.md)
 
+![GitPress 后台仪表盘：左侧菜单，右侧随手记、文章数、主题和 GitHub Actions 用量](apps/web/public/landing/dashboard-zh.webp)
+
 ## 三块分别干什么
 
 | 仓库 | 许可 | 做什么 |
