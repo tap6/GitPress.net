@@ -1,14 +1,15 @@
 import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
+import { GitPressBrand } from "@/components/GitPressBrand";
 import { NewSiteForm } from "@/components/NewSiteForm";
-import { localeAlternates } from "@/i18n/alternates";
 import { githubAppInstallUrl } from "@/lib/github";
+import { noIndexMetadata } from "@/lib/seo";
 import { listUserInstallations, requireUser } from "@/lib/sites";
 import { BUILTIN_THEMES } from "@/lib/themes";
 
 export async function generateMetadata() {
   const t = await getTranslations("newSite");
-  return { title: t("metaTitle"), alternates: localeAlternates("/new") };
+  return noIndexMetadata(t("metaTitle"));
 }
 
 export default async function NewSitePage() {
@@ -30,9 +31,7 @@ export default async function NewSitePage() {
           <Link href="/dashboard" className="text-sm text-neutral-500 hover:text-neutral-900">
             {t("back")}
           </Link>
-          <p className="text-lg font-bold tracking-tight">
-            Git<span className="text-gp-brand">Press</span>
-          </p>
+          <GitPressBrand href={null} wordmarkClassName="text-lg font-bold tracking-tight" />
         </div>
       </header>
 

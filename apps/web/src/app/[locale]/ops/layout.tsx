@@ -1,10 +1,11 @@
 import { OpsShell } from "@/components/OpsShell";
 import { requireOps } from "@/lib/ops";
+import { noIndexMetadata } from "@/lib/seo";
 import { getTranslations } from "next-intl/server";
 
 export async function generateMetadata() {
   const t = await getTranslations("ops");
-  return { title: t("title") };
+  return noIndexMetadata(t("title"));
 }
 export const dynamic = "force-dynamic";
 

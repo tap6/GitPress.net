@@ -1,15 +1,15 @@
 import { getTranslations } from "next-intl/server";
 import { HelpSearch } from "@/components/HelpSearch";
-import { localeAlternates } from "@/i18n/alternates";
 import { HELP_ARTICLES } from "@/lib/helpArticles";
+import { publicMetadata } from "@/lib/seo";
 
 export async function generateMetadata() {
   const t = await getTranslations("helpIndex");
-  return {
+  return publicMetadata({
+    href: "/help",
     title: t("metaTitle"),
     description: t("metaDescription"),
-    alternates: localeAlternates("/help"),
-  };
+  });
 }
 
 export default async function HelpIndexPage() {

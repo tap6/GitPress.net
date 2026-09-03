@@ -20,6 +20,7 @@ export type SettingsSectionId = SettingsPanelId | "all";
 const ALIASES: Record<string, SettingsPanelId> = {
   "account-ai": "account",
   media: "general",
+  remove: "maintain",
 };
 
 const IDS = new Set<string>(SETTINGS_SECTIONS.map((item) => item.id));

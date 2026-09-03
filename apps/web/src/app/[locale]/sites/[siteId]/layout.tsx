@@ -1,7 +1,18 @@
 import { SiteAdminShell } from "@/components/SiteAdminShell";
-import { getInstallationPermissionGap } from "@/lib/github";
+import { RepoMissingBanner } from "@/components/RepoMissingBanner";
+import {
+  getInstallationOctokit,
+  getInstallationPermissionGap,
+  probeSiteRepos,
+  reposNeedAttention,
+} from "@/lib/github";
+import { noIndexMetadata } from "@/lib/seo";
 import { requireSite } from "@/lib/sites";
 import { getTranslations } from "next-intl/server";
+
+export function generateMetadata() {
+  return noIndexMetadata();
+}
 
 export default async function AdminLayout({
   children,
@@ -12,7 +23,11 @@ export default async function AdminLayout({
 }) {
   const { siteId } = await params;
   const { site, user, installation } = await requireSite(siteId);
-  const permissionGap = await getInstallationPermissionGap(installation.installationId);
+  const octokit = await getInstallationOctokit(installation.installationId);
+  const [permissionGap, repoPresence] = await Promise.all([
+    getInstallationPermissionGap(installation.installationId),
+    probeSiteRepos(octokit, site.dataRepo, site.siteRepo),
+  ]);
   const t = await getTranslations();
 
   return (
@@ -25,6 +40,18 @@ export default async function AdminLayout({
       userName={user.name ?? t("authorFallback")}
       permissionGap={permissionGap}
     >
+      {reposNeedAttention(repoPresence) ? (
+        <RepoMissingBanner
+          siteId={site.id}
+          siteName={site.name}
+          slug={site.slug}
+          dataRepo={site.dataRepo}
+          siteRepo={site.siteRepo}
+          dataStatus={repoPresence.data}
+          siteStatus={repoPresence.site}
+          installUrl={`https://github.com/settings/installations/${installation.installationId}`}
+        />
+      ) : null}
       {children}
     </SiteAdminShell>
   );

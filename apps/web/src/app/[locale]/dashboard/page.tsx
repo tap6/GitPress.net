@@ -2,15 +2,17 @@ import { Link, getPathname } from "@/i18n/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
 import { signOut } from "@/auth";
 import { LocaleSwitcher } from "@/components/LocaleSwitcher";
+import { GitPressBrand } from "@/components/GitPressBrand";
 import { PermissionUpdateBanner } from "@/components/PermissionUpdateBanner";
 import { userHasOpsAccess } from "@/lib/ops";
+import { noIndexMetadata } from "@/lib/seo";
 import { getInstallationPermissionGap } from "@/lib/github";
 import { listUserInstallations, listUserSites, requireUser } from "@/lib/sites";
 import type { AppLocale } from "@/i18n/routing";
 
 export async function generateMetadata() {
   const t = await getTranslations("dashboard");
-  return { title: t("title") };
+  return noIndexMetadata(t("title"));
 }
 
 export default async function DashboardPage({
@@ -38,9 +40,7 @@ export default async function DashboardPage({
     <div className="min-h-screen bg-neutral-50">
       <header className="border-b border-neutral-200 bg-white">
         <div className="mx-auto flex max-w-4xl flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-4 sm:px-6">
-          <Link href="/" className="text-lg font-bold tracking-tight">
-            Git<span className="text-gp-brand">Press</span>
-          </Link>
+          <GitPressBrand href="/" wordmarkClassName="text-lg font-bold tracking-tight" />
           <div className="flex flex-wrap items-center gap-3 text-sm sm:gap-4">
             <Link href="/account/ai" className="text-neutral-500 hover:text-neutral-900">
               {tn("aiSettings")}

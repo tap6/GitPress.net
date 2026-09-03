@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { LocaleSwitcher } from "@/components/LocaleSwitcher";
+import { GitPressBrand } from "@/components/GitPressBrand";
 import { Link, usePathname } from "@/i18n/navigation";
 
 const NAV = [
@@ -79,12 +80,16 @@ export function OpsShell({ userName, children }: Props) {
         }`}
       >
         <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
-          <Link href="/ops" className="text-sm font-bold text-white">
-            Git<span className="text-gp-brand">Press</span>
-            <span className="ml-2 rounded bg-ops-accent px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-white">
-              OPS
-            </span>
-          </Link>
+          <GitPressBrand
+            href="/ops"
+            markClassName="h-6 w-6"
+            wordmarkClassName="text-sm font-bold text-white"
+            suffix={
+              <span className="rounded bg-ops-accent px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-white">
+                OPS
+              </span>
+            }
+          />
           <button
             type="button"
             onClick={() => setMobileOpen(false)}

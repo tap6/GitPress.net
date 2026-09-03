@@ -1484,6 +1484,27 @@ export async function rotateDeployKeyAction(formData: FormData): Promise<void> {
   revalidateSiteData(site.dataRepo, [`/sites/${siteId}`, `/sites/${siteId}/settings`]);
 }
 
+export interface DisconnectSiteState {
+  error?: string;
+}
+
+/** Drop the control-plane pointer. Never deletes GitHub repositories. */
+export async function disconnectSiteAction(
+  _prev: DisconnectSiteState,
+  formData: FormData,
+): Promise<DisconnectSiteState> {
+  const siteId = String(formData.get("siteId") ?? "");
+  const typed = String(formData.get("confirmName") ?? "").trim();
+  const { site } = await requireSite(siteId);
+  if (typed !== site.name.trim() && typed !== site.slug) {
+    return { error: actionError("disconnectConfirm") };
+  }
+  await db.delete(sites).where(eq(sites.id, site.id));
+  revalidatePath("/dashboard");
+  revalidatePath(`/sites/${site.id}`);
+  return await redirectTo("/dashboard");
+}
+
 export async function refreshGitHistoryAction(formData: FormData): Promise<void> {
   const siteId = String(formData.get("siteId"));
   await requireSite(siteId);

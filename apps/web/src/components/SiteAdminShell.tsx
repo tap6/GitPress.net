@@ -1,5 +1,6 @@
 "use client";
 
+import { GitPressBrand } from "@/components/GitPressBrand";
 import { Link, usePathname } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
 import { LocaleSwitcher } from "@/components/LocaleSwitcher";
@@ -110,9 +111,11 @@ export function SiteAdminShell({
         }`}
       >
         <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
-          <Link href="/dashboard" className="text-sm font-bold text-white">
-            Git<span className="text-gp-brand">Press</span>
-          </Link>
+          <GitPressBrand
+            href="/dashboard"
+            markClassName="h-6 w-6"
+            wordmarkClassName="text-sm font-bold text-white"
+          />
           <button
             type="button"
             onClick={() => setMobileOpen(false)}

@@ -1,17 +1,22 @@
 import { getPathname } from "@/i18n/navigation";
 import type { AppLocale } from "@/i18n/routing";
+import { SITE_URL } from "@/lib/siteUrl";
 
-const SITE = process.env.AUTH_URL?.replace(/\/$/, "") || "https://gitpress.net";
+export function absoluteUrl(path: string): string {
+  if (!path || path === "/") return SITE_URL;
+  return `${SITE_URL}${path.startsWith("/") ? path : `/${path}`}`;
+}
 
-export function localeAlternates(href: string) {
-  const zh = getPathname({ href, locale: "zh" as AppLocale });
-  const en = getPathname({ href, locale: "en" as AppLocale });
+export function localeAlternates(href: string, locale: AppLocale = "zh") {
+  const zh = getPathname({ href: href as never, locale: "zh" });
+  const en = getPathname({ href: href as never, locale: "en" });
+  const current = locale === "en" ? en : zh;
   return {
-    canonical: undefined as string | undefined,
+    canonical: absoluteUrl(current),
     languages: {
-      "zh-CN": `${SITE}${zh === "/" ? "" : zh}`,
-      en: `${SITE}${en}`,
-      "x-default": `${SITE}${zh === "/" ? "" : zh}`,
+      "zh-CN": absoluteUrl(zh),
+      en: absoluteUrl(en),
+      "x-default": absoluteUrl(zh),
     },
   };
 }

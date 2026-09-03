@@ -14,6 +14,9 @@ const nextConfig: NextConfig = {
       { source: "/en/make-theme", destination: "/en/help/make-theme", permanent: true },
     ];
   },
+  async rewrites() {
+    return [{ source: "/.well-known/llms.txt", destination: "/llms.txt" }];
+  },
   outputFileTracingRoot: path.join(__dirname, "../.."),
   outputFileTracingIncludes: {
     "/theme-previews/[name]": [

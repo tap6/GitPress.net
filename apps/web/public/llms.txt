@@ -1,0 +1,60 @@
+# GitPress
+
+> GitPress is a WordPress-style blog admin. You write in the browser; the words live in your own GitHub repositories; GitHub Actions compiles a static site; GitHub Pages (or Vercel) hosts it. gitpress.net is the remote control. Readers never hit our servers. We do not store posts, images, or drafts.
+
+- Site: https://gitpress.net
+- English: https://gitpress.net/en
+- What it is: https://gitpress.net/help/what-is-gitpress
+- Privacy (what we keep): https://gitpress.net/privacy
+- Help index: https://gitpress.net/help
+
+## Three repositories
+
+- Control plane (this product, PolyForm Shield): https://github.com/tap6/GitPress.net
+- Spec, builtin themes, data-repo template (MIT): https://github.com/tap6/gitpress
+- Build Action (MIT, pin @v1): https://github.com/tap6/build-action
+
+## Architecture (v1)
+
+On install, GitPress creates two repos under the user’s GitHub account:
+
+- `<site>-data` (private): Markdown posts/pages, `media/`, `gitpress.json`, drafts
+- `<site>` (public): compiled HTML for GitHub Pages / Vercel
+
+Every save in the admin is a git commit to the private data repo. `on: push` runs `tap6/build-action@v1`. Drafts (`draft: true` in frontmatter) never leave the private repo.
+
+The control-plane database stores only accounts, GitHub App installation mapping, and site pointers (repo names, URLs). Uninstalling the GitHub App cuts our access; repos stay with the user.
+
+## Product locales vs site language
+
+- Product locale (gitpress.net UI): URL prefix + `NEXT_LOCALE` cookie. Chinese is unprefixed; English is `/en/...`.
+- Site language (`gitpress.json` `site.language`): affects theme chrome on the next build. Post bodies are not translated.
+
+## Help
+
+- What is GitPress?: https://gitpress.net/help/what-is-gitpress
+- Privacy: https://gitpress.net/privacy
+- Make a theme with AI: https://gitpress.net/help/make-theme
+- Drafts and builds: https://gitpress.net/help/drafts-and-builds
+- Builds: https://gitpress.net/help/builds
+- AI writing: https://gitpress.net/help/ai-writing
+- Import a theme: https://gitpress.net/help/import-theme
+- Analytics: https://gitpress.net/help/analytics
+- Custom domain: https://gitpress.net/help/custom-domain
+
+English copies use the `/en` prefix, e.g. https://gitpress.net/en/help/what-is-gitpress
+
+## Optional: comments and AI writing
+
+- Comments: giscus on the public site repo (GitHub Discussions). Optional.
+- AI drafts: the author brings their own API endpoint; keys are encrypted at rest on the control plane, not sent to a GitPress-hosted model.
+
+## Do not confuse
+
+- gitpress.net is not a content host or a WordPress plugin marketplace.
+- User blogs are not subpaths of gitpress.net.
+- There is no one-click “migrate WordPress/Blogger” in the hosted admin. Content is files in the data repo (`content/posts/*.md`, `media/`).
+
+## 中文摘要
+
+GitPress 是博客后台：像 WordPress 一样写文章，正文在你自己的 GitHub 仓库，保存后由 Actions 编成静态站。gitpress.net 不保存任何一篇文章。私有 `*-data` 仓放 Markdown 与草稿，公开仓放编译结果。帮助与隐私见 https://gitpress.net/help 与 https://gitpress.net/privacy 。

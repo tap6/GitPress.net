@@ -2,7 +2,8 @@
   "meta": {
     "title": "GitPress — 你的博客,你的仓库",
     "titleTemplate": "%s · GitPress",
-    "description": "GitPress.net 是云端写作工具,不是内容托管商。文章、图片、草稿都在你自己的 GitHub 仓库里;平台只保存账号与站点指针。"
+    "description": "GitPress 是 WordPress 风格的博客后台：在浏览器里写文章，正文存在你自己的 GitHub 仓库，Actions 编成静态站，Pages 托管。gitpress.net 不保存任何一篇文章。",
+    "keywords": "GitPress, WordPress, GitHub Pages, 静态博客, Markdown, 不托管内容, GitHub Actions, Astro"
   },
   "locale": {
     "switch": "界面语言"
@@ -341,7 +342,7 @@
     "empty": "没有匹配的条目。换个词试试，或清空搜索看全部。",
     "searchAria": "搜索帮助",
     "metaTitle": "帮助",
-    "metaDescription": "这是什么项目、隐私、做主题、草稿、构建、统计、主题导入和域名：GitPress 后台常见问题。"
+    "metaDescription": "GitPress 后台常见问题：这是什么、和 WordPress / Hugo 的差别、隐私（不存正文）、草稿与构建、用 AI 做主题、统计和自定义域名。"
   },
   "help": {
     "whatIs": {
@@ -589,6 +590,27 @@
     "alt": "GitPress 交流群二维码，群号 1107046268",
     "label": "QQ 群"
   },
+  "disconnect": {
+    "title": "从 GitPress 移除这个站点",
+    "missingTitle": "GitHub 上读不到这个站的仓库",
+    "lead": "GitPress 只保存指向你 GitHub 仓库的指针，不保存文章。移除后，「我的站点」里不再出现这一条；GitHub 上的两个仓库不会被删除。",
+    "leadMissing": "控制台还记着这个站，但 GitHub 已经读不到对应仓库。常见原因：你在 GitHub 删了仓库、改了名字，或 GitPress App 不再有这两个仓的权限（例如安装时只勾了部分仓库）。",
+    "notDeleteGithub": "这一步不会删除 GitHub 上的任何仓库。仓库已经不在了，只是清掉控制台里的空记录；仓库还在、只是不想用 GitPress 管了，同样只去掉指针。",
+    "ifReposRemain": "如果两个仓库还在 GitHub 上、你也想删掉内容，请自己到 GitHub 删除：",
+    "confirmLabel": "输入站点名称以确认",
+    "confirmHint": "请输入「{name}」，或标识符 {slug}",
+    "submit": "从 GitPress 移除",
+    "submitting": "正在移除",
+    "installSettings": "到 GitHub 检查 App 是否还能看到这两个仓库",
+    "dataRepo": "数据仓库",
+    "siteRepo": "网站仓库",
+    "status": {
+      "ok": "还在",
+      "missing": "找不到",
+      "forbidden": "没有权限",
+      "error": "暂时读不到"
+    }
+  },
   "errors": {
     "articleMissing": "文章不存在",
     "slugTaken": "这个标识已经有一页了,请换一个。",
@@ -641,6 +663,7 @@
     "badAnalyticsShort": "统计配置格式无效。",
     "connectFailed": "连接失败:{detail}",
     "disconnectFailed": "断开失败:{detail}",
+    "disconnectConfirm": "名称对不上。请输入当前显示的站点名称，或标识符。",
     "badCategories": "分类数据格式有误",
     "badMenu": "菜单数据格式有误",
     "badFooter": "页脚数据格式有误",

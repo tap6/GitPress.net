@@ -2,7 +2,8 @@
   "meta": {
     "title": "GitPress — your blog, your repo",
     "titleTemplate": "%s · GitPress",
-    "description": "GitPress.net is a writing tool, not a host. Posts, images, and drafts live in your GitHub repos. We only store account and site pointers."
+    "description": "GitPress is a WordPress-style blog admin. Write in the browser; posts live in your GitHub repos; Actions build a static site; Pages hosts it. gitpress.net stores no article bodies.",
+    "keywords": "GitPress, WordPress, GitHub Pages, static blog, Markdown, no content hosting, GitHub Actions, Astro"
   },
   "locale": {
     "switch": "Interface language"
@@ -341,7 +342,7 @@
     "empty": "No matching articles. Try another word, or clear the search.",
     "searchAria": "Search help",
     "metaTitle": "Help",
-    "metaDescription": "What this project is, privacy, making a theme, drafts, builds, analytics, imports, and custom domains."
+    "metaDescription": "GitPress help: what it is versus WordPress and Hugo, privacy (we store no posts), drafts and builds, making a theme with AI, analytics, and custom domains."
   },
   "help": {
     "whatIs": {
@@ -589,6 +590,27 @@
     "alt": "GitPress QQ group QR code, group 1107046268",
     "label": "QQ group"
   },
+  "disconnect": {
+    "title": "Remove this site from GitPress",
+    "missingTitle": "GitHub cannot see this site’s repositories",
+    "lead": "GitPress only stores pointers to your GitHub repos, not the posts. After you remove it, it disappears from My sites. The two GitHub repositories are not deleted.",
+    "leadMissing": "The console still has this site, but GitHub no longer returns the repos. Typical causes: you deleted them, renamed them, or the GitPress App no longer has access (for example the install was limited to selected repositories).",
+    "notDeleteGithub": "This does not delete anything on GitHub. If the repos are already gone, it only clears the empty console row. If they still exist and you just do not want GitPress to manage them, it only drops the pointer.",
+    "ifReposRemain": "If the two repos are still on GitHub and you also want the content gone, delete them there:",
+    "confirmLabel": "Type the site name to confirm",
+    "confirmHint": "Type “{name}”, or the slug {slug}",
+    "submit": "Remove from GitPress",
+    "submitting": "Removing",
+    "installSettings": "Check on GitHub whether the App can still see these repos",
+    "dataRepo": "Data repo",
+    "siteRepo": "Site repo",
+    "status": {
+      "ok": "found",
+      "missing": "not found",
+      "forbidden": "no access",
+      "error": "temporarily unreachable"
+    }
+  },
   "errors": {
     "articleMissing": "That post does not exist.",
     "slugTaken": "That slug is already used by a page. Pick another.",
@@ -641,6 +663,7 @@
     "badAnalyticsShort": "Analytics config is invalid.",
     "connectFailed": "Connect failed: {detail}",
     "disconnectFailed": "Disconnect failed: {detail}",
+    "disconnectConfirm": "That does not match. Type the site name shown above, or its slug.",
     "badCategories": "Category data is invalid",
     "badMenu": "Menu data is invalid",
     "badFooter": "Footer data is invalid",

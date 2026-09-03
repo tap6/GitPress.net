@@ -212,6 +212,39 @@ export function splitRepo(fullName: string): RepoRef {
   return { owner, repo };
 }
 
+/** GitHub 404 is also used when the App cannot see a private repo (existence leak). */
+export type RepoPresence = "ok" | "missing" | "forbidden" | "error";
+
+export async function probeRepo(octokit: Octokit, fullName: string): Promise<RepoPresence> {
+  try {
+    await octokit.request("GET /repos/{owner}/{repo}", { ...splitRepo(fullName) });
+    return "ok";
+  } catch (error: unknown) {
+    const status = (error as { status?: number }).status;
+    if (status === 404) return "missing";
+    if (status === 403) return "forbidden";
+    return "error";
+  }
+}
+
+export async function probeSiteRepos(
+  octokit: Octokit,
+  dataRepo: string,
+  siteRepo: string,
+): Promise<{ data: RepoPresence; site: RepoPresence }> {
+  const [data, site] = await Promise.all([probeRepo(octokit, dataRepo), probeRepo(octokit, siteRepo)]);
+  return { data, site };
+}
+
+export function reposNeedAttention(presence: { data: RepoPresence; site: RepoPresence }): boolean {
+  return (
+    presence.data === "missing" ||
+    presence.site === "missing" ||
+    presence.data === "forbidden" ||
+    presence.site === "forbidden"
+  );
+}
+
 /** Turn on Discussions for a public site repo (needs administration). */
 export async function enableRepoDiscussions(octokit: Octokit, ref: RepoRef): Promise<void> {
   await octokit.request("PATCH /repos/{owner}/{repo}", {

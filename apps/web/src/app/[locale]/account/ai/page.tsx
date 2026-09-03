@@ -2,11 +2,12 @@ import { Link } from "@/i18n/navigation";
 import { getTranslations } from "next-intl/server";
 import { AiSettingsForm } from "@/components/AiSettingsForm";
 import { getAiConfig } from "@/lib/ai";
+import { noIndexMetadata } from "@/lib/seo";
 import { requireUser } from "@/lib/sites";
 
 export async function generateMetadata() {
   const t = await getTranslations("aiPage");
-  return { title: t("title") };
+  return noIndexMetadata(t("title"));
 }
 
 export default async function AiSettingsPage() {

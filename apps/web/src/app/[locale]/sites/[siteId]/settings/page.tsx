@@ -5,6 +5,7 @@ import { SiteUrlForm } from "@/components/SiteUrlForm";
 import { BeianForm } from "@/components/BeianForm";
 import { FooterForm } from "@/components/FooterForm";
 import { rotateDeployKeyAction } from "@/lib/actions";
+import { DisconnectSiteForm } from "@/components/DisconnectSiteForm";
 import { AiSettingsForm } from "@/components/AiSettingsForm";
 import { ProgressButton } from "@/components/ProgressButton";
 import { parseSiteComments } from "@/lib/comments";
@@ -88,6 +89,7 @@ export default async function SettingsPage({
   const onDefaultPages = isDefaultPagesOrigin(site.url, site.siteRepo);
   const t = await getTranslations("settings");
   const tg = await getTranslations("github");
+  const td = await getTranslations("disconnect");
   const notice =
     domainNotice === "url" ||
     domainNotice === "pages" ||
@@ -312,6 +314,39 @@ export default async function SettingsPage({
               {permissionGap ? t("reviewPerms") : t("manageInstall")}
             </a>
             <p className="text-xs text-neutral-400">{t("githubAppHint")}</p>
+          </div>
+        </section>
+        <section
+          id="remove"
+          className="w-full max-w-3xl rounded border border-red-200 bg-white shadow-sm"
+        >
+          <h2 className="border-b border-red-100 px-5 py-3 text-sm font-semibold text-red-800">
+            {td("title")}
+          </h2>
+          <div className="space-y-3 p-5 text-sm leading-relaxed text-neutral-600">
+            <p>{td("lead")}</p>
+            <p>{td("notDeleteGithub")}</p>
+            <p>{td("ifReposRemain")}</p>
+            <p className="font-mono text-xs">
+              <a
+                href={`https://github.com/${site.dataRepo}`}
+                className="underline"
+                target="_blank"
+                rel="noreferrer"
+              >
+                {site.dataRepo}
+              </a>
+              {" · "}
+              <a
+                href={`https://github.com/${site.siteRepo}`}
+                className="underline"
+                target="_blank"
+                rel="noreferrer"
+              >
+                {site.siteRepo}
+              </a>
+            </p>
+            <DisconnectSiteForm siteId={site.id} siteName={site.name} slug={site.slug} />
           </div>
         </section>
       </SettingsPanel>

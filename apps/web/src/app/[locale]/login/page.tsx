@@ -2,8 +2,9 @@ import { cookies } from "next/headers";
 import { redirect as nextRedirect } from "next/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
 import { auth, providerIds, signIn } from "@/auth";
+import { GitPressBrand } from "@/components/GitPressBrand";
 import { LocaleSwitcher } from "@/components/LocaleSwitcher";
-import { localeAlternates } from "@/i18n/alternates";
+import { publicMetadata } from "@/lib/seo";
 import { getPathname, redirect } from "@/i18n/navigation";
 import type { AppLocale } from "@/i18n/routing";
 import {
@@ -14,8 +15,9 @@ import {
 import { maybeRedirectToPreferredLocale } from "@/lib/productLocale";
 
 export async function generateMetadata() {
-  const t = await getTranslations("nav");
-  return { title: t("login"), alternates: localeAlternates("/login") };
+  const tn = await getTranslations("nav");
+  const t = await getTranslations("login");
+  return publicMetadata({ href: "/login", title: tn("login"), description: t("lead") });
 }
 
 export default async function LoginPage() {
@@ -50,9 +52,9 @@ export default async function LoginPage() {
         <div className="flex justify-end">
           <LocaleSwitcher />
         </div>
-        <p className="text-center text-2xl font-bold tracking-tight">
-          Git<span className="text-gp-brand">Press</span>
-        </p>
+        <div className="mt-1 flex justify-center">
+          <GitPressBrand wordmarkClassName="text-2xl font-bold tracking-tight" />
+        </div>
         <p className="mt-2 text-center text-sm text-neutral-500">{t("lead")}</p>
         {pendingGithub ? (
           <p className="mt-3 rounded-md bg-emerald-50 p-3 text-sm text-emerald-800">{t("pendingGithub")}</p>

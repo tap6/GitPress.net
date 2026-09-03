@@ -1,5 +1,9 @@
 # GitPress.net
 
+<p align="center">
+  <img src="apps/web/public/brand/logo.png" width="128" height="128" alt="GitPress">
+</p>
+
 [![PolyForm Shield](https://img.shields.io/static/v1?label=License&message=PolyForm%20Shield&color=lightgrey)](LICENSE)
 [![Website](https://img.shields.io/static/v1?label=Website&message=GitPress.net&color=0ea5e9)](https://gitpress.net)
 [![Last Commit](https://img.shields.io/github/last-commit/tap6/GitPress.net?label=Last%20Commit)](https://github.com/tap6/GitPress.net/activity)

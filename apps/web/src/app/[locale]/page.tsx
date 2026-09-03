@@ -4,9 +4,11 @@ import { auth } from "@/auth";
 import { LocaleSwitcher } from "@/components/LocaleSwitcher";
 import { LandingDashboardPreview } from "@/components/LandingDashboardPreview";
 import { QqGroupFloat } from "@/components/QqGroupFloat";
-import { localeAlternates } from "@/i18n/alternates";
+import { GitPressBrand } from "@/components/GitPressBrand";
+import { JsonLd } from "@/components/JsonLd";
 import type { AppLocale } from "@/i18n/routing";
 import { maybeRedirectToPreferredLocale } from "@/lib/productLocale";
+import { publicMetadata, softwareJsonLd } from "@/lib/seo";
 import { formatStatCount, getPublicPlatformStats } from "@/lib/publicStats";
 
 const PLATFORM_REPO = "https://github.com/tap6/GitPress.net";
@@ -23,7 +25,7 @@ function GitHubMark({ className }: { className?: string }) {
 
 export async function generateMetadata() {
   const t = await getTranslations("meta");
-  return { title: t("title"), description: t("description"), alternates: localeAlternates("/") };
+  return publicMetadata({ href: "/", title: t("title"), description: t("description") });
 }
 
 export default async function LandingPage() {
@@ -46,10 +48,9 @@ export default async function LandingPage() {
 
   return (
     <div className="min-h-screen bg-white text-neutral-900">
+      <JsonLd data={softwareJsonLd({ name: "GitPress", description: t("lead"), locale })} />
       <header className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-4 gap-y-2 px-6 py-5">
-        <p className="text-xl font-bold tracking-tight">
-          Git<span className="text-gp-brand">Press</span>
-        </p>
+        <GitPressBrand />
         <nav className="flex items-center gap-4 text-sm">
           <Link href="/privacy" className="text-neutral-500 hover:text-neutral-900">
             {tn("privacy")}
