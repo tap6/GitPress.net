@@ -135,6 +135,16 @@ export async function createSiteAction(
     return { error: actionError("needGithub") };
   }
 
+  const dataRepoName = `${installation.accountLogin}/${slug}-data`;
+  const [already] = await db
+    .select({ id: sites.id })
+    .from(sites)
+    .where(and(eq(sites.userId, user.id), eq(sites.dataRepo, dataRepoName)))
+    .limit(1);
+  if (already) {
+    return await redirectTo(`/sites/${already.id}?created=1`);
+  }
+
   let result;
   try {
     result = await provisionSite({

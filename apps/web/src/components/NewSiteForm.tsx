@@ -1,7 +1,6 @@
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
-import { useFormStatus } from "react-dom";
 import { useLocale, useTranslations } from "next-intl";
 import { createSiteAction, type CreateSiteState } from "@/lib/actions";
 import { FormError } from "@/components/FormError";
@@ -24,15 +23,16 @@ interface Props {
 }
 
 export function NewSiteForm({ installations, themes, connectMoreUrl }: Props) {
-  const [state, formAction] = useActionState<CreateSiteState, FormData>(createSiteAction, {});
+  const [state, formAction, pending] = useActionState<CreateSiteState, FormData>(createSiteAction, {});
 
   return (
-    <form action={formAction} className="relative mt-8 space-y-8">
+    <form action={formAction} className="relative mt-8 space-y-8" aria-busy={pending}>
       <NewSiteFormFields
         installations={installations}
         themes={themes}
         connectMoreUrl={connectMoreUrl}
         error={state.error}
+        pending={pending}
       />
     </form>
   );
@@ -43,11 +43,11 @@ function NewSiteFormFields({
   themes,
   connectMoreUrl,
   error,
-}: Props & { error?: string }) {
+  pending,
+}: Props & { error?: string; pending: boolean }) {
   const t = useTranslations("newSite");
   const tt = useTranslations("themes");
   const locale = useLocale();
-  const { pending } = useFormStatus();
   const [selectedTheme, setSelectedTheme] = useState(themes[0]?.name ?? "");
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
@@ -84,10 +84,16 @@ function NewSiteFormFields({
 
   const elapsedSeconds = Math.floor(elapsedMs / 1000);
 
+  useEffect(() => {
+    if (!error || pending) return;
+    document.querySelector("[data-form-error]")?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [error, pending]);
+
   return (
-    <>
-      <div className="relative">
-        <fieldset disabled={pending} className="space-y-8">
+    <div className="relative space-y-8">
+      {error && !pending ? <FormError error={error} /> : null}
+
+      <fieldset disabled={pending} className="space-y-8">
           <section className="rounded-xl border border-neutral-200 bg-white p-6">
             <h2 className="font-semibold">{t("stepInfo")}</h2>
             <div className="mt-4 grid gap-4 sm:grid-cols-2">
@@ -211,34 +217,33 @@ function NewSiteFormFields({
           </section>
         </fieldset>
 
-        {pending && (
-          <div
-            className="absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-white/90 p-6"
-            aria-live="polite"
-            aria-busy="true"
-          >
-            <div className="max-w-md text-center">
-              <p className="font-semibold text-neutral-900">{t("busyTitle")}</p>
-              <p className="mt-2 text-sm leading-relaxed text-neutral-600">{t("busyBody")}</p>
-              <p className="mt-3 text-sm tabular-nums text-neutral-500">
-                {t("busyElapsed", { n: elapsedSeconds })}
-              </p>
-              <p className="mt-3 text-xs text-neutral-400">{t("stayOnPage")}</p>
-            </div>
-          </div>
-        )}
-      </div>
-
-      <FormError error={error} />
-
       <ProgressButton
         wide
         expectedSeconds={40}
+        announceBuild={false}
+        error={error}
         pendingLabel={t("pending")}
-        className="w-full rounded-md bg-gp-brand px-6 py-3 font-semibold text-white hover:opacity-90"
+        className="w-full rounded-md bg-gp-brand px-6 py-3 font-semibold text-white hover:opacity-90 disabled:opacity-80"
       >
         {t("submit")}
       </ProgressButton>
-    </>
+
+      {pending && (
+        <div
+          className="absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-white/90 p-6"
+          aria-live="polite"
+          aria-busy="true"
+        >
+          <div className="max-w-md text-center">
+            <p className="font-semibold text-neutral-900">{t("busyTitle")}</p>
+            <p className="mt-2 text-sm leading-relaxed text-neutral-600">{t("busyBody")}</p>
+            <p className="mt-3 text-sm tabular-nums text-neutral-500">
+              {t("busyElapsed", { n: elapsedSeconds })}
+            </p>
+            <p className="mt-3 text-xs text-neutral-400">{t("stayOnPage")}</p>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

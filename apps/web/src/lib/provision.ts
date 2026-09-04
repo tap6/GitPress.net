@@ -7,11 +7,14 @@ import {
   dispatchBuild,
   enablePages,
   generateDeployKeyPair,
+  getFileText,
   getInstallationOctokit,
+  GITHUB_USER_RECONNECT,
   probeRepo,
   putActionsSecret,
   removeDeployKeys,
-  type RepoPresence,
+  repoHasCommits,
+  waitUntilRepoVisible,
 } from "./github";
 import { refreshInstallationUserToken, resolveInstallationUserToken } from "./userAccessToken";
 import { buildWorkflow } from "./publishCheck";
@@ -62,14 +65,31 @@ export class ProvisionPartialError extends Error {
   }
 }
 
-function repoTaken(presence: RepoPresence): boolean {
-  return presence === "ok" || presence === "forbidden";
+function isRepoNameTaken(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return message.toLowerCase().includes("already exists");
+}
+
+async function ensureRepository(
+  options: Parameters<typeof createRepository>[0],
+): Promise<"created" | "existed"> {
+  try {
+    await createRepository(options);
+    return "created";
+  } catch (error) {
+    if (isRepoNameTaken(error)) return "existed";
+    throw error;
+  }
 }
 
 /**
  * Create the two repositories for a new site and initialize them:
  *   - <slug>-data (private): content + config + build workflow
  *   - <slug> (public): receives compiled output, serves GitHub Pages
+ *
+ * Safe to retry: empty leftover repos from a failed first click are filled in;
+ * a data repo that already has gitpress.json + workflow is adopted without
+ * overwriting posts. A non-empty data repo that is not a GitPress repo is rejected.
  */
 export async function provisionSite(input: ProvisionInput): Promise<ProvisionResult> {
   const { installation, site } = input;
@@ -83,14 +103,6 @@ export async function provisionSite(input: ProvisionInput): Promise<ProvisionRes
   const dataFull = `${owner}/${dataRepoName}`;
   const siteFull = `${owner}/${siteRepoName}`;
 
-  const [dataPresence, sitePresence] = await Promise.all([
-    probeRepo(octokit, dataFull),
-    probeRepo(octokit, siteFull),
-  ]);
-  if (repoTaken(dataPresence) || repoTaken(sitePresence)) {
-    throw new RepoAlreadyExistsError(site.slug);
-  }
-
   const userToken =
     installation.accountType === "Organization"
       ? installation.userToken
@@ -102,7 +114,18 @@ export async function provisionSite(input: ProvisionInput): Promise<ProvisionRes
 
   const created: string[] = [];
   try {
-    await createRepository({
+    const dataPresence = await probeRepo(octokit, dataFull);
+    if (dataPresence === "forbidden") throw new RepoAlreadyExistsError(site.slug);
+    if (dataPresence === "ok") {
+      await waitUntilRepoVisible(octokit, dataFull);
+      const [existingConfig, dataHasCommits] = await Promise.all([
+        getFileText(octokit, dataRef, "gitpress.json"),
+        repoHasCommits(octokit, dataRef),
+      ]);
+      if (dataHasCommits && !existingConfig) throw new RepoAlreadyExistsError(site.slug);
+    }
+
+    const dataCreated = await ensureRepository({
       octokit,
       accountLogin: owner,
       accountType: installation.accountType,
@@ -113,9 +136,9 @@ export async function provisionSite(input: ProvisionInput): Promise<ProvisionRes
       isPrivate: true,
       autoInit: false,
     });
-    created.push(dataFull);
+    if (dataCreated === "created") created.push(dataFull);
 
-    await createRepository({
+    const siteCreated = await ensureRepository({
       octokit,
       accountLogin: owner,
       accountType: installation.accountType,
@@ -126,54 +149,46 @@ export async function provisionSite(input: ProvisionInput): Promise<ProvisionRes
       isPrivate: false,
       autoInit: true,
     });
-    created.push(siteFull);
+    if (siteCreated === "created") created.push(siteFull);
 
-    const keys = generateDeployKeyPair();
-    await addDeployKey(octokit, siteRef, keys.publicOpenSsh);
-    await putActionsSecret(octokit, dataRef, "GITPRESS_DEPLOY_KEY", keys.privatePem);
+    await waitUntilRepoVisible(octokit, dataFull);
+    await waitUntilRepoVisible(octokit, siteFull);
+
+    const [configFile, workflowFile, dataHasCommits] = await Promise.all([
+      getFileText(octokit, dataRef, "gitpress.json"),
+      getFileText(octokit, dataRef, ".github/workflows/gitpress-build.yml"),
+      repoHasCommits(octokit, dataRef),
+    ]);
+    const gitpressReady = Boolean(configFile && workflowFile);
+    if (dataHasCommits && !configFile) {
+      throw new RepoAlreadyExistsError(site.slug);
+    }
 
     const pagesUrl = `https://${owner.toLowerCase()}.github.io/${siteRepoName}/`;
     const basePath = `/${siteRepoName}/`;
 
-    const today = new Date()
-      .toLocaleString("sv-SE", { timeZone: "Asia/Shanghai" })
-      .replace(" ", "T");
-    await commitFiles(
-      octokit,
-      dataRef,
-      [
-        {
-          path: "gitpress.json",
-          utf8: `${JSON.stringify(
-            {
-              schemaVersion: 1,
-              site: {
-                title: site.name,
-                description: site.description,
-                language: site.language,
-                timezone: defaultTimeZone(site.language),
-                url: pagesUrl,
-                basePath,
-                ...(site.author ? { author: site.author } : {}),
-              },
-              theme: { name: site.themeName, source: "builtin", ref: "v1", config: {} },
-              build: { includeDrafts: false, output: "dist" },
-            },
-            null,
-            2,
-          )}\n`,
-        },
-        { path: "content/posts/hello-world.md", utf8: helloPost(today, site.language) },
-        { path: "content/pages/about.md", utf8: aboutPage(site.language) },
-        { path: "media/.gitkeep", utf8: "" },
-        { path: "README.md", utf8: dataReadme(site.name, siteFull) },
-        {
-          path: ".github/workflows/gitpress-build.yml",
-          utf8: buildWorkflow(siteFull, null),
-        },
-      ],
-      "Initialize GitPress data repository",
-    );
+    if (!gitpressReady) {
+      const today = new Date()
+        .toLocaleString("sv-SE", { timeZone: "Asia/Shanghai" })
+        .replace(" ", "T");
+      await commitFiles(
+        octokit,
+        dataRef,
+        initialDataFiles({
+          site,
+          pagesUrl,
+          basePath,
+          siteFull,
+          today,
+        }),
+        "Initialize GitPress data repository",
+      );
+    }
+
+    const keys = generateDeployKeyPair();
+    await removeDeployKeys(octokit, siteRef);
+    await addDeployKey(octokit, siteRef, keys.publicOpenSsh);
+    await putActionsSecret(octokit, dataRef, "GITPRESS_DEPLOY_KEY", keys.privatePem);
 
     const enabledUrl = await enablePages(octokit, siteRef);
 
@@ -186,12 +201,54 @@ export async function provisionSite(input: ProvisionInput): Promise<ProvisionRes
     };
   } catch (error) {
     if (error instanceof RepoAlreadyExistsError) throw error;
+    if (error instanceof Error && error.message === GITHUB_USER_RECONNECT) throw error;
     const message = error instanceof Error ? error.message : String(error);
     if (created.length > 0) {
       throw new ProvisionPartialError(message, created);
     }
     throw error;
   }
+}
+
+function initialDataFiles(input: {
+  site: ProvisionInput["site"];
+  pagesUrl: string;
+  basePath: string;
+  siteFull: string;
+  today: string;
+}) {
+  const { site, pagesUrl, basePath, siteFull, today } = input;
+  return [
+    {
+      path: "gitpress.json",
+      utf8: `${JSON.stringify(
+        {
+          schemaVersion: 1,
+          site: {
+            title: site.name,
+            description: site.description,
+            language: site.language,
+            timezone: defaultTimeZone(site.language),
+            url: pagesUrl,
+            basePath,
+            ...(site.author ? { author: site.author } : {}),
+          },
+          theme: { name: site.themeName, source: "builtin", ref: "v1", config: {} },
+          build: { includeDrafts: false, output: "dist" },
+        },
+        null,
+        2,
+      )}\n`,
+    },
+    { path: "content/posts/hello-world.md", utf8: helloPost(today, site.language) },
+    { path: "content/pages/about.md", utf8: aboutPage(site.language) },
+    { path: "media/.gitkeep", utf8: "" },
+    { path: "README.md", utf8: dataReadme(site.name, siteFull) },
+    {
+      path: ".github/workflows/gitpress-build.yml",
+      utf8: buildWorkflow(siteFull, null),
+    },
+  ];
 }
 
 export async function triggerRebuild(installationId: number, dataRepo: string): Promise<void> {
