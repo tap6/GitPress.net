@@ -257,7 +257,7 @@ export async function repoHasCommits(octokit: Octokit, ref: RepoRef): Promise<bo
 export async function waitUntilRepoVisible(
   octokit: Octokit,
   fullName: string,
-  attempts = 10,
+  attempts = 6,
 ): Promise<void> {
   for (let attempt = 0; attempt < attempts; attempt++) {
     const presence = await probeRepo(octokit, fullName);
@@ -265,7 +265,7 @@ export async function waitUntilRepoVisible(
     if (presence === "forbidden") {
       throw new Error(`Repository ${fullName} is forbidden to the GitHub App.`);
     }
-    await new Promise((resolve) => setTimeout(resolve, 400 + attempt * 250));
+    await new Promise((resolve) => setTimeout(resolve, 180 + attempt * 120));
   }
   throw new Error(`Repository ${fullName} is not visible to the GitHub App yet.`);
 }
@@ -585,7 +585,22 @@ export async function commitFiles(
     }
     await putFile(octokit, ref, first.path, first, message);
     const rest = meaningful.filter((file) => file !== first);
-    if (rest.length > 0) await commitFiles(octokit, ref, rest, message);
+    if (rest.length > 0) {
+      for (let attempt = 0; attempt < 4; attempt++) {
+        try {
+          await octokit.request("GET /repos/{owner}/{repo}/git/ref/{ref}", {
+            ...ref,
+            ref: `heads/${branch}`,
+          });
+          break;
+        } catch (error) {
+          const status = githubHttpStatus(error);
+          if (status !== 404 && status !== 409) throw error;
+          await new Promise((resolve) => setTimeout(resolve, 120 + attempt * 80));
+        }
+      }
+      await commitFiles(octokit, ref, rest, message);
+    }
     return;
   }
 

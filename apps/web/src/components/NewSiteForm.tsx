@@ -3,12 +3,25 @@
 import { useActionState, useEffect, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { createSiteAction, type CreateSiteState } from "@/lib/actions";
+import { AppErrorBoundary } from "@/components/AppErrorFallback";
 import { FormError } from "@/components/FormError";
 import { ProgressButton } from "@/components/ProgressButton";
 import { ThemePreviewImage } from "@/components/ThemePreviewImage";
 import { siteLanguageForLocale } from "@/i18n/routing";
 import { resolveGithubRepoSlug, suggestedGithubRepoSlug } from "@/lib/githubRepoSlug";
 import type { BuiltinTheme } from "@/lib/themes";
+
+function repoSlugPreview(
+  t: (key: string, values: { owner: string; slug: string }) => string,
+  owner: string,
+  slug: string,
+): string {
+  try {
+    return t("slugPreview", { owner, slug });
+  } catch {
+    return `${owner}/${slug} · ${owner}/${slug}-data`;
+  }
+}
 
 interface InstallationOption {
   id: string;
@@ -26,15 +39,17 @@ export function NewSiteForm({ installations, themes, connectMoreUrl }: Props) {
   const [state, formAction, pending] = useActionState<CreateSiteState, FormData>(createSiteAction, {});
 
   return (
-    <form action={formAction} className="relative mt-8 space-y-8" aria-busy={pending}>
-      <NewSiteFormFields
-        installations={installations}
-        themes={themes}
-        connectMoreUrl={connectMoreUrl}
-        error={state.error}
-        pending={pending}
-      />
-    </form>
+    <AppErrorBoundary>
+      <form action={formAction} className="relative mt-8 space-y-8" aria-busy={pending}>
+        <NewSiteFormFields
+          installations={installations}
+          themes={themes}
+          connectMoreUrl={connectMoreUrl}
+          error={state.error}
+          pending={pending}
+        />
+      </form>
+    </AppErrorBoundary>
   );
 }
 
@@ -129,7 +144,7 @@ function NewSiteFormFields({
                 />
                 {resolved && owner ? (
                   <span className="mt-1 block text-xs text-neutral-500">
-                    {t("slugPreview", { owner, slug: resolved })}
+                    {repoSlugPreview(t, owner, resolved)}
                   </span>
                 ) : slugRequired ? (
                   <span className="mt-1 block text-xs text-red-600">{t("slugNeeded")}</span>

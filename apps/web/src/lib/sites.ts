@@ -1,4 +1,5 @@
 import { and, eq } from "drizzle-orm";
+import { headers } from "next/headers";
 import { redirectTo } from "@/i18n/redirect";
 import { auth } from "@/auth";
 import { db } from "@/db";
@@ -11,7 +12,11 @@ export type InstallationRow = typeof githubInstallations.$inferSelect;
 export async function requireUser() {
   const session = await auth();
   if (!session?.user?.id) return await redirectTo("/login");
-  await maybeRedirectToPreferredLocale("/dashboard");
+  // Server Actions POST with a `Next-Action` header. Bouncing locale here would
+  // abort create-site (and other mutations) with a client exception.
+  if (!(await headers()).get("next-action")) {
+    await maybeRedirectToPreferredLocale("/dashboard");
+  }
   return session.user as { id: string; name?: string | null; email?: string | null; image?: string | null };
 }
 

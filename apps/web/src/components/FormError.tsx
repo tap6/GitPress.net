@@ -20,7 +20,12 @@ export function useFormErrorText() {
         return error;
       }
     }
-    return t.has(key) ? t(key, values) : error;
+    try {
+      if (typeof t.has === "function" && t.has(key)) return t(key, values);
+    } catch {
+      /* ICU / missing interpolations must not crash the page. */
+    }
+    return error;
   };
 }
 

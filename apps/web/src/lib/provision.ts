@@ -151,8 +151,7 @@ export async function provisionSite(input: ProvisionInput): Promise<ProvisionRes
     });
     if (siteCreated === "created") created.push(siteFull);
 
-    await waitUntilRepoVisible(octokit, dataFull);
-    await waitUntilRepoVisible(octokit, siteFull);
+    await Promise.all([waitUntilRepoVisible(octokit, dataFull), waitUntilRepoVisible(octokit, siteFull)]);
 
     const [configFile, workflowFile, dataHasCommits] = await Promise.all([
       getFileText(octokit, dataRef, "gitpress.json"),
