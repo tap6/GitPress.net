@@ -498,7 +498,8 @@ export interface CommitFile {
  * One git commit containing many files (Git Data API: blobs + tree + commit).
  * The Contents API is one-file-per-commit, which would fire a GitHub Actions
  * run for every image; batching means N images + the post become a single
- * `on: push` build.
+ * `on: push` build. Empty repositories (no default branch yet) get an initial
+ * commit and `refs/heads/{branch}` instead of PATCH-ing an existing ref.
  */
 export async function commitFiles(
   octokit: Octokit,
@@ -522,15 +523,25 @@ export async function commitFiles(
 
   const { data: repo } = await octokit.request("GET /repos/{owner}/{repo}", { ...ref });
   const branch = repo.default_branch || "main";
-  const { data: head } = await octokit.request("GET /repos/{owner}/{repo}/git/ref/{ref}", {
-    ...ref,
-    ref: `heads/${branch}`,
-  });
-  const parentSha = head.object.sha;
-  const { data: parent } = await octokit.request("GET /repos/{owner}/{repo}/git/commits/{commit_sha}", {
-    ...ref,
-    commit_sha: parentSha,
-  });
+
+  let parentSha: string | null = null;
+  let baseTree: string | undefined;
+  try {
+    const { data: head } = await octokit.request("GET /repos/{owner}/{repo}/git/ref/{ref}", {
+      ...ref,
+      ref: `heads/${branch}`,
+    });
+    parentSha = head.object.sha;
+    const { data: parent } = await octokit.request("GET /repos/{owner}/{repo}/git/commits/{commit_sha}", {
+      ...ref,
+      commit_sha: parentSha,
+    });
+    baseTree = parent.tree.sha;
+  } catch (error) {
+    const status = githubHttpStatus(error);
+    // Empty repos: 404, or 409 "Git Repository is empty."
+    if (status !== 404 && status !== 409) throw error;
+  }
 
   const tree = await Promise.all(
     meaningful.map(async (file) => {
@@ -560,20 +571,28 @@ export async function commitFiles(
 
   const { data: newTree } = await octokit.request("POST /repos/{owner}/{repo}/git/trees", {
     ...ref,
-    base_tree: parent.tree.sha,
+    ...(baseTree ? { base_tree: baseTree } : {}),
     tree,
   });
   const { data: commit } = await octokit.request("POST /repos/{owner}/{repo}/git/commits", {
     ...ref,
     message,
     tree: newTree.sha,
-    parents: [parentSha],
+    parents: parentSha ? [parentSha] : [],
   });
-  await octokit.request("PATCH /repos/{owner}/{repo}/git/refs/{ref}", {
-    ...ref,
-    ref: `heads/${branch}`,
-    sha: commit.sha,
-  });
+  if (parentSha) {
+    await octokit.request("PATCH /repos/{owner}/{repo}/git/refs/{ref}", {
+      ...ref,
+      ref: `heads/${branch}`,
+      sha: commit.sha,
+    });
+  } else {
+    await octokit.request("POST /repos/{owner}/{repo}/git/refs", {
+      ...ref,
+      ref: `refs/heads/${branch}`,
+      sha: commit.sha,
+    });
+  }
 }
 
 export interface RepoFile {

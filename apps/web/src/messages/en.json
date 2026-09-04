@@ -101,8 +101,10 @@
     "name": "Site name *",
     "namePlaceholder": "My blog",
     "slug": "Slug (repo name)",
-    "slugPlaceholder": "my-blog (leave blank to generate)",
+    "slugPlaceholder": "my-blog (optional for English names)",
     "slugHint": "Creates a public repo named slug and a private slug-data repo.",
+    "slugPreview": "Will create {owner}/{slug} (public) and {owner}/{slug}-data (private)",
+    "slugNeeded": "This name can’t be turned into a GitHub repo slug automatically. Enter lowercase letters, numbers, and hyphens.",
     "description": "Tagline",
     "descriptionPlaceholder": "One sentence about your blog",
     "language": "Language",
@@ -130,7 +132,11 @@
     "themeHint": "You can switch later. Content is never affected.",
     "themePreview": "{name} preview",
     "official": "Official",
-    "pending": "Creating repos and first build"
+    "pending": "Creating repositories",
+    "busyTitle": "Creating your site",
+    "busyBody": "GitPress is creating two GitHub repositories and writing the starter files. This usually takes a few dozen seconds.",
+    "busyElapsed": "{n}s elapsed",
+    "stayOnPage": "Don’t close or refresh this page."
   },
   "settings": {
     "general": "General",
@@ -637,6 +643,7 @@
     "needGithub": "Connect a GitHub account first.",
     "githubReconnect": "GitHub user authorization has expired. Use “Connect another GitHub account” below to re-authorize, then try again.",
     "repoExists": "Repo {slug} or {slug}-data already exists. Pick another slug.",
+    "initPartial": "Setup failed. GitHub may already have {repos}. Delete those repositories on GitHub, then retry with the same slug.",
     "initFailed": "Setup failed: {detail}",
     "needTitle": "Enter a title.",
     "imagesOnly": "Only image files can be submitted with a post.",
@@ -793,7 +800,8 @@
   },
   "siteDash": {
     "title": "Dashboard",
-    "created": "Site created. The first build is running on GitHub Actions and is usually live in 1–2 minutes.",
+    "created": "Site created. The first build is running on GitHub Actions and is usually live in 1–2 minutes. Watch Recent builds on this page.",
+    "createdUrl": "The address is {url} (open it after the build finishes).",
     "published": "Published posts",
     "drafts": "Drafts (in the private repo, hidden on the public site)",
     "currentTheme": "Current theme",

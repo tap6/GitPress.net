@@ -77,7 +77,8 @@ import {
   writePublishCheckWorkflow,
 } from "./publishCheckRepo";
 import { resolvePublicOrigin } from "./customDomain";
-import { provisionSite, rotateDeployKey, triggerRebuild } from "./provision";
+import { provisionSite, rotateDeployKey, triggerRebuild, ProvisionPartialError, RepoAlreadyExistsError } from "./provision";
+import { resolveGithubRepoSlug } from "./githubRepoSlug";
 import { revalidateSiteData } from "./siteDataCache";
 import { requireSite, requireUser } from "./sites";
 import { getBuiltinTheme } from "./themes";
@@ -119,8 +120,8 @@ export async function createSiteAction(
   const themeName = String(formData.get("theme") ?? "");
 
   if (!name) return { error: actionError("needName") };
-  const slug = slugify(slugInput || name);
-  if (!/^[a-z0-9][a-z0-9-]*$/.test(slug)) {
+  const slug = resolveGithubRepoSlug(name, slugInput);
+  if (!slug) {
     return { error: actionError("invalidSlug") };
   }
   if (!getBuiltinTheme(themeName)) return { error: actionError("needTheme") };
@@ -148,13 +149,16 @@ export async function createSiteAction(
       },
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    if (message.includes("name already exists")) {
+    if (error instanceof ProvisionPartialError) {
+      return { error: actionError("initPartial", { repos: error.repos.join(", ") }) };
+    }
+    if (error instanceof RepoAlreadyExistsError || (error instanceof Error && error.message.includes("name already exists"))) {
       return { error: actionError("repoExists", { slug }) };
     }
-    if (message === GITHUB_USER_RECONNECT) {
+    if (error instanceof Error && error.message === GITHUB_USER_RECONNECT) {
       return { error: actionError("githubReconnect") };
     }
+    const message = error instanceof Error ? error.message : String(error);
     return { error: actionError("initFailed", { detail: message }) };
   }
 

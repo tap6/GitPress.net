@@ -102,15 +102,8 @@ export default async function SiteDashboard({
 
       {created && (
         <div className="mt-4 rounded border-l-4 border-emerald-500 bg-white p-4 text-sm shadow-sm">
-          {t("created")}
-          {site.url ? (
-            <>
-              {" "}
-              <a href={site.url} target="_blank" rel="noreferrer" className="text-wp-accent underline">
-                {site.url}
-              </a>
-            </>
-          ) : null}
+          <p>{t("created")}</p>
+          {site.url ? <p className="mt-2 text-neutral-500">{t("createdUrl", { url: site.url })}</p> : null}
         </div>
       )}
 

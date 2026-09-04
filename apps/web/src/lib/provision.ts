@@ -2,14 +2,16 @@ import type { Octokit } from "octokit";
 import { defaultAboutTitle, defaultTimeZone, languageBase } from "./locale";
 import {
   addDeployKey,
+  commitFiles,
   createRepository,
   dispatchBuild,
   enablePages,
   generateDeployKeyPair,
   getInstallationOctokit,
+  probeRepo,
   putActionsSecret,
-  putFile,
   removeDeployKeys,
+  type RepoPresence,
 } from "./github";
 import { refreshInstallationUserToken, resolveInstallationUserToken } from "./userAccessToken";
 import { buildWorkflow } from "./publishCheck";
@@ -41,6 +43,29 @@ export interface ProvisionResult {
   pagesEnabled: boolean;
 }
 
+/** Thrown when GitHub already has `{slug}` or `{slug}-data`. */
+export class RepoAlreadyExistsError extends Error {
+  constructor(public slug: string) {
+    super("name already exists");
+    this.name = "RepoAlreadyExistsError";
+  }
+}
+
+/** Thrown after at least one repo was created in this attempt. Does not delete anything. */
+export class ProvisionPartialError extends Error {
+  constructor(
+    message: string,
+    public repos: string[],
+  ) {
+    super(message);
+    this.name = "ProvisionPartialError";
+  }
+}
+
+function repoTaken(presence: RepoPresence): boolean {
+  return presence === "ok" || presence === "forbidden";
+}
+
 /**
  * Create the two repositories for a new site and initialize them:
  *   - <slug>-data (private): content + config + build workflow
@@ -55,6 +80,16 @@ export async function provisionSite(input: ProvisionInput): Promise<ProvisionRes
   const siteRepoName = site.slug;
   const dataRef = { owner, repo: dataRepoName };
   const siteRef = { owner, repo: siteRepoName };
+  const dataFull = `${owner}/${dataRepoName}`;
+  const siteFull = `${owner}/${siteRepoName}`;
+
+  const [dataPresence, sitePresence] = await Promise.all([
+    probeRepo(octokit, dataFull),
+    probeRepo(octokit, siteFull),
+  ]);
+  if (repoTaken(dataPresence) || repoTaken(sitePresence)) {
+    throw new RepoAlreadyExistsError(site.slug);
+  }
 
   const userToken =
     installation.accountType === "Organization"
@@ -65,103 +100,98 @@ export async function provisionSite(input: ProvisionInput): Promise<ProvisionRes
       ? undefined
       : () => refreshInstallationUserToken(installation);
 
-  // 1. Create both repositories.
-  await createRepository({
-    octokit,
-    accountLogin: owner,
-    accountType: installation.accountType,
-    userToken,
-    refreshUserToken,
-    name: dataRepoName,
-    description: `Content for "${site.name}" (GitPress data repository)`,
-    isPrivate: true,
-    autoInit: false,
-  });
-  await createRepository({
-    octokit,
-    accountLogin: owner,
-    accountType: installation.accountType,
-    userToken: installation.userToken ?? userToken,
-    refreshUserToken,
-    name: siteRepoName,
-    description: `Compiled site for "${site.name}" (published by GitPress)`,
-    isPrivate: false,
-    autoInit: true,
-  });
+  const created: string[] = [];
+  try {
+    await createRepository({
+      octokit,
+      accountLogin: owner,
+      accountType: installation.accountType,
+      userToken,
+      refreshUserToken,
+      name: dataRepoName,
+      description: `Content for "${site.name}" (GitPress data repository)`,
+      isPrivate: true,
+      autoInit: false,
+    });
+    created.push(dataFull);
 
-  // 2. Deploy key: public half on the site repo, private half as a secret in the data repo.
-  const keys = generateDeployKeyPair();
-  await addDeployKey(octokit, siteRef, keys.publicOpenSsh);
-  await putActionsSecret(octokit, dataRef, "GITPRESS_DEPLOY_KEY", keys.privatePem);
+    await createRepository({
+      octokit,
+      accountLogin: owner,
+      accountType: installation.accountType,
+      userToken: installation.userToken ?? userToken,
+      refreshUserToken,
+      name: siteRepoName,
+      description: `Compiled site for "${site.name}" (published by GitPress)`,
+      isPrivate: false,
+      autoInit: true,
+    });
+    created.push(siteFull);
 
-  // 3. Compute the public URL (default: GitHub Pages project site).
-  const pagesUrl = `https://${owner.toLowerCase()}.github.io/${siteRepoName}/`;
-  const basePath = `/${siteRepoName}/`;
+    const keys = generateDeployKeyPair();
+    await addDeployKey(octokit, siteRef, keys.publicOpenSsh);
+    await putActionsSecret(octokit, dataRef, "GITPRESS_DEPLOY_KEY", keys.privatePem);
 
-  // 4. Push the initial content. The workflow file goes last so the first
-  //    triggered build already sees the complete repository.
-  const today = new Date()
-    .toLocaleString("sv-SE", { timeZone: "Asia/Shanghai" })
-    .replace(" ", "T");
-  const files: Array<{ path: string; content: string }> = [
-    {
-      path: "gitpress.json",
-      content: `${JSON.stringify(
+    const pagesUrl = `https://${owner.toLowerCase()}.github.io/${siteRepoName}/`;
+    const basePath = `/${siteRepoName}/`;
+
+    const today = new Date()
+      .toLocaleString("sv-SE", { timeZone: "Asia/Shanghai" })
+      .replace(" ", "T");
+    await commitFiles(
+      octokit,
+      dataRef,
+      [
         {
-          schemaVersion: 1,
-          site: {
-            title: site.name,
-            description: site.description,
-            language: site.language,
-            timezone: defaultTimeZone(site.language),
-            url: pagesUrl,
-            basePath,
-            ...(site.author ? { author: site.author } : {}),
-          },
-          theme: { name: site.themeName, source: "builtin", ref: "v1", config: {} },
-          build: { includeDrafts: false, output: "dist" },
+          path: "gitpress.json",
+          utf8: `${JSON.stringify(
+            {
+              schemaVersion: 1,
+              site: {
+                title: site.name,
+                description: site.description,
+                language: site.language,
+                timezone: defaultTimeZone(site.language),
+                url: pagesUrl,
+                basePath,
+                ...(site.author ? { author: site.author } : {}),
+              },
+              theme: { name: site.themeName, source: "builtin", ref: "v1", config: {} },
+              build: { includeDrafts: false, output: "dist" },
+            },
+            null,
+            2,
+          )}\n`,
         },
-        null,
-        2,
-      )}\n`,
-    },
-    {
-      path: "content/posts/hello-world.md",
-      content: helloPost(today, site.language),
-    },
-    {
-      path: "content/pages/about.md",
-      content: aboutPage(site.language),
-    },
-    {
-      path: "media/.gitkeep",
-      content: "",
-    },
-    {
-      path: "README.md",
-      content: dataReadme(site.name, `${owner}/${siteRepoName}`),
-    },
-    {
-      path: ".github/workflows/gitpress-build.yml",
-      content: buildWorkflow(`${owner}/${siteRepoName}`, null),
-    },
-  ];
-  for (const file of files) {
-    await putFile(octokit, dataRef, file.path, { utf8: file.content }, `Initialize ${file.path}`);
+        { path: "content/posts/hello-world.md", utf8: helloPost(today, site.language) },
+        { path: "content/pages/about.md", utf8: aboutPage(site.language) },
+        { path: "media/.gitkeep", utf8: "" },
+        { path: "README.md", utf8: dataReadme(site.name, siteFull) },
+        {
+          path: ".github/workflows/gitpress-build.yml",
+          utf8: buildWorkflow(siteFull, null),
+        },
+      ],
+      "Initialize GitPress data repository",
+    );
+
+    const enabledUrl = await enablePages(octokit, siteRef);
+
+    return {
+      dataRepo: dataFull,
+      siteRepo: siteFull,
+      url: enabledUrl ?? pagesUrl,
+      basePath,
+      pagesEnabled: enabledUrl != null,
+    };
+  } catch (error) {
+    if (error instanceof RepoAlreadyExistsError) throw error;
+    const message = error instanceof Error ? error.message : String(error);
+    if (created.length > 0) {
+      throw new ProvisionPartialError(message, created);
+    }
+    throw error;
   }
-
-  // 5. Enable Pages on the site repo. No need to also call dispatchBuild
-  //    here — the workflow file committed above already triggered the
-  //    first build via its own `on: push`.
-  const enabledUrl = await enablePages(octokit, siteRef);
-
-  return {
-    dataRepo: `${owner}/${dataRepoName}`,
-    siteRepo: `${owner}/${siteRepoName}`,
-    url: enabledUrl ?? pagesUrl,
-    basePath,
-    pagesEnabled: enabledUrl != null,
-  };
 }
 
 export async function triggerRebuild(installationId: number, dataRepo: string): Promise<void> {
