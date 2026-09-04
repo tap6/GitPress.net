@@ -17,7 +17,6 @@ import {
   getInstallationPermissionGap,
   listBuildRuns,
   splitRepo,
-  type ActionsUsage,
 } from "@/lib/github";
 import { loadPublishCheck } from "@/lib/publishCheckRepo";
 import { cachedActionsUsage, cachedListPosts } from "@/lib/siteDataCache";
@@ -30,16 +29,6 @@ import { ScratchNoteWidget } from "@/components/ScratchNoteWidget";
 import { ScheduledWhileOffBanner } from "@/components/ScheduledWhileOffBanner";
 import { getScratchNote } from "@/lib/scratchNote";
 import type { ReactNode } from "react";
-import type { PublishCheckState } from "@/lib/publishCheck";
-
-async function settle<T>(promise: Promise<T>, fallback: T): Promise<T> {
-  try {
-    return await promise;
-  } catch (error) {
-    console.error(error);
-    return fallback;
-  }
-}
 
 function QuickIcon({ children }: { children: ReactNode }) {
   return (
@@ -79,48 +68,22 @@ export default async function SiteDashboard({
   const tg = await getTranslations("github");
   const dateLocale = locale === "zh" ? "zh-CN" : "en";
 
-  const octokit = await settle(getInstallationOctokit(installation.installationId), null);
-  const userToken = await settle(resolveInstallationUserToken(installation), null);
-  const emptyUsage: ActionsUsage = {
-    actionsPermissionMissing: Boolean(octokit),
-    siteMinutesThisMonth: 0,
-    siteRunCountThisMonth: 0,
-    daily: [],
-    accountMinutesThisMonth: null,
-    accountIncludedMinutes: null,
-    billingUnavailable: true,
-    billingUrl: "https://github.com/settings/billing",
-    periodLabel: "",
-  };
-  const emptyPublish: PublishCheckState = { enabled: false, interval: null, dataRepoPrivate: true };
+  const octokit = await getInstallationOctokit(installation.installationId);
+  const userToken = await resolveInstallationUserToken(installation);
   const [posts, { runs, actionsPermissionMissing }, permissionGap, usage, scratch, publishCheck] =
     await Promise.all([
-      octokit
-        ? settle(cachedListPosts(installation.installationId, site.dataRepo), [])
-        : [],
-      octokit
-        ? settle(listBuildRuns(octokit, splitRepo(site.dataRepo), { perPage: RECENT_BUILD_FETCH_COUNT }), {
-            runs: [],
-            actionsPermissionMissing: true,
-          })
-        : { runs: [], actionsPermissionMissing: true },
-      settle(getInstallationPermissionGap(installation.installationId), null),
-      octokit
-        ? settle(
-            cachedActionsUsage({
-              installationId: installation.installationId,
-              dataRepo: site.dataRepo,
-              accountLogin: installation.accountLogin,
-              accountType: installation.accountType,
-              userToken,
-            }),
-            emptyUsage,
-          )
-        : emptyUsage,
-      settle(getScratchNote(site.id), { body: "", enabled: false }),
-      octokit
-        ? settle(loadPublishCheck(octokit, site.dataRepo, site.siteRepo), emptyPublish)
-        : emptyPublish,
+      cachedListPosts(installation.installationId, site.dataRepo),
+      listBuildRuns(octokit, splitRepo(site.dataRepo), { perPage: RECENT_BUILD_FETCH_COUNT }),
+      getInstallationPermissionGap(installation.installationId),
+      cachedActionsUsage({
+        installationId: installation.installationId,
+        dataRepo: site.dataRepo,
+        accountLogin: installation.accountLogin,
+        accountType: installation.accountType,
+        userToken,
+      }),
+      getScratchNote(site.id),
+      loadPublishCheck(octokit, site.dataRepo, site.siteRepo),
     ]);
   const buildGroups = groupRecentBuildRuns(runs);
   const published = posts.filter((post) => !post.draft).length;
@@ -139,8 +102,15 @@ export default async function SiteDashboard({
 
       {created && (
         <div className="mt-4 rounded border-l-4 border-emerald-500 bg-white p-4 text-sm shadow-sm">
-          <p>{t("created")}</p>
-          {site.url ? <p className="mt-2 text-neutral-500">{t("createdUrl", { url: site.url })}</p> : null}
+          {t("created")}
+          {site.url ? (
+            <>
+              {" "}
+              <a href={site.url} target="_blank" rel="noreferrer" className="text-wp-accent underline">
+                {site.url}
+              </a>
+            </>
+          ) : null}
         </div>
       )}
 

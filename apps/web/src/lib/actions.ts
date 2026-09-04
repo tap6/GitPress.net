@@ -4,7 +4,6 @@ import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirectTo } from "@/i18n/redirect";
 import { actionError, wrapCaughtError } from "./actionError";
-import { isNextControlFlowError } from "./nextControlFlow";
 import { db } from "@/db";
 import { githubInstallations, siteThemeLibrary, sites, themeListings } from "@/db/schema";
 import {
@@ -78,8 +77,7 @@ import {
   writePublishCheckWorkflow,
 } from "./publishCheckRepo";
 import { resolvePublicOrigin } from "./customDomain";
-import { provisionSite, rotateDeployKey, triggerRebuild, ProvisionPartialError, RepoAlreadyExistsError } from "./provision";
-import { resolveGithubRepoSlug } from "./githubRepoSlug";
+import { provisionSite, rotateDeployKey, triggerRebuild } from "./provision";
 import { revalidateSiteData } from "./siteDataCache";
 import { requireSite, requireUser } from "./sites";
 import { getBuiltinTheme } from "./themes";
@@ -107,20 +105,6 @@ export interface CreateSiteState {
   error?: string;
 }
 
-function createSiteCaughtError(error: unknown, slug: string): CreateSiteState {
-  if (error instanceof ProvisionPartialError) {
-    return { error: actionError("initPartial", { repos: error.repos.join(", ") }) };
-  }
-  if (error instanceof RepoAlreadyExistsError || (error instanceof Error && error.message.includes("name already exists"))) {
-    return { error: actionError("repoExists", { slug }) };
-  }
-  if (error instanceof Error && error.message === GITHUB_USER_RECONNECT) {
-    return { error: actionError("githubReconnect") };
-  }
-  const message = error instanceof Error ? error.message : String(error);
-  return { error: actionError("initFailed", { detail: message.slice(0, 300) }) };
-}
-
 export async function createSiteAction(
   _prev: CreateSiteState,
   formData: FormData,
@@ -135,8 +119,8 @@ export async function createSiteAction(
   const themeName = String(formData.get("theme") ?? "");
 
   if (!name) return { error: actionError("needName") };
-  const slug = resolveGithubRepoSlug(name, slugInput);
-  if (!slug) {
+  const slug = slugify(slugInput || name);
+  if (!/^[a-z0-9][a-z0-9-]*$/.test(slug)) {
     return { error: actionError("invalidSlug") };
   }
   if (!getBuiltinTheme(themeName)) return { error: actionError("needTheme") };
@@ -148,16 +132,6 @@ export async function createSiteAction(
     .limit(1);
   if (!installation || installation.userId !== user.id) {
     return { error: actionError("needGithub") };
-  }
-
-  const dataRepoName = `${installation.accountLogin}/${slug}-data`;
-  const [already] = await db
-    .select({ id: sites.id })
-    .from(sites)
-    .where(and(eq(sites.userId, user.id), eq(sites.dataRepo, dataRepoName)))
-    .limit(1);
-  if (already) {
-    return await redirectTo(`/sites/${already.id}?created=1`);
   }
 
   let result;
@@ -174,38 +148,36 @@ export async function createSiteAction(
       },
     });
   } catch (error) {
-    if (isNextControlFlowError(error)) throw error;
-    return createSiteCaughtError(error, slug);
+    const message = error instanceof Error ? error.message : String(error);
+    if (message.includes("name already exists")) {
+      return { error: actionError("repoExists", { slug }) };
+    }
+    if (message === GITHUB_USER_RECONNECT) {
+      return { error: actionError("githubReconnect") };
+    }
+    return { error: actionError("initFailed", { detail: message }) };
   }
 
-  let siteId: string;
-  try {
-    const [row] = await db
-      .insert(sites)
-      .values({
-        userId: user.id,
-        installationId: installation.id,
-        name,
-        slug,
-        description,
-        language,
-        themeName,
-        themeSource: "builtin",
-        dataRepo: result.dataRepo,
-        siteRepo: result.siteRepo,
-        url: result.url,
-        basePath: result.basePath,
-        pagesEnabled: result.pagesEnabled,
-      })
-      .returning({ id: sites.id });
-    if (!row?.id) return { error: actionError("initRecordFailed") };
-    siteId = row.id;
-  } catch (error) {
-    if (isNextControlFlowError(error)) throw error;
-    return { error: wrapCaughtError(error, "initFailed") };
-  }
+  const [row] = await db
+    .insert(sites)
+    .values({
+      userId: user.id,
+      installationId: installation.id,
+      name,
+      slug,
+      description,
+      language,
+      themeName,
+      themeSource: "builtin",
+      dataRepo: result.dataRepo,
+      siteRepo: result.siteRepo,
+      url: result.url,
+      basePath: result.basePath,
+      pagesEnabled: result.pagesEnabled,
+    })
+    .returning({ id: sites.id });
 
-  return await redirectTo(`/sites/${siteId}?created=1`);
+  return await redirectTo(`/sites/${row.id}?created=1`);
 }
 
 // ---------------------------------------------------------------------------

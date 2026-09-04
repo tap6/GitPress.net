@@ -236,40 +236,6 @@ export async function probeSiteRepos(
   return { data, site };
 }
 
-/** True when the repo has at least one commit (Git Data API usable). Empty repos are 409. */
-export async function repoHasCommits(octokit: Octokit, ref: RepoRef): Promise<boolean> {
-  try {
-    const { data: repo } = await octokit.request("GET /repos/{owner}/{repo}", { ...ref });
-    const branch = repo.default_branch || "main";
-    await octokit.request("GET /repos/{owner}/{repo}/git/ref/{ref}", {
-      ...ref,
-      ref: `heads/${branch}`,
-    });
-    return true;
-  } catch (error: unknown) {
-    const status = githubHttpStatus(error);
-    if (status === 404 || status === 409) return false;
-    throw error;
-  }
-}
-
-/** Newly created repos are often invisible to the installation token for a second or two. */
-export async function waitUntilRepoVisible(
-  octokit: Octokit,
-  fullName: string,
-  attempts = 6,
-): Promise<void> {
-  for (let attempt = 0; attempt < attempts; attempt++) {
-    const presence = await probeRepo(octokit, fullName);
-    if (presence === "ok") return;
-    if (presence === "forbidden") {
-      throw new Error(`Repository ${fullName} is forbidden to the GitHub App.`);
-    }
-    await new Promise((resolve) => setTimeout(resolve, 180 + attempt * 120));
-  }
-  throw new Error(`Repository ${fullName} is not visible to the GitHub App yet.`);
-}
-
 export function reposNeedAttention(presence: { data: RepoPresence; site: RepoPresence }): boolean {
   return (
     presence.data === "missing" ||
@@ -533,9 +499,6 @@ export interface CommitFile {
  * The Contents API is one-file-per-commit, which would fire a GitHub Actions
  * run for every image; batching means N images + the post become a single
  * `on: push` build.
- *
- * Empty repositories cannot use the Git Data API (POST /git/trees returns 409).
- * Seed the first file with the Contents API, then batch the rest.
  */
 export async function commitFiles(
   octokit: Octokit,
@@ -559,50 +522,15 @@ export async function commitFiles(
 
   const { data: repo } = await octokit.request("GET /repos/{owner}/{repo}", { ...ref });
   const branch = repo.default_branch || "main";
-
-  let parentSha: string | null = null;
-  let baseTree: string | undefined;
-  try {
-    const { data: head } = await octokit.request("GET /repos/{owner}/{repo}/git/ref/{ref}", {
-      ...ref,
-      ref: `heads/${branch}`,
-    });
-    parentSha = head.object.sha;
-    const { data: parent } = await octokit.request("GET /repos/{owner}/{repo}/git/commits/{commit_sha}", {
-      ...ref,
-      commit_sha: parentSha,
-    });
-    baseTree = parent.tree.sha;
-  } catch (error) {
-    const status = githubHttpStatus(error);
-    if (status !== 404 && status !== 409) throw error;
-  }
-
-  if (!parentSha) {
-    const first = meaningful.find((file) => !file.delete);
-    if (!first) {
-      throw new Error("Cannot delete files in an empty repository.");
-    }
-    await putFile(octokit, ref, first.path, first, message);
-    const rest = meaningful.filter((file) => file !== first);
-    if (rest.length > 0) {
-      for (let attempt = 0; attempt < 4; attempt++) {
-        try {
-          await octokit.request("GET /repos/{owner}/{repo}/git/ref/{ref}", {
-            ...ref,
-            ref: `heads/${branch}`,
-          });
-          break;
-        } catch (error) {
-          const status = githubHttpStatus(error);
-          if (status !== 404 && status !== 409) throw error;
-          await new Promise((resolve) => setTimeout(resolve, 120 + attempt * 80));
-        }
-      }
-      await commitFiles(octokit, ref, rest, message);
-    }
-    return;
-  }
+  const { data: head } = await octokit.request("GET /repos/{owner}/{repo}/git/ref/{ref}", {
+    ...ref,
+    ref: `heads/${branch}`,
+  });
+  const parentSha = head.object.sha;
+  const { data: parent } = await octokit.request("GET /repos/{owner}/{repo}/git/commits/{commit_sha}", {
+    ...ref,
+    commit_sha: parentSha,
+  });
 
   const tree = await Promise.all(
     meaningful.map(async (file) => {
@@ -632,7 +560,7 @@ export async function commitFiles(
 
   const { data: newTree } = await octokit.request("POST /repos/{owner}/{repo}/git/trees", {
     ...ref,
-    base_tree: baseTree,
+    base_tree: parent.tree.sha,
     tree,
   });
   const { data: commit } = await octokit.request("POST /repos/{owner}/{repo}/git/commits", {

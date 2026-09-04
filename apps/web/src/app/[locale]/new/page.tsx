@@ -7,8 +7,6 @@ import { noIndexMetadata } from "@/lib/seo";
 import { listUserInstallations, requireUser } from "@/lib/sites";
 import { BUILTIN_THEMES } from "@/lib/themes";
 
-export const maxDuration = 60;
-
 export async function generateMetadata() {
   const t = await getTranslations("newSite");
   return noIndexMetadata(t("metaTitle"));
@@ -59,7 +57,6 @@ export default async function NewSitePage() {
           <NewSiteForm
             installations={installations.map((installation) => ({
               id: installation.id,
-              accountLogin: installation.accountLogin,
               label: `${installation.accountLogin} (${installation.accountType === "Organization" ? t("org") : t("personal")})`,
             }))}
             themes={BUILTIN_THEMES}

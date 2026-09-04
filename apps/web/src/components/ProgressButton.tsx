@@ -31,8 +31,6 @@ interface Props {
   announceBuild?: boolean;
   /** Current form error; if set after a submit that announced a build, the banner is dismissed. */
   error?: string;
-  /** Stretch to the parent width. Default stays shrink-to-content so compact buttons are unchanged. */
-  wide?: boolean;
 }
 
 /**
@@ -51,7 +49,6 @@ export function ProgressButton({
   buildSiteId,
   announceBuild = true,
   error,
-  wide = false,
 }: Props) {
   const { pending } = useFormStatus();
   const tc = useTranslations("common");
@@ -126,7 +123,7 @@ export function ProgressButton({
   const progress = pending ? ramp + creep : 0;
 
   return (
-    <span className={wide ? "flex w-full flex-col items-stretch gap-1" : "inline-flex flex-col items-stretch gap-1"}>
+    <span className="inline-flex flex-col items-stretch gap-1">
       <button ref={buttonRef} type="submit" disabled={pending || disabled} className={className}>
         {pending
           ? `${pendingLabel ?? tc("processing")}…(${elapsedSeconds.toFixed(0)}s)`

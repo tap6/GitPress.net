@@ -5,7 +5,6 @@ import {
   getInstallationPermissionGap,
   probeSiteRepos,
   reposNeedAttention,
-  type RepoPresence,
 } from "@/lib/github";
 import { noIndexMetadata } from "@/lib/seo";
 import { requireSite } from "@/lib/sites";
@@ -24,18 +23,12 @@ export default async function AdminLayout({
 }) {
   const { siteId } = await params;
   const { site, user, installation } = await requireSite(siteId);
+  const octokit = await getInstallationOctokit(installation.installationId);
+  const [permissionGap, repoPresence] = await Promise.all([
+    getInstallationPermissionGap(installation.installationId),
+    probeSiteRepos(octokit, site.dataRepo, site.siteRepo),
+  ]);
   const t = await getTranslations();
-  let permissionGap = null;
-  let repoPresence: { data: RepoPresence; site: RepoPresence } = { data: "error", site: "error" };
-  try {
-    const octokit = await getInstallationOctokit(installation.installationId);
-    [permissionGap, repoPresence] = await Promise.all([
-      getInstallationPermissionGap(installation.installationId),
-      probeSiteRepos(octokit, site.dataRepo, site.siteRepo),
-    ]);
-  } catch (error) {
-    console.error("admin layout github", error);
-  }
 
   return (
     <SiteAdminShell
