@@ -12,6 +12,7 @@ import { PermissionUpdateBanner } from "@/components/PermissionUpdateBanner";
 import { RouteLoadingBar } from "@/components/RouteLoadingBar";
 import type { PermissionGap } from "@/lib/github";
 import { SETTINGS_SECTION_EVENT } from "@/lib/settingsSections";
+import { isSitePostPreviewPath } from "@/lib/postPreview";
 
 interface Props {
   siteId: string;
@@ -44,6 +45,7 @@ export function SiteAdminShell({
   const t = useTranslations("nav");
   const [mobileOpen, setMobileOpen] = useState(false);
   const pathname = usePathname();
+  const preview = isSitePostPreviewPath(pathname);
 
   // Tapping a nav link inside the drawer should close it once the route changes.
   useEffect(() => {
@@ -65,6 +67,18 @@ export function SiteAdminShell({
       document.body.style.overflow = previous;
     };
   }, [mobileOpen]);
+
+  if (preview) {
+    return (
+      <div className="flex min-h-screen flex-col bg-[#f7f4ef]">
+        <Suspense fallback={null}>
+          <RouteLoadingBar />
+        </Suspense>
+        {permissionGap && <PermissionUpdateBanner gap={permissionGap} />}
+        {children}
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen flex-col bg-wp-canvas lg:flex-row">

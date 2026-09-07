@@ -177,8 +177,94 @@ body {
   pointer-events: none;
 }
 
-/* RouteLoadingBar: an indeterminate sweep, since we have no real progress
-   signal for a route transition — just "something is happening". */
+.gp-preview-prose {
+  font-size: 1.0625rem;
+  line-height: 1.8;
+  color: #1c1917;
+}
+.gp-preview-prose > :first-child {
+  margin-top: 0;
+}
+.gp-preview-prose h1,
+.gp-preview-prose h2,
+.gp-preview-prose h3,
+.gp-preview-prose h4 {
+  margin: 1.6em 0 0.6em;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  line-height: 1.3;
+}
+.gp-preview-prose h1 {
+  font-size: 1.6em;
+}
+.gp-preview-prose h2 {
+  font-size: 1.35em;
+}
+.gp-preview-prose h3 {
+  font-size: 1.15em;
+}
+.gp-preview-prose p,
+.gp-preview-prose ul,
+.gp-preview-prose ol {
+  margin: 0.85em 0;
+}
+.gp-preview-prose ul,
+.gp-preview-prose ol {
+  padding-left: 1.4em;
+}
+.gp-preview-prose ul {
+  list-style: disc;
+}
+.gp-preview-prose ol {
+  list-style: decimal;
+}
+.gp-preview-prose li + li {
+  margin-top: 0.25em;
+}
+.gp-preview-prose blockquote {
+  margin: 1.2em 0;
+  border-left: 3px solid #c4b8a8;
+  padding-left: 1em;
+  color: #57534e;
+}
+.gp-preview-prose pre {
+  margin: 1.2em 0;
+  overflow-x: auto;
+  border-radius: 6px;
+  background: #1c1917;
+  color: #f5f5f4;
+  padding: 0.9em 1em;
+  font-size: 0.88em;
+}
+.gp-preview-prose code {
+  border-radius: 4px;
+  background: #efeae2;
+  padding: 0.12em 0.4em;
+  font-size: 0.9em;
+}
+.gp-preview-prose pre code {
+  background: none;
+  padding: 0;
+}
+.gp-preview-prose a {
+  color: #1d4c6e;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.gp-preview-prose img,
+.gp-preview-prose video {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 1.2em 0;
+  border-radius: 4px;
+}
+.gp-preview-prose hr {
+  margin: 2em 0;
+  border: 0;
+  border-top: 1px solid #e7e0d6;
+}
+
 @keyframes route-loading-sweep {
   0% {
     transform: translateX(-100%);

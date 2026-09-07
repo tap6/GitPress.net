@@ -40,6 +40,16 @@ export function DraftsEn() {
       </section>
 
       <section className="mt-10">
+        <h2 className="text-lg font-semibold">Console preview</h2>
+        <p className="mt-2 text-sm leading-relaxed text-neutral-600">
+          Drafts and posts that are not on the public site yet can be opened with Preview in the posts list
+          or the editor. That page is a signed-in reading view that looks like a site article. It does not
+          run your Astro theme, and strangers cannot open it. When the post is published and the public URL
+          works, the preview bar also offers Open public page.
+        </p>
+      </section>
+
+      <section className="mt-10">
         <h2 className="text-lg font-semibold">What happens after you save</h2>
         <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm leading-relaxed text-neutral-600">
           <li>The admin commits Markdown to your private data repo.</li>

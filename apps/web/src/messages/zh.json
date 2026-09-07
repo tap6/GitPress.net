@@ -856,6 +856,8 @@
     "scheduleSettings": "设置 → 定时发布",
     "saveToRepo": "保存到仓库",
     "backToList": "返回列表",
+    "previewNeedSave": "保存到仓库后即可预览",
+    "previewSavedOnly": "预览的是仓库里的版本,未保存的改动不会出现。",
     "category": "分类",
     "uncategorized": "未分类",
     "createCategory": "还没有分类,去创建一个 →",
@@ -1013,7 +1015,7 @@
     "write": "写文章",
     "savedDraft": "已保存到私有数据仓库。构建仍会跑,但这篇草稿不会出现在公开网站。",
     "saved": "已保存并提交到数据仓库,网站将在约 1 分钟后更新。",
-    "footnote": "状态只有两种:「已发布」会出现在公开站点;「草稿」会写入私有数据仓库并触发构建,但公开站点不显示。静态博客没有登录态,因此不另做「仅自己可见」的第三种状态。",
+    "footnote": "状态只有两种:「已发布」会出现在公开站点;「草稿」会写入私有数据仓库并触发构建,但公开站点不显示。想先看排版,用列表或编辑页里的「预览」(登录后的控制台阅读页,不是正式主题)。静态博客没有登录态,因此不另做「仅自己可见」的第三种状态。",
     "all": "全部 ({n})",
     "publishedN": "已发布 ({n})",
     "draftN": "草稿 · 不公开 ({n})",
@@ -1041,7 +1043,14 @@
     "published": "已发布",
     "draftTitle": "草稿写入私有仓库并会触发构建,但公开站点不显示",
     "scheduleOffQuick": "定时发布已关闭，不能选未来时间。",
-    "rss": "RSS"
+    "rss": "RSS",
+    "previewTitle": "预览文章",
+    "previewBarDraft": "草稿预览",
+    "previewBarLive": "控制台预览",
+    "previewDisclaimer": "这是控制台预览,不是公开站。排版和当前主题可能不同。",
+    "previewGoEdit": "去编辑",
+    "previewBack": "返回文章",
+    "previewPublic": "打开公开页"
   },
   "pages": {
     "title": "页面",

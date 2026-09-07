@@ -856,6 +856,8 @@
     "scheduleSettings": "Settings → Scheduled posts",
     "saveToRepo": "Save to repo",
     "backToList": "Back to list",
+    "previewNeedSave": "Save to the repo to preview",
+    "previewSavedOnly": "Preview shows the repo version. Unsaved edits stay in this editor.",
     "category": "Category",
     "uncategorized": "Uncategorized",
     "createCategory": "No categories yet. Create one →",
@@ -1013,7 +1015,7 @@
     "write": "Write",
     "savedDraft": "Saved to the private data repo. A build still runs, but this draft will not appear on the public site.",
     "saved": "Saved to the data repo. The site will update in about a minute.",
-    "footnote": "There are two statuses: Published appears on the public site; Draft writes the private data repo and starts a build, but stays off the public site. A static blog has no login, so there is no third “private to me” status.",
+    "footnote": "There are two statuses: Published appears on the public site; Draft writes the private data repo and starts a build, but stays off the public site. To check layout first, use Preview in the list or editor (a signed-in reading view, not the live theme). A static blog has no login, so there is no third “private to me” status.",
     "all": "All ({n})",
     "publishedN": "Published ({n})",
     "draftN": "Draft · not public ({n})",
@@ -1041,7 +1043,14 @@
     "published": "Published",
     "draftTitle": "Drafts write the private repo and start a build, but stay off the public site",
     "scheduleOffQuick": "Scheduled publishing is off, so you cannot pick a future time.",
-    "rss": "RSS"
+    "rss": "RSS",
+    "previewTitle": "Preview post",
+    "previewBarDraft": "Draft preview",
+    "previewBarLive": "Console preview",
+    "previewDisclaimer": "This is a console preview, not the public site. Layout may differ from your theme.",
+    "previewGoEdit": "Edit",
+    "previewBack": "Back to posts",
+    "previewPublic": "Open public page"
   },
   "pages": {
     "title": "Pages",

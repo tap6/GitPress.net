@@ -14,6 +14,7 @@ import { FormError } from "@/components/FormError";
 import { ProgressButton } from "@/components/ProgressButton";
 import type { PostSummary, SiteCategory } from "@/lib/content";
 import { formatPostDateTime, nowLocalDateTime, storedDateToInputValue } from "@/lib/postDate";
+import { postPreviewHref } from "@/lib/postPreview";
 import { onFormStampAuthorNow, useDateInputMax } from "@/lib/browserWallClock";
 
 interface Props {
@@ -370,6 +371,7 @@ function PostRow({
   const te = useTranslations("editor");
   const tc = useTranslations("common");
   const editHref = `/sites/${siteId}/posts/edit?path=${encodeURIComponent(post.path)}`;
+  const previewHref = postPreviewHref(siteId, post.path);
   const when = formatPostDateTime(post.date);
 
   return (
@@ -405,6 +407,13 @@ function PostRow({
           <div className="mt-1.5 flex flex-wrap gap-x-3 text-xs">
             <Link href={editHref} className="text-neutral-400 hover:text-wp-accent hover:underline">
               {tc("edit")}
+            </Link>
+            <Link
+              href={previewHref}
+              prefetch={false}
+              className="text-neutral-400 hover:text-wp-accent hover:underline"
+            >
+              {tc("preview")}
             </Link>
             <button
               type="button"

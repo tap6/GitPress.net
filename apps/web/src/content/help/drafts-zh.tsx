@@ -34,6 +34,14 @@ export function DraftsZh() {
       </section>
 
       <section className="mt-10">
+        <h2 className="text-lg font-semibold">控制台预览</h2>
+        <p className="mt-2 text-sm leading-relaxed text-neutral-600">
+          草稿和还没出现在公开站上的文章,可以在文章列表或编辑页点「预览」。那是登录后的阅读页,看起来像一篇网站文章,但不会套用当前
+          Astro 主题,路人也打不开。已发布且公开地址可用时,预览顶栏另有「打开公开页」。
+        </p>
+      </section>
+
+      <section className="mt-10">
         <h2 className="text-lg font-semibold">点保存之后发生了什么</h2>
         <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm leading-relaxed text-neutral-600">
           <li>后台把 Markdown 提交到你的私有数据仓库。</li>

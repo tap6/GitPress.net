@@ -16,6 +16,7 @@ import {
   type LocalDraftFields,
 } from "@/lib/localDraft";
 import { datetimeLocalValue, nowLocalDateTime, storedDateToInputValue } from "@/lib/postDate";
+import { postPreviewHref } from "@/lib/postPreview";
 import { clearPendingMedia, writePendingMedia } from "@/lib/pendingMedia";
 
 function isDesktopEditorViewport(): boolean {
@@ -375,6 +376,20 @@ export function PostEditor({
             >
               {draft ? t("saveToRepo") : path ? tc("update") : tc("publish")}
             </ProgressButton>
+            {path ? (
+              <>
+                <Link
+                  href={postPreviewHref(siteId, path)}
+                  prefetch={false}
+                  className="block rounded border border-neutral-300 px-4 py-2 text-center text-sm text-neutral-700 hover:bg-neutral-50"
+                >
+                  {tc("preview")}
+                </Link>
+                <p className="text-center text-[11px] text-neutral-400">{t("previewSavedOnly")}</p>
+              </>
+            ) : (
+              <p className="text-center text-[11px] text-neutral-400">{t("previewNeedSave")}</p>
+            )}
             <Link
               href={`/sites/${siteId}/posts`}
               className="block text-center text-xs text-neutral-400 hover:text-neutral-600"
