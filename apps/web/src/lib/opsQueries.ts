@@ -20,8 +20,20 @@ function utcDayKeys(days: number): string[] {
   return keys;
 }
 
+function asDayKey(value: unknown): string {
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    return value.toISOString().slice(0, 10);
+  }
+  const match = String(value ?? "").trim().match(/^(\d{4}-\d{2}-\d{2})/);
+  return match?.[1] ?? "";
+}
+
 function fillDailySeries(rows: { day: string; n: number | string }[], days = OPS_TREND_DAYS): OpsDayCount[] {
-  const map = new Map(rows.map((row) => [row.day, Number(row.n) || 0]));
+  const map = new Map(
+    rows
+      .map((row) => [asDayKey(row.day), Number(row.n) || 0] as const)
+      .filter((entry) => entry[0]),
+  );
   return utcDayKeys(days).map((day) => ({ day, n: map.get(day) ?? 0 }));
 }
 

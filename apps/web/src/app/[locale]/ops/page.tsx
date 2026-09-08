@@ -64,6 +64,7 @@ export default async function OpsHomePage() {
           users={stats.series.users}
           installations={stats.series.installations}
           sites={stats.series.sites}
+          empty={t("trendEmpty")}
           labels={{
             users: t("trendUsers"),
             installations: t("trendInstalls"),
@@ -195,15 +196,18 @@ function sumSeries(series: OpsDayCount[]): number {
   return series.reduce((total, row) => total + row.n, 0);
 }
 
-function barHeight(n: number, max: number): string {
-  if (n === 0) return "0";
-  return `${Math.max(8, (n / max) * 100)}%`;
+const TREND_CHART_PX = 144;
+
+function barHeightPx(n: number, max: number): number {
+  if (n <= 0) return 0;
+  return Math.max(8, Math.round((n / max) * TREND_CHART_PX));
 }
 
 function CombinedTrend({
   title,
   lead,
   utcHint,
+  empty,
   users,
   installations,
   sites,
@@ -212,6 +216,7 @@ function CombinedTrend({
   title: string;
   lead: string;
   utcHint: string;
+  empty: string;
   users: OpsDayCount[];
   installations: OpsDayCount[];
   sites: OpsDayCount[];
@@ -223,9 +228,10 @@ function CombinedTrend({
     installations: installations[index]?.n ?? 0,
     sites: sites[index]?.n ?? 0,
   }));
-  const max = Math.max(1, ...days.flatMap((row) => [row.users, row.installations, row.sites]));
+  const max = Math.max(0, ...days.flatMap((row) => [row.users, row.installations, row.sites]));
   const first = days[0]?.day;
   const last = days[days.length - 1]?.day;
+  const scale = Math.max(1, max);
 
   return (
     <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
@@ -245,21 +251,34 @@ function CombinedTrend({
           {labels.sites}
         </span>
       </div>
-      <div className="mt-3 overflow-x-auto">
-        <div className="flex h-36 min-w-[40rem] items-end gap-px">
-          {days.map((row) => (
-            <div
-              key={row.day}
-              title={`${row.day}  ${labels.users} ${row.users} · ${labels.installations} ${row.installations} · ${labels.sites} ${row.sites}`}
-              className="flex min-w-0 flex-1 items-end justify-center gap-px"
-            >
-              <div className="min-w-0 flex-1 rounded-t bg-ops-accent" style={{ height: barHeight(row.users, max) }} />
-              <div className="min-w-0 flex-1 rounded-t bg-sky-700" style={{ height: barHeight(row.installations, max) }} />
-              <div className="min-w-0 flex-1 rounded-t bg-teal-900" style={{ height: barHeight(row.sites, max) }} />
-            </div>
-          ))}
+      {max === 0 ? (
+        <p className="mt-6 text-sm text-slate-400">{empty}</p>
+      ) : (
+        <div className="mt-3 overflow-x-auto">
+          <div className="flex min-w-[40rem] items-end gap-px" style={{ height: TREND_CHART_PX }}>
+            {days.map((row) => (
+              <div
+                key={row.day}
+                title={`${row.day}  ${labels.users} ${row.users} · ${labels.installations} ${row.installations} · ${labels.sites} ${row.sites}`}
+                className="flex h-full min-w-0 flex-1 items-end justify-center gap-px"
+              >
+                <div
+                  className="min-w-0 flex-1 rounded-t bg-ops-accent"
+                  style={{ height: barHeightPx(row.users, scale) }}
+                />
+                <div
+                  className="min-w-0 flex-1 rounded-t bg-sky-700"
+                  style={{ height: barHeightPx(row.installations, scale) }}
+                />
+                <div
+                  className="min-w-0 flex-1 rounded-t bg-teal-900"
+                  style={{ height: barHeightPx(row.sites, scale) }}
+                />
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
       <p className="mt-2 text-[11px] text-slate-400">
         {first && last ? `${first} → ${last}` : null} · {utcHint}
       </p>
