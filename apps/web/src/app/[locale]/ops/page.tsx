@@ -34,26 +34,42 @@ export default async function OpsHomePage() {
           label={t("last30Users")}
           value={sumSeries(stats.series.users)}
           hint={t("last30Hint", { n: OPS_TREND_DAYS })}
-          numberLocale={numberLocale}
-        />
-        <Stat
-          label={t("last30Sites")}
-          value={sumSeries(stats.series.sites)}
-          hint={t("last30Hint", { n: OPS_TREND_DAYS })}
+          href="/ops/users"
+          swatchClass="bg-ops-accent"
           numberLocale={numberLocale}
         />
         <Stat
           label={t("last30Installs")}
           value={sumSeries(stats.series.installations)}
           hint={t("last30Hint", { n: OPS_TREND_DAYS })}
+          href="/ops/installations"
+          swatchClass="bg-sky-700"
+          numberLocale={numberLocale}
+        />
+        <Stat
+          label={t("last30Sites")}
+          value={sumSeries(stats.series.sites)}
+          hint={t("last30Hint", { n: OPS_TREND_DAYS })}
+          href="/ops/sites"
+          swatchClass="bg-teal-900"
           numberLocale={numberLocale}
         />
       </div>
 
-      <div className="mt-8 grid gap-6 lg:grid-cols-3">
-        <DayBars title={t("trendUsers")} series={stats.series.users} utcHint={t("trendUtc")} />
-        <DayBars title={t("trendSites")} series={stats.series.sites} utcHint={t("trendUtc")} />
-        <DayBars title={t("trendInstalls")} series={stats.series.installations} utcHint={t("trendUtc")} />
+      <div className="mt-8">
+        <CombinedTrend
+          title={t("trendCombined")}
+          lead={t("trendCombinedLead")}
+          utcHint={t("trendUtc")}
+          users={stats.series.users}
+          installations={stats.series.installations}
+          sites={stats.series.sites}
+          labels={{
+            users: t("trendUsers"),
+            installations: t("trendInstalls"),
+            sites: t("trendSites"),
+          }}
+        />
       </div>
       {stats.usersUnknownCreated > 0 ? (
         <p className="mt-2 text-[11px] text-slate-400">
@@ -179,30 +195,70 @@ function sumSeries(series: OpsDayCount[]): number {
   return series.reduce((total, row) => total + row.n, 0);
 }
 
-function DayBars({
+function barHeight(n: number, max: number): string {
+  if (n === 0) return "0";
+  return `${Math.max(8, (n / max) * 100)}%`;
+}
+
+function CombinedTrend({
   title,
-  series,
+  lead,
   utcHint,
+  users,
+  installations,
+  sites,
+  labels,
 }: {
   title: string;
-  series: OpsDayCount[];
+  lead: string;
   utcHint: string;
+  users: OpsDayCount[];
+  installations: OpsDayCount[];
+  sites: OpsDayCount[];
+  labels: { users: string; installations: string; sites: string };
 }) {
-  const max = Math.max(1, ...series.map((row) => row.n));
-  const first = series[0]?.day;
-  const last = series[series.length - 1]?.day;
+  const days = users.map((row, index) => ({
+    day: row.day,
+    users: row.n,
+    installations: installations[index]?.n ?? 0,
+    sites: sites[index]?.n ?? 0,
+  }));
+  const max = Math.max(1, ...days.flatMap((row) => [row.users, row.installations, row.sites]));
+  const first = days[0]?.day;
+  const last = days[days.length - 1]?.day;
+
   return (
     <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
       <h2 className="text-sm font-semibold text-slate-800">{title}</h2>
-      <div className="mt-3 flex h-24 items-end gap-px">
-        {series.map((row) => (
-          <div
-            key={row.day}
-            title={`${row.day} ${row.n}`}
-            className="min-w-0 flex-1 rounded-t bg-ops-accent/80"
-            style={{ height: row.n === 0 ? 0 : `${Math.max(6, (row.n / max) * 100)}%` }}
-          />
-        ))}
+      <p className="mt-1 text-xs text-slate-400">{lead}</p>
+      <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-slate-500">
+        <span className="inline-flex items-center gap-1.5">
+          <span className="h-2 w-2 rounded-sm bg-ops-accent" />
+          {labels.users}
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <span className="h-2 w-2 rounded-sm bg-sky-700" />
+          {labels.installations}
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <span className="h-2 w-2 rounded-sm bg-teal-900" />
+          {labels.sites}
+        </span>
+      </div>
+      <div className="mt-3 overflow-x-auto">
+        <div className="flex h-36 min-w-[40rem] items-end gap-px">
+          {days.map((row) => (
+            <div
+              key={row.day}
+              title={`${row.day}  ${labels.users} ${row.users} · ${labels.installations} ${row.installations} · ${labels.sites} ${row.sites}`}
+              className="flex min-w-0 flex-1 items-end justify-center gap-px"
+            >
+              <div className="min-w-0 flex-1 rounded-t bg-ops-accent" style={{ height: barHeight(row.users, max) }} />
+              <div className="min-w-0 flex-1 rounded-t bg-sky-700" style={{ height: barHeight(row.installations, max) }} />
+              <div className="min-w-0 flex-1 rounded-t bg-teal-900" style={{ height: barHeight(row.sites, max) }} />
+            </div>
+          ))}
+        </div>
       </div>
       <p className="mt-2 text-[11px] text-slate-400">
         {first && last ? `${first} → ${last}` : null} · {utcHint}
@@ -268,16 +324,19 @@ function Stat({
   value,
   href,
   hint,
+  swatchClass,
   numberLocale,
 }: {
   label: string;
   value: number;
   href?: string;
   hint?: string;
+  swatchClass?: string;
   numberLocale: string;
 }) {
   const inner = (
     <>
+      {swatchClass ? <span className={`mb-2 inline-block h-1.5 w-6 rounded ${swatchClass}`} /> : null}
       <p className="text-xs font-medium uppercase tracking-wide text-slate-500">{label}</p>
       <p className="mt-1 text-2xl font-semibold tabular-nums text-slate-900">{value.toLocaleString(numberLocale)}</p>
       {hint ? <p className="mt-1 text-[11px] text-slate-400">{hint}</p> : null}

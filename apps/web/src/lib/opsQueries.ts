@@ -186,6 +186,8 @@ export async function getOpsOverview() {
   };
 }
 
+const userListOrder = [sql`${users.createdAt} DESC NULLS LAST`, users.email] as const;
+
 export async function listOpsUsers(q?: string) {
   const query = sanitizeSearch(q);
   const userRows = query
@@ -193,9 +195,9 @@ export async function listOpsUsers(q?: string) {
         .select()
         .from(users)
         .where(or(ilike(users.email, `%${query}%`), ilike(users.name, `%${query}%`)))
-        .orderBy(users.email)
+        .orderBy(...userListOrder)
         .limit(LIST_CAP)
-    : await db.select().from(users).orderBy(users.email).limit(LIST_CAP);
+    : await db.select().from(users).orderBy(...userListOrder).limit(LIST_CAP);
 
   const counts = await db.select({ userId: sites.userId, n: count() }).from(sites).groupBy(sites.userId);
   const countMap = new Map(counts.map((row) => [row.userId, row.n]));
