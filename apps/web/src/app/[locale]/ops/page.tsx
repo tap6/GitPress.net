@@ -1,6 +1,6 @@
 import { Link } from "@/i18n/navigation";
 import { formatOpsDate, githubRepoHref } from "@/lib/ops";
-import { getOpsOverview } from "@/lib/opsQueries";
+import { OPS_TREND_DAYS, getOpsOverview, type OpsDayCount } from "@/lib/opsQueries";
 import { BUILTIN_THEMES } from "@/lib/themes";
 import { getLocale, getTranslations } from "next-intl/server";
 
@@ -27,6 +27,64 @@ export default async function OpsHomePage() {
         <Stat label={t("aiConfigured")} value={stats.aiConfigured} hint={t("aiHint")} numberLocale={numberLocale} />
         <Stat label={t("themesListed")} value={stats.themesListed} href="/ops/themes" numberLocale={numberLocale} />
         <Stat label={t("builtinThemes")} value={BUILTIN_THEMES.length} numberLocale={numberLocale} />
+      </div>
+
+      <div className="mt-3 grid gap-3 sm:grid-cols-3">
+        <Stat
+          label={t("last30Users")}
+          value={sumSeries(stats.series.users)}
+          hint={t("last30Hint", { n: OPS_TREND_DAYS })}
+          numberLocale={numberLocale}
+        />
+        <Stat
+          label={t("last30Sites")}
+          value={sumSeries(stats.series.sites)}
+          hint={t("last30Hint", { n: OPS_TREND_DAYS })}
+          numberLocale={numberLocale}
+        />
+        <Stat
+          label={t("last30Installs")}
+          value={sumSeries(stats.series.installations)}
+          hint={t("last30Hint", { n: OPS_TREND_DAYS })}
+          numberLocale={numberLocale}
+        />
+      </div>
+
+      <div className="mt-8 grid gap-6 lg:grid-cols-3">
+        <DayBars title={t("trendUsers")} series={stats.series.users} utcHint={t("trendUtc")} />
+        <DayBars title={t("trendSites")} series={stats.series.sites} utcHint={t("trendUtc")} />
+        <DayBars title={t("trendInstalls")} series={stats.series.installations} utcHint={t("trendUtc")} />
+      </div>
+      {stats.usersUnknownCreated > 0 ? (
+        <p className="mt-2 text-[11px] text-slate-400">
+          {t("usersUnknownCreated", { n: stats.usersUnknownCreated })}
+        </p>
+      ) : null}
+
+      <div className="mt-8 grid gap-6 lg:grid-cols-2">
+        <Funnel
+          title={t("funnelTitle")}
+          lead={t("funnelLead")}
+          numberLocale={numberLocale}
+          steps={[
+            { label: t("funnelUsers"), n: stats.funnel.users },
+            { label: t("funnelGithub"), n: stats.funnel.usersWithGithub },
+            { label: t("funnelHasSite"), n: stats.funnel.usersWithSite },
+            { label: t("funnelSites"), n: stats.funnel.sites },
+            { label: t("funnelPagesOn"), n: stats.funnel.sitesPagesOn },
+            { label: t("funnelHasUrl"), n: stats.funnel.sitesWithUrl },
+          ]}
+        />
+        <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+          <h2 className="text-sm font-semibold text-slate-800">{t("stuckTitle")}</h2>
+          <p className="mt-1 text-xs text-slate-400">{t("stuckLead")}</p>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <StuckStat href="/ops/users" label={t("stuckNoGithub")} value={stats.stuck.usersNoGithub} numberLocale={numberLocale} />
+            <StuckStat href="/ops/installations" label={t("stuckInstallNoSite")} value={stats.stuck.installsNoSite} numberLocale={numberLocale} />
+            <StuckStat href="/ops/sites" label={t("stuckPagesOff")} value={stats.stuck.sitesPagesOff} numberLocale={numberLocale} />
+            <StuckStat href="/ops/sites" label={t("stuckNoUrl")} value={stats.stuck.sitesNoUrl} numberLocale={numberLocale} />
+          </div>
+        </div>
       </div>
 
       <div className="mt-8 grid gap-6 lg:grid-cols-3">
@@ -85,7 +143,7 @@ export default async function OpsHomePage() {
                       </span>
                     </td>
                     <td className="whitespace-nowrap px-4 py-2.5 text-xs text-slate-500">
-                      {formatOpsDate(site.createdAt)}
+                      {formatOpsDate(site.createdAt, locale)}
                     </td>
                     <td className="px-4 py-2.5 text-xs">
                       <div className="flex flex-col gap-1">
@@ -114,6 +172,94 @@ export default async function OpsHomePage() {
         </div>
       </section>
     </div>
+  );
+}
+
+function sumSeries(series: OpsDayCount[]): number {
+  return series.reduce((total, row) => total + row.n, 0);
+}
+
+function DayBars({
+  title,
+  series,
+  utcHint,
+}: {
+  title: string;
+  series: OpsDayCount[];
+  utcHint: string;
+}) {
+  const max = Math.max(1, ...series.map((row) => row.n));
+  const first = series[0]?.day;
+  const last = series[series.length - 1]?.day;
+  return (
+    <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+      <h2 className="text-sm font-semibold text-slate-800">{title}</h2>
+      <div className="mt-3 flex h-24 items-end gap-px">
+        {series.map((row) => (
+          <div
+            key={row.day}
+            title={`${row.day} ${row.n}`}
+            className="min-w-0 flex-1 rounded-t bg-ops-accent/80"
+            style={{ height: row.n === 0 ? 0 : `${Math.max(6, (row.n / max) * 100)}%` }}
+          />
+        ))}
+      </div>
+      <p className="mt-2 text-[11px] text-slate-400">
+        {first && last ? `${first} → ${last}` : null} · {utcHint}
+      </p>
+    </div>
+  );
+}
+
+function Funnel({
+  title,
+  lead,
+  steps,
+  numberLocale,
+}: {
+  title: string;
+  lead: string;
+  steps: { label: string; n: number }[];
+  numberLocale: string;
+}) {
+  const max = Math.max(1, ...steps.map((step) => step.n));
+  return (
+    <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+      <h2 className="text-sm font-semibold text-slate-800">{title}</h2>
+      <p className="mt-1 text-xs text-slate-400">{lead}</p>
+      <ul className="mt-4 space-y-3">
+        {steps.map((step) => (
+          <li key={step.label}>
+            <div className="flex justify-between gap-3 text-sm">
+              <span className="text-slate-600">{step.label}</span>
+              <span className="tabular-nums text-slate-900">{step.n.toLocaleString(numberLocale)}</span>
+            </div>
+            <div className="mt-1 h-1.5 overflow-hidden rounded bg-slate-100">
+              <div className="h-full rounded bg-ops-accent" style={{ width: `${(step.n / max) * 100}%` }} />
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function StuckStat({
+  label,
+  value,
+  href,
+  numberLocale,
+}: {
+  label: string;
+  value: number;
+  href: string;
+  numberLocale: string;
+}) {
+  return (
+    <Link href={href} className="rounded-md border border-slate-100 bg-slate-50 px-3 py-2 hover:border-ops-accent">
+      <p className="text-xs text-slate-500">{label}</p>
+      <p className="mt-0.5 text-lg font-semibold tabular-nums text-slate-900">{value.toLocaleString(numberLocale)}</p>
+    </Link>
   );
 }
 

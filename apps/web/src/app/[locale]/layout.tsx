@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Analytics } from "@vercel/analytics/next";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages, getTranslations, setRequestLocale } from "next-intl/server";
 import { hasLocale } from "next-intl";
@@ -77,6 +78,7 @@ export default async function LocaleLayout({
     <html lang={htmlLang(locale)}>
       <body className="antialiased">
         <NextIntlClientProvider messages={messages}>{children}</NextIntlClientProvider>
+        <Analytics />
       </body>
     </html>
   );

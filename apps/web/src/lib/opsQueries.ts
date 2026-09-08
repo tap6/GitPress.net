@@ -1,78 +1,188 @@
-import { count, desc, eq, ilike, or, sql } from "drizzle-orm";
+import { and, count, desc, eq, gte, ilike, isNotNull, isNull, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { aiSettings, githubInstallations, sites, themeListings, users } from "@/db/schema";
 
 const LIST_CAP = 300;
+export const OPS_TREND_DAYS = 30;
+
+export type OpsDayCount = { day: string; n: number };
+
+function utcDayStart(daysAgo: number): Date {
+  const now = new Date();
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - daysAgo));
+}
+
+function utcDayKeys(days: number): string[] {
+  const keys: string[] = [];
+  for (let ago = days - 1; ago >= 0; ago -= 1) {
+    keys.push(utcDayStart(ago).toISOString().slice(0, 10));
+  }
+  return keys;
+}
+
+function fillDailySeries(rows: { day: string; n: number | string }[], days = OPS_TREND_DAYS): OpsDayCount[] {
+  const map = new Map(rows.map((row) => [row.day, Number(row.n) || 0]));
+  return utcDayKeys(days).map((day) => ({ day, n: map.get(day) ?? 0 }));
+}
+
+function asCount(value: unknown): number {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : 0;
+}
 
 function sanitizeSearch(raw?: string): string {
   return (raw ?? "").trim().slice(0, 80).replace(/[%_\\]/g, "");
 }
 
 export async function getOpsOverview() {
-  const [userRow] = await db.select({ value: count() }).from(users);
-  const [siteRow] = await db.select({ value: count() }).from(sites);
-  const [installRow] = await db.select({ value: count() }).from(githubInstallations);
-  const [aiRow] = await db.select({ value: count() }).from(aiSettings);
-  const [listedRow] = await db
-    .select({ value: count() })
-    .from(themeListings)
-    .where(eq(themeListings.status, "listed"));
-  const [hiddenRow] = await db
-    .select({ value: count() })
-    .from(themeListings)
-    .where(eq(themeListings.status, "hidden"));
+  const since = utcDayStart(OPS_TREND_DAYS - 1);
 
-  const byTheme = await db
-    .select({ key: sites.themeName, n: count() })
-    .from(sites)
-    .groupBy(sites.themeName)
-    .orderBy(desc(count()));
-
-  const byLanguage = await db
-    .select({ key: sites.language, n: count() })
-    .from(sites)
-    .groupBy(sites.language)
-    .orderBy(desc(count()));
-
-  const bySourceKind = await db
-    .select({
-      key: sql<string>`case when ${sites.themeSource} = 'builtin' then 'builtin' else 'imported' end`,
-      n: count(),
-    })
-    .from(sites)
-    .groupBy(sql`case when ${sites.themeSource} = 'builtin' then 'builtin' else 'imported' end`);
-
-  const recentSites = await db
-    .select({
-      id: sites.id,
-      name: sites.name,
-      slug: sites.slug,
-      url: sites.url,
-      themeName: sites.themeName,
-      themeSource: sites.themeSource,
-      dataRepo: sites.dataRepo,
-      siteRepo: sites.siteRepo,
-      pagesEnabled: sites.pagesEnabled,
-      createdAt: sites.createdAt,
-      ownerEmail: users.email,
-      ownerName: users.name,
-    })
-    .from(sites)
-    .leftJoin(users, eq(users.id, sites.userId))
-    .orderBy(desc(sites.createdAt))
-    .limit(12);
-
-  return {
-    users: userRow?.value ?? 0,
-    sites: siteRow?.value ?? 0,
-    installations: installRow?.value ?? 0,
-    aiConfigured: aiRow?.value ?? 0,
-    themesListed: listedRow?.value ?? 0,
-    themesHidden: hiddenRow?.value ?? 0,
+  const [
+    [userRow],
+    [siteRow],
+    [installRow],
+    [aiRow],
+    [listedRow],
+    [hiddenRow],
     byTheme,
     byLanguage,
     bySourceKind,
     recentSites,
+    siteDayRows,
+    installDayRows,
+    userDayRows,
+    [usersUnknownCreated],
+    [usersWithGithub],
+    [usersWithSite],
+    [usersNoGithub],
+    [installsNoSite],
+    [sitesPagesOff],
+    [sitesNoUrl],
+    [sitesPagesOn],
+    [sitesWithUrl],
+  ] = await Promise.all([
+    db.select({ value: count() }).from(users),
+    db.select({ value: count() }).from(sites),
+    db.select({ value: count() }).from(githubInstallations),
+    db.select({ value: count() }).from(aiSettings),
+    db.select({ value: count() }).from(themeListings).where(eq(themeListings.status, "listed")),
+    db.select({ value: count() }).from(themeListings).where(eq(themeListings.status, "hidden")),
+    db
+      .select({ key: sites.themeName, n: count() })
+      .from(sites)
+      .groupBy(sites.themeName)
+      .orderBy(desc(count())),
+    db
+      .select({ key: sites.language, n: count() })
+      .from(sites)
+      .groupBy(sites.language)
+      .orderBy(desc(count())),
+    db
+      .select({
+        key: sql<string>`case when ${sites.themeSource} = 'builtin' then 'builtin' else 'imported' end`,
+        n: count(),
+      })
+      .from(sites)
+      .groupBy(sql`case when ${sites.themeSource} = 'builtin' then 'builtin' else 'imported' end`),
+    db
+      .select({
+        id: sites.id,
+        name: sites.name,
+        slug: sites.slug,
+        url: sites.url,
+        themeName: sites.themeName,
+        themeSource: sites.themeSource,
+        dataRepo: sites.dataRepo,
+        siteRepo: sites.siteRepo,
+        pagesEnabled: sites.pagesEnabled,
+        createdAt: sites.createdAt,
+        ownerEmail: users.email,
+        ownerName: users.name,
+      })
+      .from(sites)
+      .leftJoin(users, eq(users.id, sites.userId))
+      .orderBy(desc(sites.createdAt))
+      .limit(12),
+    db
+      .select({
+        day: sql<string>`to_char(date_trunc('day', ${sites.createdAt}), 'YYYY-MM-DD')`,
+        n: sql<number>`count(*)::int`,
+      })
+      .from(sites)
+      .where(gte(sites.createdAt, since))
+      .groupBy(sql`date_trunc('day', ${sites.createdAt})`),
+    db
+      .select({
+        day: sql<string>`to_char(date_trunc('day', ${githubInstallations.createdAt}), 'YYYY-MM-DD')`,
+        n: sql<number>`count(*)::int`,
+      })
+      .from(githubInstallations)
+      .where(gte(githubInstallations.createdAt, since))
+      .groupBy(sql`date_trunc('day', ${githubInstallations.createdAt})`),
+    db
+      .select({
+        day: sql<string>`to_char(date_trunc('day', ${users.createdAt}), 'YYYY-MM-DD')`,
+        n: sql<number>`count(*)::int`,
+      })
+      .from(users)
+      .where(and(isNotNull(users.createdAt), gte(users.createdAt, since)))
+      .groupBy(sql`date_trunc('day', ${users.createdAt})`),
+    db.select({ value: count() }).from(users).where(isNull(users.createdAt)),
+    db
+      .select({ value: sql<number>`count(distinct ${githubInstallations.userId})::int` })
+      .from(githubInstallations),
+    db.select({ value: sql<number>`count(distinct ${sites.userId})::int` }).from(sites),
+    db
+      .select({ value: count() })
+      .from(users)
+      .where(sql`not exists (select 1 from github_installation gi where gi.user_id = ${users.id})`),
+    db
+      .select({ value: count() })
+      .from(githubInstallations)
+      .where(sql`not exists (select 1 from site s where s.installation_fk = ${githubInstallations.id})`),
+    db.select({ value: count() }).from(sites).where(eq(sites.pagesEnabled, false)),
+    db.select({ value: count() }).from(sites).where(or(isNull(sites.url), eq(sites.url, ""))),
+    db.select({ value: count() }).from(sites).where(eq(sites.pagesEnabled, true)),
+    db
+      .select({ value: count() })
+      .from(sites)
+      .where(and(isNotNull(sites.url), sql`${sites.url} <> ''`)),
+  ]);
+
+  const usersTotal = asCount(userRow?.value);
+  const sitesTotal = asCount(siteRow?.value);
+
+  return {
+    users: usersTotal,
+    sites: sitesTotal,
+    installations: asCount(installRow?.value),
+    aiConfigured: asCount(aiRow?.value),
+    themesListed: asCount(listedRow?.value),
+    themesHidden: asCount(hiddenRow?.value),
+    byTheme,
+    byLanguage,
+    bySourceKind,
+    recentSites,
+    usersUnknownCreated: asCount(usersUnknownCreated?.value),
+    series: {
+      users: fillDailySeries(userDayRows),
+      sites: fillDailySeries(siteDayRows),
+      installations: fillDailySeries(installDayRows),
+    },
+    funnel: {
+      users: usersTotal,
+      usersWithGithub: asCount(usersWithGithub?.value),
+      usersWithSite: asCount(usersWithSite?.value),
+      sites: sitesTotal,
+      sitesPagesOn: asCount(sitesPagesOn?.value),
+      sitesWithUrl: asCount(sitesWithUrl?.value),
+    },
+    stuck: {
+      usersNoGithub: asCount(usersNoGithub?.value),
+      installsNoSite: asCount(installsNoSite?.value),
+      sitesPagesOff: asCount(sitesPagesOff?.value),
+      sitesNoUrl: asCount(sitesNoUrl?.value),
+    },
   };
 }
 

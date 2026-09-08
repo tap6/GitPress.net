@@ -21,6 +21,7 @@
     "@tiptap/markdown": "^3.30.5",
     "@tiptap/react": "^3.30.5",
     "@tiptap/starter-kit": "^3.30.5",
+    "@vercel/analytics": "^2.0.1",
     "blakejs": "^1.2.1",
     "drizzle-orm": "^0.44.0",
     "gray-matter": "^4.0.3",

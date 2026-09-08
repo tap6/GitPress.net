@@ -30,6 +30,12 @@ export const users = pgTable("user", {
   role: text("role").$type<"ops" | null>(),
   /** Product UI locale (`zh` | `en`). Independent of each site's `language`. */
   preferredLocale: text("preferred_locale"),
+  /**
+   * When the account first appeared. Auth.js has no createdAt; new rows get
+   * `now()` from a Postgres default. Existing rows are backfilled from the
+   * earliest site or GitHub install when those exist.
+   */
+  createdAt: timestamp("created_at", { mode: "date" }),
 });
 
 export const accounts = pgTable(

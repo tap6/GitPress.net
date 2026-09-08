@@ -1,8 +1,8 @@
 import { OpsSearch } from "@/components/OpsSearch";
-import { emailIsOpsAllowlisted } from "@/lib/ops";
+import { formatOpsDate, emailIsOpsAllowlisted } from "@/lib/ops";
 import { setUserOpsRoleAction } from "@/lib/opsActions";
 import { listOpsUsers } from "@/lib/opsQueries";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 
 export async function generateMetadata() {
   const t = await getTranslations("ops");
@@ -16,6 +16,7 @@ export default async function OpsUsersPage({
 }) {
   const { q } = await searchParams;
   const t = await getTranslations("ops");
+  const locale = await getLocale();
   const rows = await listOpsUsers(q);
 
   return (
@@ -31,6 +32,7 @@ export default async function OpsUsersPage({
           <thead className="border-b border-slate-100 text-xs uppercase tracking-wide text-slate-500">
             <tr>
               <th className="px-4 py-2 font-medium">{t("colAccount")}</th>
+              <th className="px-4 py-2 font-medium">{t("colCreated")}</th>
               <th className="px-4 py-2 font-medium">{t("colSites")}</th>
               <th className="px-4 py-2 font-medium">{t("colAi")}</th>
               <th className="px-4 py-2 font-medium">{t("colOps")}</th>
@@ -40,7 +42,7 @@ export default async function OpsUsersPage({
           <tbody>
             {rows.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-slate-400">
+                <td colSpan={6} className="px-4 py-8 text-center text-slate-400">
                   {t("noUsers")}
                 </td>
               </tr>
@@ -56,6 +58,9 @@ export default async function OpsUsersPage({
                       <p className="mt-0.5 font-mono text-[11px] text-slate-400" title={user.id}>
                         {user.id}
                       </p>
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-2.5 text-xs text-slate-500">
+                      {formatOpsDate(user.createdAt, locale)}
                     </td>
                     <td className="px-4 py-2.5 tabular-nums">{user.siteCount}</td>
                     <td className="px-4 py-2.5">{user.hasAi ? t("aiYes") : "—"}</td>

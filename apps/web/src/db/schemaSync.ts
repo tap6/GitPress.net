@@ -164,4 +164,43 @@ export async function syncSchemaAdditive(client: Sql): Promise<void> {
       );
     }
   }
+
+  await backfillUserCreatedAt(client);
+}
+
+/** Infer account age from the earliest linked site or GitHub install; do not stamp "now". */
+async function backfillUserCreatedAt(client: Sql): Promise<void> {
+  const tables = await client<{ table_name: string }[]>`
+    select table_name from information_schema.tables
+    where table_schema = 'public'
+      and table_name in ('user', 'github_installation', 'site')
+  `;
+  const have = new Set(tables.map((row) => row.table_name));
+  if (!have.has("user")) return;
+
+  const userCols = await client<{ column_name: string }[]>`
+    select column_name from information_schema.columns
+    where table_schema = 'public' and table_name = 'user' and column_name = 'created_at'
+  `;
+  if (userCols.length === 0) return;
+
+  if (have.has("github_installation") && have.has("site")) {
+    await client.unsafe(`
+      UPDATE "user" AS u
+      SET created_at = src.inferred
+      FROM (
+        SELECT user_id, MIN(created_at) AS inferred
+        FROM (
+          SELECT user_id, created_at FROM github_installation
+          UNION ALL
+          SELECT user_id, created_at FROM site
+        ) t
+        GROUP BY user_id
+      ) AS src
+      WHERE u.id = src.user_id
+        AND u.created_at IS NULL
+    `);
+  }
+
+  await client.unsafe(`ALTER TABLE "user" ALTER COLUMN created_at SET DEFAULT now()`);
 }

@@ -59,6 +59,11 @@ export function PrivacyZh() {
               title="可选：你自己的 AI 密钥"
               body="只有你填了才存。加密存放，数据库里看不到明文。"
             />
+            <KeepItem
+              icon={<IconCloud />}
+              title="gitpress.net 自己的访问量"
+              body="部署在 Vercel 时，用 Web Analytics 看官网和后台打开了多少次。仓库里没有统计密钥。读者打开你的博客不经过 gitpress.net，也不会算进这里。"
+            />
           </ul>
         </section>
 

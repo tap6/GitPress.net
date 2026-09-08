@@ -2,7 +2,7 @@ export function AnalyticsZh() {
   return (
     <>
       <p className="mt-4 leading-relaxed text-neutral-500">
-        GitPress 不内置访客统计,也不把浏览记录存在自己的数据库里。你在侧栏「统计」里接入第三方,数字去对方后台看。
+        你的公开站没有内置访客统计,GitPress 也不把博客浏览记录存在自己的数据库里。你在侧栏「统计」里接入第三方,数字去对方后台看。
       </p>
 
       <section className="mt-10">
@@ -71,7 +71,8 @@ export function AnalyticsZh() {
         <h2 className="text-lg font-semibold">和 GitPress 宕机的关系</h2>
         <p className="mt-2 text-sm leading-relaxed text-neutral-600">
           统计脚本在你已经发布的网站上自行向第三方上报。关掉统计并重新构建后,站点不再请求这些第三方。
-          gitpress.net 本身不参与浏览计数;它挂了,已上线的博客照常访问。
+          gitpress.net 不替你的博客计数;它挂了,已上线的博客照常访问。gitpress.net
+          自己的打开次数,只在用 Vercel 部署这份应用时进入该项目的 Web Analytics,和公开站上的第三方统计无关。
         </p>
       </section>
     </>

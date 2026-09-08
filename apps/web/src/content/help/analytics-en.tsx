@@ -2,8 +2,9 @@ export function AnalyticsEn() {
   return (
     <>
       <p className="mt-4 leading-relaxed text-neutral-500">
-        GitPress has no built-in visitor stats, and it does not store page views in its own database. You
-        connect a third party under Analytics in the sidebar; the numbers live in that vendor’s dashboard.
+        Your public site has no built-in visitor stats, and GitPress does not store blog page views in its
+        own database. You connect a third party under Analytics in the sidebar; the numbers live in that
+        vendor’s dashboard.
       </p>
 
       <section className="mt-10">
@@ -73,8 +74,10 @@ export function AnalyticsEn() {
         <h2 className="text-lg font-semibold">If GitPress is down</h2>
         <p className="mt-2 text-sm leading-relaxed text-neutral-600">
           Analytics scripts on your already-published site report to the third party on their own. After
-          you turn analytics off and rebuild, the site stops calling those vendors. gitpress.net itself
-          does not count visits; if it is down, the live blog still opens.
+          you turn analytics off and rebuild, the site stops calling those vendors. gitpress.net does not
+          count visits to your blog; if it is down, the live blog still opens. Opens of gitpress.net
+          itself are sent to Web Analytics only when this app is deployed on Vercel, and that is separate
+          from the third-party stats on your public site.
         </p>
       </section>
     </>

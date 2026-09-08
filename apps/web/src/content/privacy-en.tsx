@@ -70,6 +70,11 @@ export function PrivacyEn() {
               title="Optional: your own AI key"
               body="Stored only if you fill it in. Encrypted; the database never has plaintext."
             />
+            <KeepItem
+              icon={<IconCloud />}
+              title="Visits to gitpress.net itself"
+              body="When this app is deployed on Vercel, Web Analytics counts opens of the marketing site and admin. There is no analytics key in the repo. Readers of your blog do not go through gitpress.net, and those views are not counted here."
+            />
           </ul>
         </section>
 
