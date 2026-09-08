@@ -548,6 +548,7 @@
     "trendCombined": "近 30 日对照",
     "trendCombinedLead": "每天三根柱：用户、GitHub 安装、站点。多数日子会很接近；看有缺口的天。点上方数字进列表。",
     "trendEmpty": "这 30 天里没有新的用户、安装或站点。更早的开通仍在下面的列表里。",
+    "trendHoverHint": "把指针放到某一天上，会显示当天的用户、安装、站点数量。",
     "trendUtc": "UTC",
     "usersUnknownCreated": "{n} 个账号没有可推断的开通时间，未计入用户趋势。",
     "funnelTitle": "接入漏斗",

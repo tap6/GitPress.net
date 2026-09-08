@@ -548,6 +548,7 @@
     "trendCombined": "Last 30 days, side by side",
     "trendCombinedLead": "Three bars per UTC day: users, GitHub installs, sites. Most days look alike; watch the gaps. Numbers above open the lists.",
     "trendEmpty": "Nothing new in these 30 days. Older accounts and sites still appear in the lists below.",
+    "trendHoverHint": "Point at a day to see users, installs, and sites for that date.",
     "trendUtc": "UTC",
     "usersUnknownCreated": "{n} accounts have no inferable created-at and are omitted from the user trend.",
     "funnelTitle": "Activation funnel",
